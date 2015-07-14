@@ -318,4 +318,16 @@ module ApplicationHelper
     end
     return link
   end
+
+  def hbx_poh(options = {})
+    trigger = options[:trigger].blank? ? 'click' : options[:trigger]
+    popover = "<div class='inner-addon right-addon floatlabel-wrapper'>
+      <button type='button' class='button-click' data-toggle='popover' title='#{options[:title]}'
+          data-content='#{options[:content]}' data-placement='top' data-trigger='#{trigger}'>
+        <i class='glyphicon glyphicon-info-sign'></i>
+      </button>
+    </div>"
+
+    return popover.html_safe
+  end
 end
