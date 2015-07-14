@@ -28,6 +28,46 @@
 
           <%= render "shared/plan_year_fields", f: f %>
           <h3>Benefit Groups</h3>
+
+          <!-- Popover Tests -->
+          <div class="row row row-form-wrapper row-form-wrapper-top no-buffer">
+            <div class="col-md-6 col-sm-6 col-xs-12 form-group form-group-lg no-pd">
+              <div class="inner-addon right-addon floatlabel-wrapper">
+                <%= text_field_tag 'text_title', nil, class: "floatlabel form-control", placeholder: 'TEST FIELD' %>
+                <button type="button" class="button-click" data-toggle="popover" title="Text Field Popover"
+                    data-content="Test Field Popover content that triggers on hover." data-placement="top" data-trigger="hover">
+                  <i class="glyphicon glyphicon-info-sign"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-6 col-sm-6 col-xs-12 form-group form-group-lg no-pd">
+              <div class="inner-addon right-addon">
+                <select>
+                  <option>Select Option</option>
+                  <option>Option 1</option>
+                  <option>Option 2</option>
+                </select>
+                <button type="button" class="button-click" data-toggle="popover" title="Selectbox Popover"
+                    data-content="Select Box Popover that triggers on mouse click." data-placement="top">
+                  <i class="glyphicon glyphicon-info-sign"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+            <!-- <div class="col-md-12">
+              <div class="inner-addon right-addon">
+                  <input type="text" class="form-control" />
+                  <button type="button" class="button-click" data-toggle="popover" title="Popover title" data-content="And here's some amazing content. It's very engaging. Right?">
+                    <i class="glyphicon glyphicon-info-sign"></i>
+                  </button>
+              </div>
+            </div>
+          </div> -->
+          <!-- ************* -->
+
+
           <div class='form-inputs'>
             <a href="#" data-href="<%= search_reference_plan_employers_employer_profile_plan_years_path %>" id='search_reference_plan_link' style='display:none;'></a>
             <%= f.fields_for :benefit_groups, errors: {}, fieldset: false do |bg|  %>
