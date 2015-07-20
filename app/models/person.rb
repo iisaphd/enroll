@@ -22,7 +22,7 @@ class Person
   field :alternate_name, type: String
 
   # Sub-model in-common attributes
-  field :ssn, type: String
+  field :encrypted_ssn, type: String
   field :dob, type: Date
   field :gender, type: String
   field :date_of_death, type: Date
@@ -72,8 +72,9 @@ class Person
   validates :ssn,
     length: { minimum: 9, maximum: 9, message: "SSN must be 9 digits" },
     numericality: true,
-    uniqueness: true,
     allow_blank: true
+
+  validates :encrypted_ssn, uniqueness: true, :if => Proc.new { |r| !r.encrypted_ssn.blank? }
 
   validates :gender,
     allow_blank: true,
@@ -93,7 +94,7 @@ class Person
   index({last_name: 1, first_name: 1})
   index({first_name: 1, last_name: 1})
 
-  index({ssn: 1}, {sparse: true, unique: true})
+  index({encrypted_ssn: 1}, {sparse: true, unique: true})
   index({dob: 1}, {sparse: true})
 
   index({last_name: 1, dob: 1}, {sparse: true})
@@ -138,34 +139,69 @@ class Person
 
   after_save :update_family_search_collection
 
+  after_validation :move_encrypted_ssn_errors
+
+  def move_encrypted_ssn_errors
+    deleted_messages = errors.delete(:encrypted_ssn)
+    if !deleted_messages.blank?
+      deleted_messages.each do |dm|
+        errors.add(:ssn, dm)
+      end
+    end
+    true
+  end
+
   def update_family_search_collection
   #  ViewFunctions::Person.run_after_save_search_update(self.id)
   end
 
   def generate_hbx_id
-
     if hbx_id.blank?
       write_attribute(:hbx_id, HbxIdGenerator.generate)
     end
   end
 
   def strip_empty_fields
-    if ssn.blank?
-      unset_sparse("ssn")
+    if encrypted_ssn.blank?
+      unset_sparse("encrypted_ssn")
     end
     if user_id.blank?
       unset_sparse("user_id")
     end
   end
 
+  def ssn_changed?
+    encrypted_ssn_changed?
+  end
+
+  def self.encrypt_ssn(val)
+    if val.blank?
+      return nil
+    end
+    ssn_val = val.to_s.gsub(/\D/, '')
+    SymmetricEncryption.encrypt(ssn_val)
+  end
+
+  def self.decrypt_ssn(val)
+    SymmetricEncryption.decrypt(val)
+  end
+
   # Strip non-numeric chars from ssn
   # SSN validation rules, see: http://www.ssa.gov/employer/randomizationfaqs.html#a0=12
   def ssn=(new_ssn)
-    ssn_val = new_ssn.to_s.gsub(/\D/, '')
     if !new_ssn.blank?
-      write_attribute(:ssn, new_ssn.to_s.gsub(/\D/, ''))
+      write_attribute(:encrypted_ssn, Person.encrypt_ssn(new_ssn))
     else
-      unset("ssn")
+      unset_sparse("encrypted_ssn")
+    end
+  end
+
+  def ssn
+    ssn_val = read_attribute(:encrypted_ssn)
+    if !ssn_val.blank?
+      Person.decrypt_ssn(ssn_val)
+    else
+      nil
     end
   end
 
@@ -232,7 +268,7 @@ class Person
       raise ArgumentError, "must provide an ssn, last_name/dob or both" if (ssn_query.blank? && (dob_query.blank? || last_name.blank?))
 
       matches = Array.new
-      matches.concat Person.active.where(ssn: ssn_query).to_a unless ssn_query.blank?
+      matches.concat Person.active.where(encrypted_ssn: encrypt_ssn(ssn_query)).to_a unless ssn_query.blank?
       matches.concat Person.where(last_name: last_name, dob: dob_query).active.to_a unless (dob_query.blank? || last_name.blank?)
       matches.uniq
     end
@@ -262,7 +298,7 @@ class Person
 
   def self.match_existing_person(personish)
     return nil if personish.ssn.blank?
-    Person.where(:ssn => personish.ssn, :dob => personish.dob).first
+    Person.where(:encrypted_ssn => encrypt_ssn(personish.ssn), :dob => personish.dob).first
   end
 
   def ensure_relationship_with(person, relationship)
@@ -309,7 +345,7 @@ class Person
        {"first_name" => s_rex},
        {"last_name" => s_rex},
        {"hbx_id" => s_rex},
-       {"ssn" => s_rex}
+       {"encrypted_ssn" => encrypt_ssn(s_str)}
      ] + additional_exprs)
    }
  end
