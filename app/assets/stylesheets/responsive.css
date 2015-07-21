@@ -169,6 +169,21 @@
 
   #inbox_form {margin-bottom: 20px;}
   #message_list_form {padding: 0;}
+  .compare-wrapper {
+    display: inline-block;
+    padding: 25px 15px 0;
+    width: 100%;
+  }
+  .compare-wrapper .text-right {margin: 0;}
+  .compare-wrapper .checkbox {
+    margin: 0;
+    padding: 0;
+    float: left;
+  }
+  .compare-wrapper .checkbox label {
+    padding: 0;
+  }
+  .carrier-logo {display: block;float: none;height: auto;padding-right: 10px;}
 }
 
 @media (min-width: 768px) and (max-width: 991px) {
@@ -770,12 +785,12 @@
 
 @media only screen and (max-width: 580px){
   .display-on-mobile{ display: block;}
-  .hide-on-mobile{ display: none;}  
+  .hide-on-mobile{ display: none;}
   button.display-on-mobile{ margin-top: 5px;}
 }
 
 @media (min-width: 768px) and (max-width: 992px){
-  .tab-second{padding-left: 44px !important;}  
+  .tab-second{padding-left: 44px !important;}
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {

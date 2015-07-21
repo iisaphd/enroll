@@ -3,7 +3,7 @@
     <%= form_tag(:group_selection_create) do %>
       <div class="col-lg-7 col-md-7 col-sm-8 col-xs-12">
         <h3>Covered Family Members</h3>
-        <h4><strong>Who would you like to cover?</strong></h4>
+        <p>Who would you like to cover?</p>
 
           <%= hidden_field_tag(:person_id, @person.id) %>
           <%= hidden_field_tag(:employee_role_id, @employee_role.id) %>

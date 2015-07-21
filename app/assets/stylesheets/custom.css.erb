@@ -54,6 +54,8 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {line-height: 1.1;}
+h3 {font-size: 22px;}
+
 .navbar-default {
     background-color: #eee;
     background-image: none;
@@ -1697,10 +1699,12 @@ a.all-filter:hover{
   font-weight: bold;
   margin-right: 5px;
 }
-.select-plan-details ul li.gold i {color: #fabb18;}
-.select-plan-details ul li.platinum i {color: #e5e4e2;}
-.select-plan-details ul li.silver i {color: #cccccc;}
-.select-plan-details ul li.bronze i {color: #cd7f32;}
+
+.gold-icon, .platinum-icon, .silver-icon, .bronze-icon {padding-left: 20px;}
+.gold-icon {background: url("<%= asset_path('icons/gold-circle.png') %>") no-repeat left center;}
+.platinum-icon {background: url("<%= asset_path('icons/platinum-circle.png') %>") no-repeat left center;}
+.silver-icon {background: url("<%= asset_path('icons/silver-circle.png') %>") no-repeat left center;}
+.bronze-icon {background: url("<%= asset_path('icons/bronze-circle.png') %>") no-repeat left center;}
 
 #plan-summary ul.plan-type {list-style: none;padding: 0; font-weight: bold;}
 #plan-summary ul.plan-type li {
@@ -2262,9 +2266,8 @@ a.all-filter:hover{
   font-family: "AvenirLTStd-Light";
 }
 #plans h3 {
-  font-size: 25px;
-  font-weight: bold;
-  color: #616161;
+  font-size: 22px;
+  margin-top: 0;
 }
 #plans h4 {
  color: #616161;
@@ -2467,7 +2470,7 @@ ul.user-info li strong {
 }
 
 #profile-content .panel.min-h {
-    min-height: 278px;
+    min-height: 280px;
 }
 
 .panel .info-wrapper h3 {
@@ -3827,6 +3830,7 @@ ul.list-right-section li a img {
     padding: 0 15px;
     width: 100%;
 }
+.compare-wrapper .text-right {margin-bottom: 10px;margin-top: 10px;}
 .compare-wrapper .checkbox {
     float: left;
 }
@@ -4391,10 +4395,6 @@ span.text_style {color: #616161 !important;}
     margin-left: -58px;
   }
 
-  .compare-wrapper .checkbox {
-    float: none;
-  }
-
   .no_margin {
     margin: 0;
   }
@@ -4459,7 +4459,7 @@ span.text_style {color: #616161 !important;}
 .ct-1 h2 {
     color: #003260;
     font-weight: 100;
-    margin-bottom: 20px;
+    margin-bottom: 2px;
     margin-top: 0;
 }
 .ct-1 p {
@@ -4607,3 +4607,4 @@ table.table.table-no-sytle td {
     font-weight: 700;
 }
 .panel {border-radius: 0;}
+.carrier-logo {float: left; height: 80px; padding-right: 10px;}

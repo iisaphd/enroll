@@ -7,13 +7,13 @@
       <div class="house col-md-12 col-sm-12 col-xs-12 no-pd">
         <div class="dependent_notice_div_<%= dependent.id%>"></div>
         <div class="row row-form-wrapper no-buffer">
-          <div class="col-md-4 col-sm-4 no-pd">
+          <div class="col-md-4 col-sm-4 no-pd border_bottom_no_zero">
             <div class="form-group form-group-lg">
               <%= f.text_field :first_name, value: dependent.first_name,class: "home required floatlabel form-control", required: true, placeholder: "FIRST NAME" %>
             </div>
           </div>
 
-          <div class="col-md-4 col-sm-4 no-pd">
+          <div class="col-md-4 col-sm-4 no-pd border_bottom_no_zero">
             <div class="form-group form-group-lg">
                 <%= f.text_field :middle_name, value: dependent.middle_name, class: "home floatlabel form-control", placeholder: "MIDDLE NAME"%>
             </div>
@@ -38,27 +38,27 @@
           </div>
 
           <div class="row row-form-wrapper no-buffer">
-            <div class="col-md-2 col-sm-2 no-pd">
+            <div class="col-md-2 col-sm-2 no-pd border_bottom_no_zero">
       		    <div class="form-group form-group-lg">
                 <%= datepicker_control f, :dob, {:class => "floatlabel form-control", :placeholder => "DATE OF BIRTH",
                                                          :'data-date-min' => "-110y", :'data-date-max' => "+0", required: true,  id: "family_member_dob_#{dependent.id}"} %>
               </div>
 	          </div>
 
-	    <div class="col-md-3 col-sm-3 no-pd">
+	    <div class="col-md-3 col-sm-3 no-pd border_bottom_no_zero">
 		    <div class="form-group form-group-lg">
 			    <%= f.text_field :ssn, value: dependent.ssn,class: "home required floatlabel form-control mask-ssn", placeholder: "SOCIAL SECURITY" %>
 		    </div>
 	    </div>
 
-	    <div class="col-md-3 col-sm-3 no-pd">
+	    <div class="col-md-3 col-sm-3 no-pd border_bottom_no_zero">
 		    <div class="form-group form-group-lg">
 			    <%= f.select :relationship, options_for_select(PersonRelationship::Relationships.map{|r| [r.to_s.humanize, r.to_s] }, selected: f.object.relationship), {include_blank: "RELATION", required: true} %>
 		    </div>
 	    </div>
 
 	    <div class="col-md-4 col-sm-4 no-pd">
-		    <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 form-group form-group-lg no-pd">
+		    <div class="col-lg-6 col-md-6 col-sm-6 col-xs-6 form-group form-group-lg no-pd border_bottom_zero">
 			    <div class="radio">
 				    <%= f.radio_button :gender, "male", checked: true, class: "required floatlabel", id: 'radio_male' %>
 				    <label for="radio_male"><span>MALE</span></label>
@@ -77,20 +77,18 @@
     <div id="remove_confirm" class="hidden"></div>
 	</div>
 
-	<div class="clearfix"></div>
-	<div id="add_info_buttons_<%= dependent.id %>" style="padding-top: 20px;">
-		<% if !dependent.persisted? %>
-			<a href="#" class="remove-new-employee-dependent" data-target="#new_employee_dependent_form">
-				<span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
-				Cancel
-			</a>
-		<% else %>
-			<%= link_to '<span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span> Cancel'.html_safe, consumer_employee_dependent_path(dependent), :remote => true %>
-		<% end %>
-		<%= f.button(class: "btn btn-select pull-right") do %>
-			Confirm Member
-		<% end %>
-	</div>
+    <div class="clearfix"></div>
+  	<div id="add_info_buttons_<%= dependent.id %>" class="top-pd bottom-pd">
+  		<% if !dependent.persisted? %>
+  			<a href="#" class="remove-new-employee-dependent btn" data-target="#new_employee_dependent_form">
+  				<span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span>
+  				Cancel
+  			</a>
+  		<% else %>
+  			<%= link_to '<span class="glyphicon glyphicon-remove-circle" aria-hidden="true"></span> Cancel'.html_safe, consumer_employee_dependent_path(dependent), :remote => true, class: 'btn' %>
+  		<% end %>
+  		<%= f.button('Confirm Member', class: "btn btn-select pull-right") %>
+  	</div>
 <% end %>
   </div>
 
