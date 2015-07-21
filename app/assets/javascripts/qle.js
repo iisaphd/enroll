@@ -31,7 +31,7 @@ $(function () {
 			$('#qle-input-info').html('Enter the date of the event.')
 			get_qle_date();
 		} else {
-			$('#qle-input-info').html('<p class="error-text">Please enter a valid date.</p>');
+			$('#qle-input-info').html('Please enter a valid date.');
 			$('#qle_date').addClass('input-error');
 			$('.success-info').addClass('hidden');
 			$('.error-info').addClass('hidden');
