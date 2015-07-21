@@ -1,11 +1,13 @@
 <%= plan.try(:carrier_profile).try(:legal_name) %>
-<h3><%= plan.try(:name) %></h3>
-<div>
-  Subscriber Id : <%= hbx_enrollment.try(:subscriber).try(:id).try(:to_s) %>
-  <br/>
-  Group Id : <%= hbx_enrollment.try(:benefit_group_id).try(:to_s) %>
-</div>
-<br/>
+<% unless plan.try(:name).nil? %>
+    <h3><%= plan.try(:name) %></h3>
+<% end %>
+
+<ul class="list-unstyled list-comp">
+  <li><h5>Subscriber ID:  <em><%= hbx_enrollment.try(:subscriber).try(:id).try(:to_s) %></em></h5></li>
+  <li><h5>Group Id:       <em><%= hbx_enrollment.try(:benefit_group_id).try(:to_s) %></em></h5></li>
+</ul>
+<hr>
 
 <table class="table">
   <thead>

@@ -53,7 +53,7 @@ body {
     padding-bottom: 70px;
 }
 
-h1, h2, h3, h4, h5, h6 {font-weight: 300; line-height: 1.6em;}
+h1, h2, h3, h4, h5, h6 {line-height: 1.1;}
 .navbar-default {
     background-color: #eee;
     background-image: none;
@@ -2430,6 +2430,10 @@ ul.user-info li strong {
     text-transform: uppercase;
 }
 
+.panel .page-header h4 {
+    margin-bottom: 0;
+}
+
 #profile-content .panel .page-header a {
   float: right;
   font-weight: 200;
@@ -2437,9 +2441,8 @@ ul.user-info li strong {
 
 #profile-content .panel h3 {
     font-size: 18px;
-    font-weight: 600;
     line-height: 25px;
-    margin: 10px 0;
+    margin-top: 0;
 }
 
 #profile-content .panel table.table thead tr th {
@@ -2464,13 +2467,14 @@ ul.user-info li strong {
 }
 
 #profile-content .panel.min-h {
-    min-height: 315px;
+    min-height: 278px;
 }
 
-#profile-content .panel .info-wrapper h3 {
+.panel .info-wrapper h3 {
     color: #007bc4;
     font-weight: bold;
     margin-top: 0;
+    margin-bottom: 3px;
     text-transform: uppercase;
 }
 
@@ -4577,3 +4581,29 @@ table.table.table-no-sytle td {
 .form-border table {
     margin-top: 0px;
 }
+.list-comp h5 {
+    margin: 3px 0;
+}
+.panel ul.list-comp li {
+    color: #7b7b7b;
+    font-size: 12px;
+    padding-bottom: 2px;
+}
+.panel ul.list-comp li em {
+    color: #000;
+    font-style: normal;
+}
+.panel table.table thead tr th, .panel table.table tbody tr td {
+    border: medium none;
+    font-size: 12px;
+    padding: 2px 0;
+}
+.panel table.table thead tr th {
+    color: #7b7b7b;
+    font-weight: 100;
+}
+.panel table.table tbody tr td {
+    color: #000;
+    font-weight: 700;
+}
+.panel {border-radius: 0;}

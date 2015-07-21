@@ -17,7 +17,7 @@ $(function () {
 	// Disable form submit on pressing Enter, instead click Submit link
 	$('#qle_form').on('keyup keypress', function(e) {
 	    var code = e.keyCode || e.which;
-	    if (code == 13) { 
+	    if (code == 13) {
 	      e.preventDefault();
 	      $("#qle_submit").click();
 	      return false;
@@ -31,7 +31,7 @@ $(function () {
 			$('#qle-input-info').html('Enter the date of the event.')
 			get_qle_date();
 		} else {
-			$('#qle-input-info').html('Enter a valid date.');
+			$('#qle-input-info').html('<p class="error-text">Please enter a valid date.</p>');
 			$('#qle_date').addClass('input-error');
 			$('.success-info').addClass('hidden');
 			$('.error-info').addClass('hidden');

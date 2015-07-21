@@ -32,21 +32,19 @@
                             <div class="panel panel-default min-h">
                               <div class="panel-body">
                                 <h3 style="margin-top: 0"><%= @person.full_name %></h3>
-                                <p>(DC Health link ID : <%= current_user.id %>)</p>
-                                <br>
-                                  <div class="page-header">
-                                      <h4>Employer</h4>
-                                  </div>
-
-                                  <h3><%= @employer_profile.try(:dba) %></h3>
-                                  <ul class="list-unstyled list-comp">
-                                      <li>
-                                          HIRED: <EM><%=@employee_role.try(:hired_on) ?  @employee_role.hired_on.strftime("%m/%d/%Y"):  " " %></EM>
-                                      </li>
-                                      <li>
-                                          ELIGIBLE FOR COVERAGE: <EM><%= @employee_role.try(:effective_on) ? @employee_role.try(:effective_on).strftime("%m/%d/%Y") :" " %></EM>
-                                      </li>
-                                  </ul>
+                                <p class="text-primary">(DC Health link ID : <%= @person.hbx_id %>)</p>
+                                <hr>
+                                <div class="page-header"><h4>Employer</h4></div>
+                                <%= display_carrier_logo @employer_profile, width: 110 %>
+                                <h3><%= @employer_profile.try(:dba) %></h3>
+                                <ul class="list-unstyled list-comp">
+                                    <li>
+                                        HIRED: <EM><%=@employee_role.try(:hired_on) ?  @employee_role.hired_on.strftime("%m/%d/%Y"):  " " %></EM>
+                                    </li>
+                                    <li>
+                                        ELIGIBLE FOR COVERAGE: <EM><%= @employee_role.try(:effective_on) ? @employee_role.try(:effective_on).strftime("%m/%d/%Y") :" " %></EM>
+                                    </li>
+                                </ul>
                               </div>
                             </div>
                         </div>
@@ -78,7 +76,7 @@
                   <%- if @hbx_enrollments &&  @hbx_enrollments.last %>
                     <%= link_to group_selection_new_path(person_id: @person.id, employee_role_id: @employee_role.id, change_plan: 'change') do %>
                       <div class="panel panel-default">
-                        <div class="panel-body"><br>
+                        <div class="panel-body">
                           <div class="row">
                                 <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
                                   <%= image_tag 'icons/shop_for_plan.png' %>
@@ -87,23 +85,23 @@
                                   <h3>Shop for plans</h3>
                                   <small>Browse plans from carriers in the DC Health Care Exchange.</small>
                                 </div>
-                            </div><br>
+                            </div>
                         </div>
                       </div>
                     <% end %>
                   <% else %>
                     <%= link_to group_selection_new_path(person_id: @person.id, employee_role_id: @employee_role.id) do %>
                       <div class="panel panel-default">
-                        <div class="panel-body"><br>
+                        <div class="panel-body">
                           <div class="row">
                                 <div class="col-lg-4 col-md-4 col-sm-12 col-xs-12">
                                   <%= image_tag 'icons/shop_for_plan.png' %>
                                 </div>
                                 <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12 info-wrapper">
-                                   <h3> Shop for Plans </h3> 
+                                   <h3> Shop for Plans </h3>
                                   <small>Browse plans from carriers in the DC Health Care Exchange.</small>
                                 </div>
-                            </div><br>
+                            </div>
                           </div>
                         </div>
                      <% end %>

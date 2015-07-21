@@ -3,7 +3,7 @@
         <h4>Your life events</h4>
     </div>
     <div class="row">
-    	<% if @qualifying_life_events %>		
+    	<% if @qualifying_life_events %>
 			<% @qualifying_life_events.each_with_index do |qle, index| %>
 				<% if index%5 == 0 %>
 					<div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
@@ -53,7 +53,7 @@
 				</div>
 				<div class="default-info"><br><br><br>
 					<center>
-						<strong id="qle-input-info">Please enter a date to the left.</strong><br><br>
+						<strong id="qle-input-info"><p>Please enter a date to the left.</p></strong><br>
 						<%= submit_tag 'Continue', disabled: true, class: 'btn' %>
 					</center>
 				</div>
