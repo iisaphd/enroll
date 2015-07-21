@@ -22,7 +22,7 @@
                       <td><%= plan.plan_type ? plan.plan_type.upcase : ""%></td>
 
                       <% plan_level = plan.metal_level.humanize %>
-                      <td><span class="<%= plan_level.downcase %>-icon"><%= plan_level %></span></td>
+                      <td><span class="<%= plan_level.try(:downcase) %>-icon"><%= plan_level %></span></td>
 
                       <td><%= plan.nationwide ? "Nationwide" : "DC Area Network" %></td>
                       <td><%= plan.deductible %></td>
