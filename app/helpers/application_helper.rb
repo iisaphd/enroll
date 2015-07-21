@@ -368,30 +368,10 @@ module ApplicationHelper
         end)
       end
     end
+  end
 
-    # <div class="progress-wrapper">
-    #   <div class="progress">
-        # <div class="progress-bar <%= progress_bar_class %>" style="width: <%= progress_bar_width %>%;" role="progressbar" aria-valuenow="<%= enrolled %>" aria-valuemin="0" aria-valuemax="<%= eligible %>" data-value="<%= plan_year.total_enrolled_count %>">
-        #   <span class="sr-only"></span>
-        # </div>
-
-        # <% if eligible > 1 %>
-        #   <small class="progress-current" style="left: <%= (progress_bar_width - 2) %>%;">
-        #     <%= plan_year.total_enrolled_count %>
-        #   </small>
-        # <% end %>
-
-        # <% if eligible > 2 %>
-        #   <p class="divider-progress" data-value="<%= p_min %>">
-        #     <%= p_min %><br/> (Minimum)
-        #   </p>
-        # <% end %>
-
-        # <div class="progress-val">
-        #   <strong class="pull-left">0</strong>
-        #   <strong class="pull-right" data-value="<%= eligible %>"><%= eligible %></strong>
-        # </div>
-    #   </div>
-    # </div>
+  def dob_in_words(age, dob)
+    return age if age > 0
+    time_ago_in_words(dob)
   end
 end
