@@ -31,10 +31,10 @@
                   </dd>
                   <dt>Enrolled or Waived</dt>
                   <dd>
-                    <%=  @current_plan_year.total_enrolled_count %>
+                    <%= @current_plan_year.total_enrolled_count %>
                   </dd>
                   <dt>One or More Non-Owners?</dt>
-                  <dd><%=  boolean_to_human(@current_plan_year.non_business_owner_enrollment_count > 0) %></dd>
+                  <dd><%= boolean_to_human(@current_plan_year.non_business_owner_enrollment_count > 0) %></dd>
                 </dl>
               </div>
               <% else %>

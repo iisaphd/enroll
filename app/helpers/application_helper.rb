@@ -313,6 +313,7 @@ module ApplicationHelper
       "Welcome to the District's Health Insurance Marketplace"
     end
   end
+
   def override_backlink
     link=''
     if current_user.try(:has_hbx_staff_role?)
@@ -329,5 +330,68 @@ module ApplicationHelper
       image_name = "logo/carrier/#{carrier_name.parameterize.underscore}.jpg" # Displays carrier logo (Delta Dental => delta_dental.jpg)
       image_tag(image_name, width: options[:width])
     end
+  end
+
+  def enrollment_progress_bar(plan_year, p_min, options = {:minimum => true})
+    progress_bar_width = 0
+    progress_bar_class = ''
+    return if plan_year.nil?
+
+    eligible = plan_year.eligible_to_enroll_count
+    enrolled = plan_year.total_enrolled_count
+    non_owner = plan_year.non_business_owner_enrollment_count
+
+    unless eligible.zero?
+      condition = (eligible <= 2) ? ((enrolled > (eligible - 1)) && (non_owner > 0)) : ((enrolled >= p_min) && (non_owner > 0))
+      progress_bar_class = condition ? 'progress-bar-success' : 'progress-bar-danger'
+      progress_bar_width = (enrolled * 100)/eligible
+    end
+
+    content_tag(:div, class: 'progress-wrapper') do
+      content_tag(:div, class: 'progress') do
+        concat(content_tag(:div, class: "progress-bar #{progress_bar_class}", style: "width: #{progress_bar_width}%;", role: 'progressbar', aria: {valuenow: "#{enrolled}", valuemin: "0", valuemax: "#{eligible}"}, data: {value: "#{enrolled}"}) do
+          concat content_tag(:span, '', class: 'sr-only')
+        end)
+
+        if eligible > 1
+          concat content_tag(:small, enrolled, class: 'progress-current', style: "left: #{progress_bar_width - 2}%;")
+        end
+
+        if eligible > 2
+          eligible_text = (options[:minimum] == false) ? "#{p_min}<br>(Minimum)" : "&nbsp;#{p_min}&nbsp;"
+          concat content_tag(:p, eligible_text.html_safe, class: 'divider-progress', data: {value: "#{p_min}"})
+        end
+
+        concat(content_tag(:div, class: 'progress-val') do
+          concat content_tag(:strong, '0', class: 'pull-left') if (options[:minimum] == false)
+          concat content_tag(:strong, (options[:minimum] == false) ? eligible : '', data: {value: "#{eligible}"}, class: 'pull-right')
+        end)
+      end
+    end
+
+    # <div class="progress-wrapper">
+    #   <div class="progress">
+        # <div class="progress-bar <%= progress_bar_class %>" style="width: <%= progress_bar_width %>%;" role="progressbar" aria-valuenow="<%= enrolled %>" aria-valuemin="0" aria-valuemax="<%= eligible %>" data-value="<%= plan_year.total_enrolled_count %>">
+        #   <span class="sr-only"></span>
+        # </div>
+
+        # <% if eligible > 1 %>
+        #   <small class="progress-current" style="left: <%= (progress_bar_width - 2) %>%;">
+        #     <%= plan_year.total_enrolled_count %>
+        #   </small>
+        # <% end %>
+
+        # <% if eligible > 2 %>
+        #   <p class="divider-progress" data-value="<%= p_min %>">
+        #     <%= p_min %><br/> (Minimum)
+        #   </p>
+        # <% end %>
+
+        # <div class="progress-val">
+        #   <strong class="pull-left">0</strong>
+        #   <strong class="pull-right" data-value="<%= eligible %>"><%= eligible %></strong>
+        # </div>
+    #   </div>
+    # </div>
   end
 end
