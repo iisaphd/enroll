@@ -544,3 +544,22 @@ describe Person, "validation of date_of_birth and date_of_death" do
     end
   end
 end
+
+describe Person, "given an ssn" do
+  let(:ssn) { "223344556" }
+
+  subject { 
+    Person.new(
+      :ssn => ssn
+    )
+  }
+
+  it "store the ssn as encrypted" do
+    expect(subject.encrypted_ssn).not_to eq ssn
+  end
+
+  it "should still be able to access the original ssn" do
+    expect(subject.ssn).to eq ssn
+  end
+
+end
