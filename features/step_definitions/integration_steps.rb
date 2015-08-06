@@ -31,6 +31,11 @@ def click_when_present(element)
   scroll_then_click(element)
 end
 
+def wait_and_confirm_text(text)
+  @browser.element(text: text).wait_until_present
+  expect(@browser.element(text:text).visible?).to be_truthy
+end
+
 def fill_user_registration_form(credentials)
   @browser.text_field(name: "user[password_confirmation]").wait_until_present
   @browser.text_field(name: "user[email]").set(credentials[:email])
@@ -174,6 +179,12 @@ def people
       last_name: "Doe",
       dob: "01/01/1980",
       ssn: "786120965",
+    },
+    "Broker Assisted" => {
+      first_name: 'Broker',
+      last_name: 'Assisted',
+      dob: "05/02/1976",
+      ssn: "761234567"
     }
   }
 end
@@ -201,6 +212,7 @@ Then(/^I should see the matched employee record form$/) do
   screenshot("employer_search_results")
   expect(@browser.dd(text: /Acme Inc\./).visible?).to be_truthy
 end
+
 # TODO: needs to be merged
 Then(/^I should see the matching employee record form$/) do
   @browser.element(text: /Turner Agency/).wait_until_present
@@ -368,6 +380,11 @@ Then(/^I should see the "my account" page$/) do
   expect(@browser.element(text: /Your Life Events/i).visible?).to be_truthy
 end
 
+Then(/^I should see the "Your Enrollment History" section/) do
+  @browser.element(text: /YOUR ENROLLMENT HISTORY/i).wait_until_present
+  expect(@browser.element(text: /YOUR ENROLLMENT HISTORY/i).visible?).to be_truthy
+end
+
 When(/^I click qle event$/) do
   scroll_then_click(@browser.a(text: /Divorce/))
   @browser.text_field(class: "interaction-field-control-qle-date").set((Date.today + 5).strftime("%m/%d/%Y"))
@@ -462,6 +479,7 @@ Then(/^I should see my plan/) do
 end
 
 When(/^I should see a published success message$/) do
-  @browser.element(class: /mainmenu/).wait_until_present
+  # @browser.element(class: /mainmenu/).wait_until_present
+  @browser.element(class: /interaction-click-control-get-reports/).wait_until_present
   expect(@browser.element(text: /Plan Year successfully published/).visible?).to be_truthy
 end

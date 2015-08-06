@@ -24,8 +24,8 @@ class CensusMember
   validates_presence_of :first_name, :last_name, :dob, :employee_relationship
 
   validates :gender,
-    allow_blank: true,
-    inclusion: { in: GENDER_KINDS, message: "%{value} is not a valid gender" }
+    allow_blank: false,
+    inclusion: { in: GENDER_KINDS, message: "must be selected" }
 
   validates :ssn,
     length: { minimum: 9, maximum: 9, message: "SSN must be 9 digits" },
@@ -70,7 +70,10 @@ class CensusMember
   end
 
   def gender=(val)
-    return if val.blank?
+    if val.blank?
+      write_attribute(:gender, nil)
+      return
+    end
     write_attribute(:gender, val.downcase)
   end
 

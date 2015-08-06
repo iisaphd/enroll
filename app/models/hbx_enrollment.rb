@@ -20,6 +20,8 @@ class HbxEnrollment
     "I do not have other coverage"
   ]
 
+  ENROLLED_STATUSES = ["coverage_selected", "enrollment_transmitted_to_carrier", "coverage_enrolled"]
+
   embedded_in :household
 
   field :coverage_household_id, type: String
@@ -104,7 +106,7 @@ class HbxEnrollment
 
   def propogate_selection
     if benefit_group_assignment
-      benefit_group_assignment.select_coverage unless benefit_group_assignment.coverage_selected?
+      benefit_group_assignment.select_coverage if benefit_group_assignment.may_select_coverage?
       benefit_group_assignment.hbx_enrollment = self
       benefit_group_assignment.save
     end
@@ -192,6 +194,8 @@ class HbxEnrollment
     # benefit_group.plan_year.start_on
     enrollment.benefit_group = benefit_group
     census_employee = employee_role.census_employee
+    #FIXME creating hbx_enrollment from the fist benefit_group_assignment need to change 
+    #it will be better to create a new benefit_group_assignment
     benefit_group_assignment = census_employee.benefit_group_assignments.by_benefit_group_id(benefit_group.id).first
     enrollment.benefit_group_assignment_id = benefit_group_assignment.id
     coverage_household.coverage_household_members.each do |coverage_member|
@@ -273,6 +277,10 @@ class HbxEnrollment
       end
     end
     enrollment_list
+  end
+
+  def self.covered(enrollments)
+    enrollments.select{|e| ENROLLED_STATUSES.include?(e.aasm_state)}
   end
 
   private

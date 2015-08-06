@@ -334,6 +334,30 @@ module ApplicationHelper
     time_ago_in_words(dob)
   end
 
+  def date_col_name_for_broker_roaster
+    if controller_name == 'applicants'
+      case @status
+      when 'active'
+        'Accepted Date'
+      when 'broker_agency_terminated'
+        'Terminated Date'
+      when 'broker_agency_declined'
+        'Declined Date'
+      else
+      end
+    else
+      case @status
+      when 'certified'
+        'Certified Date'
+      when 'decertified'
+        'Decertified Date'
+      when 'denied'
+        'Denied Date'
+      else
+      end
+    end
+  end
+
   def enrollment_progress_bar(plan_year, p_min, options = {:minimum => true})
     progress_bar_width = 0
     progress_bar_class = ''
@@ -342,9 +366,12 @@ module ApplicationHelper
     eligible = plan_year.eligible_to_enroll_count
     enrolled = plan_year.total_enrolled_count
     non_owner = plan_year.non_business_owner_enrollment_count
+    covered = plan_year.covered_count
+    waived = plan_year.waived_count
 
     unless eligible.zero?
       condition = (eligible <= 2) ? ((enrolled > (eligible - 1)) && (non_owner > 0)) : ((enrolled >= p_min) && (non_owner > 0))
+      condition = false if covered == 0 && waived > 0
       progress_bar_class = condition ? 'progress-bar-success' : 'progress-bar-danger'
       progress_bar_width = (enrolled * 100)/eligible
     end
@@ -370,5 +397,11 @@ module ApplicationHelper
         end)
       end
     end
+  end
+
+  def can_edit(object)
+    return false if current_user.roles.include?("hbx_staff") # can edit, employer census roster
+    return true if object.try(:employee_role_linked?)  # cannot edit, employer census roster
+    return !(object.new_record? or object.try(:eligible?)) # employer census roster
   end
 end

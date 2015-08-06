@@ -172,8 +172,35 @@ class PlanYear
 
   # All active employees present on the roster with benefit groups belonging to this plan year
   def eligible_to_enroll
-    benefit_group_ids = benefit_groups.collect(&:id)
-    CensusEmployee.by_benefit_group_ids(benefit_group_ids).active
+    return @eligible if defined? @eligible
+    @eligible ||= find_census_employees.active
+  end
+
+  def waived
+    return @waived if defined? @waived
+    @waived ||= find_census_employees.waived
+  end
+
+  def waived_count
+    waived.count
+  end
+
+  def covered
+    return @covered if defined? @covered
+    @covered ||= find_census_employees.covered
+  end
+
+  def find_census_employees
+    return @census_employees if defined? @census_employees
+    @census_employees ||= CensusEmployee.by_benefit_group_ids(benefit_group_ids)
+  end
+
+  def covered_count
+    covered.count
+  end
+
+  def benefit_group_ids
+    benefit_groups.collect(&:id)
   end
 
   def eligible_to_enroll_count
@@ -322,13 +349,15 @@ class PlanYear
 
       open_enrollment_start_on = [(start_on - HbxProfile::ShopOpenEnrollmentPeriodMaximum.months), TimeKeeper.date_of_record].max
 
-      candidate_open_enrollment_end_on = Date.new(open_enrollment_start_on.year, open_enrollment_start_on.month, HbxProfile::ShopOpenEnrollmentEndDueDayOfMonth)
+      #candidate_open_enrollment_end_on = Date.new(open_enrollment_start_on.year, open_enrollment_start_on.month, HbxProfile::ShopOpenEnrollmentEndDueDayOfMonth)
 
-      open_enrollment_end_on = if (candidate_open_enrollment_end_on - open_enrollment_start_on) < (HbxProfile::ShopOpenEnrollmentPeriodMinimum - 1)
-        candidate_open_enrollment_end_on.next_month
-      else
-        candidate_open_enrollment_end_on
-      end
+      #open_enrollment_end_on = if (candidate_open_enrollment_end_on - open_enrollment_start_on) < (HbxProfile::ShopOpenEnrollmentPeriodMinimum - 1)
+      #  candidate_open_enrollment_end_on.next_month
+      #else
+      #  candidate_open_enrollment_end_on
+      #end
+
+      open_enrollment_end_on = shop_enrollment_timetable(start_on)[:open_enrollment_latest_end_on]
 
       binder_payment_due_date = map_binder_payment_due_date_by_start_on(start_on)
 
