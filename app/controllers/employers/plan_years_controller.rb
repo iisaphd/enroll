@@ -43,20 +43,14 @@ class Employers::PlanYearsController < ApplicationController
 
   def search_reference_plan
     @location_id = params[:location_id]
-    return unless params[:reference_plan_id].present?
-
     @plan = Plan.find(params[:reference_plan_id])
-    @premium_tables = @plan.premium_tables.where(start_on: @plan.premium_tables.distinct(:start_on).max)
+    @premium_tables = @plan.premium_table_for(Date.parse(params[:start_on]))
   end
 
   def calc_employer_contributions
     @location_id = params[:location_id]
-    return unless params[:reference_plan_id].present?
-
-    params.merge!({ plan_year: {
-      start_on: params[:start_on] #PlanYear.calculate_start_on_dates.first.to_s(:db) 
-      }.merge(relationship_benefits) })
-
+    params.merge!({ plan_year: { start_on: params[:start_on] }.merge(relationship_benefits) })
+    
     @plan = Plan.find(params[:reference_plan_id])
     @plan_year = ::Forms::PlanYearForm.build(@employer_profile, plan_year_params)
     @plan_year.benefit_groups[0].reference_plan = @plan
@@ -131,7 +125,8 @@ class Employers::PlanYearsController < ApplicationController
       if (@plan_year.published? || @plan_year.enrolling?) 
         flash[:notice] = "Plan Year successfully published."
       else
-        flash[:error] = "Plan Year failed to publish. Every employee must be assigned to a benefit group defined for the published plan year."
+        errors = @plan_year.application_errors.try(:values)
+        flash[:error] = "Plan Year failed to publish. #{('<li>' + errors.join('</li><li>') + '</li>') if errors.try(:any?)}".html_safe
       end
       render :js => "window.location = #{employers_employer_profile_path(@employer_profile).to_json}"
     end
