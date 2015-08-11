@@ -49,7 +49,8 @@
   	      <div class="col-md-12 no-pd col-sm-12 col-xs-12">
   		      <%= link_to 'Add Member'.html_safe, new_consumer_employee_dependent_path(:family_id => @family.id), :remote => true, :class => "btn btn-select" %>
             <% if @change_plan.present? %>
-              <% group_selection_url = group_selection_new_path(person_id: @person.id, employee_role_id: @employee_role.id, change_plan: 'change') %>
+              <% #group_selection_url = group_selection_new_path(person_id: @person.id, employee_role_id: @employee_role.id, change_plan: 'change') %>
+              <% group_selection_url = designate_new_path(person_id: @person.id, employee_role_id: @employee_role.id, change_plan: 'change_plan') %>
             <% else %>
               <% group_selection_url = group_selection_new_path(person_id: @person.id, employee_role_id: @employee_role.id) %>
             <% end %>

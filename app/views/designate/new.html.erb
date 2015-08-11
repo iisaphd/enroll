@@ -1,3 +1,5 @@
+<% sep_reason = @sep_reasons.first.try(:reason_provider).try(:special_enrollment_period).try(:qualifying_life_event_kind).try(:title) %>
+
 <div class="container">
   <div class="row">
     <div class="col-lg-7 col-md-7 col-sm-8 col-xs-12">
@@ -6,32 +8,40 @@
         <%= hidden_field_tag(:person_id, @person.id) %>
         <%= hidden_field_tag(:employee_role_id, @employee_role.id) %>
         <%= hidden_field_tag(:coverage_household_id, @coverage_household_id) %>
+        <%= hidden_field_tag(:change_plan, @change_plan) %>
 
         <div class="table-responsive table-border">
           <table class="table table-wrapper table-condensed group-selection-tbl">
             <tbody>
-              <% if @employee_role.present? %>
-                <tr>
-                  <td width='20'>
-                    <%= radio_button_tag("eligibility_reasons", @employee_role.try(:employer_profile).try(:id)) %>
-                  </td>
-                  <td>
-                    <%= label_tag("eligibility_reasons_#{@employee_role.try(:employer_profile).try(:id)}", "origin (#{@employee_role.employer_profile.organization.legal_name})") %>
-                  </td>
-                </tr>
-              <% end %>
-
-              <% if @family.current_enrollment_eligibility_reasons.size > 0 %>
-                <% @family.current_enrollment_eligibility_reasons.each_with_index do |reason, index| %>
+              <% if @open_enrollment_reasons.size > 0 %>
+                <% @open_enrollment_reasons.each_with_index do |reason, index| %>
                   <tr>
                     <% employer_profile = reason.reason_provider.try(:employer_profile) %>
-                    <td width='20'><%= radio_button_tag("eligibility_reasons", employer_profile.try(:id), class: "required") %></td>
+                    <td width='20'><%= radio_button_tag("eligibility_reasons", employer_profile.try(:id), false) %></td>
                     <td>
-                      <%= label_tag("eligibility_reasons_#{employer_profile.try(:id)}", "#{reason.reason} (#{employer_profile.try(:organization).try(:legal_name)})") %>
+                      <%= label_tag("eligibility_reasons_#{employer_profile.try(:id)}", "#{employer_profile.try(:organization).try(:legal_name)} (#{reason.reason})") %>
                     </td>
                   </tr>
                 <% end %>
               <% end %>
+
+              <!--special_enrollment for each employee_role-->
+              <% if @employee_roles.present? and sep_reason.present? %>
+                <% @employee_roles.each do |employee_role| %>
+                  <% if employee_role.employer_profile.present? %>
+                    <tr>
+                      <td width='20'>
+                        <%= radio_button_tag("eligibility_reasons", employee_role.try(:employer_profile).try(:id), false, {id: "sep_eligibility_reasons_#{employee_role.try(:employer_profile).try(:id)}"}) %>
+                      </td>
+                      <td>
+                        <%= label_tag("sep_eligibility_reasons_#{employee_role.try(:employer_profile).try(:id)}", "#{employee_role.employer_profile.organization.legal_name} (special -- #{sep_reason})") %>
+                      </td>
+                    </tr>
+                  <% end %>
+                <% end %>
+              <% end %>
+
+              <!--for individual-->
               <tr>
                 <td width='20'>
                   <%= radio_button_tag("eligibility_reasons", @employer_profile_for_individual.id) %>
@@ -40,6 +50,18 @@
                   <%= label_tag("eligibility_reasons_#{@employer_profile_for_individual.id}", "individual") %>
                 </td>
               </tr>
+              <% if @sep_reasons.present? %>
+                <tr>
+                  <td width='20'>
+                    <%= radio_button_tag("eligibility_reasons", @employer_profile_for_individual.id, false, {id: "sep_eligibility_reasons_#{@employer_profile_for_individual.id}"}) %>
+                  </td>
+                  <td>
+                    <%= label_tag("sep_eligibility_reasons_#{@employer_profile_for_individual.id}", "individual (special -- #{sep_reason})") %>
+                  </td>
+                </tr>
+              <% end %>
+
+              <!--for dental-->
               <tr>
                 <td width='20'>
                   <%= radio_button_tag("eligibility_reasons", @employer_profile_for_dental.id) %>

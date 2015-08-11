@@ -9,7 +9,12 @@ class DesignateController < ApplicationController
     #for dental
     @employer_profile_for_dental = Organization.where(legal_name: "Global Systems For Dental").last.employer_profile
 
+    @employee_roles = @person.employee_roles.select {|emp_role| emp_role.employer_profile != @employer_profile_for_individual and emp_role.employer_profile != @employer_profile_for_dental}
+
     @change_plan = params[:change_plan].present? ? params[:change_plan] : ''
+
+    @sep_reasons = @family.current_enrollment_eligibility_reasons.select{|r| r.type == 'special_enrollment_period'}
+    @open_enrollment_reasons = @family.current_enrollment_eligibility_reasons.select{|r| r.type == 'open_enrollment_period'}
   end
 
   def create

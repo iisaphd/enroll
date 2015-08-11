@@ -128,6 +128,8 @@ class Family
   end
 
   def current_eligible_open_enrollments
+    #TODO this function will not support multiple eligible reason 
+    #we only pick up the first employee_roles, we will need to change this
     return [] unless primary_applicant
     pri_person = primary_applicant.person
     return [] unless pri_person

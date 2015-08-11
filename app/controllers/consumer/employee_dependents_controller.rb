@@ -6,6 +6,17 @@ class Consumer::EmployeeDependentsController < ApplicationController
 
     @change_plan = params[:change_plan].present? ? params[:change_plan] : ''
     @change_plan_date = params[:qle_date].present? ? params[:qle_date] : ''
+
+    if @change_plan.present? and @change_plan_date.present?
+      qle_on = Date.strptime(@change_plan_date, '%m/%d/%Y')
+      qualifying_life_event_kind = QualifyingLifeEventKind.where(title: @change_plan.gsub('"', "")).last
+      if @family.special_enrollment_periods.where(qle_on: qle_on, qualifying_life_event_kind_id: qualifying_life_event_kind.id).blank?
+        sep = @family.special_enrollment_periods.build
+        sep.qle_on = qle_on
+        sep.qualifying_life_event_kind = qualifying_life_event_kind
+        sep.save
+      end
+    end
   end
 
   def new
