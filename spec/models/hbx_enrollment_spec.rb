@@ -213,9 +213,20 @@ describe HbxEnrollment do
           expect(blue_collar_enrollments.first.total_employer_contribution).to be
         end
 
-        it "should return only covered enrollments count" do
-          enrollments = white_collar_enrollments + white_collar_enrollment_waivers + blue_collar_enrollments + blue_collar_enrollment_waivers
-          expect(HbxEnrollment.covered(enrollments).size).to eq 9
+        context "covered" do
+          before :each do
+            @enrollments = white_collar_enrollments + white_collar_enrollment_waivers + blue_collar_enrollments + blue_collar_enrollment_waivers
+          end
+          it "should return only covered enrollments count" do
+            expect(HbxEnrollment.covered(@enrollments).size).to eq 9
+          end
+
+          it "should return only active enrollments" do
+            white_collar_enrollments.each do |hbx|
+              allow(hbx).to receive(:is_active).and_return(false)
+            end
+            expect(HbxEnrollment.covered(@enrollments).size).to eq (9-white_collar_enrollments.size)
+          end
         end
       end
 
@@ -298,6 +309,65 @@ describe HbxEnrollment, dbclean: :after_all do
 
       it "should return an employer contribution" do
         expect(enrollment.total_employer_contribution).to be
+      end
+    end
+
+    context "update_current" do
+      before :each do
+        @enrollment2 = household.create_hbx_enrollment_from(
+          employee_role: mikes_employee_role,
+          coverage_household: coverage_household,
+          benefit_group: mikes_benefit_group
+        )
+        @enrollment2.save
+        @enrollment2.update_current(is_active: false)
+      end
+
+      it "enrollment and enrollment2 should have same household" do
+        expect(@enrollment2.household).to eq enrollment.household
+      end
+
+      it "enrollment2 should be not active" do
+        expect(@enrollment2.is_active).to  be_falsey
+      end
+
+      it "enrollment should be active" do
+        expect(enrollment.is_active).to be_truthy
+      end
+    end
+
+    context "inactive_related_hbxs" do
+      before :each do
+        @enrollment3 = household.create_hbx_enrollment_from(
+          employee_role: mikes_employee_role,
+          coverage_household: coverage_household,
+          benefit_group: mikes_benefit_group
+        )
+        @enrollment3.save
+        @enrollment3.inactive_related_hbxs
+      end
+
+      it "should have an assigned hbx_id" do
+        expect(@enrollment3.hbx_id).not_to eq nil
+      end
+
+      it "enrollment and enrollment3 should have same household" do
+        expect(@enrollment3.household).to eq enrollment.household
+      end
+
+      it "enrollment should be not active" do
+        expect(enrollment.is_active).to  be_falsey
+      end
+
+      it "enrollment3 should be active" do
+        expect(@enrollment3.is_active).to be_truthy
+      end
+
+      it "should only one active when they have same employer" do
+        hbxs = @enrollment3.household.hbx_enrollments.select do |hbx|
+          hbx.employee_role.employer_profile_id == @enrollment3.employee_role.employer_profile_id and hbx.is_active?
+        end
+        expect(hbxs.count).to eq 1
       end
     end
   end

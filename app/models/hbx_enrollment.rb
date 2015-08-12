@@ -39,6 +39,7 @@ class HbxEnrollment
   field :employee_role_id, type: BSON::ObjectId
   field :benefit_group_id, type: BSON::ObjectId
   field :benefit_group_assignment_id, type: BSON::ObjectId
+  field :hbx_id, type: String
 
   field :submitted_at, type: DateTime
 
@@ -90,6 +91,12 @@ class HbxEnrollment
     event :terminate_coverage do
       transitions from: :coverage_selected, to: :coverage_terminated, after: :propogate_terminate
     end
+  end
+
+  before_save :generate_hbx_id
+
+  def generate_hbx_id
+    write_attribute(:hbx_id, HbxIdGenerator.generate_policy_id) if hbx_id.blank?
   end
 
   def propogate_terminate
@@ -178,6 +185,17 @@ class HbxEnrollment
     self
   end
 
+  def update_current(updates)
+    household.hbx_enrollments.where(id: id).update_all(updates)
+  end
+
+  def inactive_related_hbxs
+    hbxs = household.hbx_enrollments.ne(id: id).select do |hbx|
+      hbx.employee_role.present? and hbx.employee_role.employer_profile_id == employee_role.employer_profile_id
+    end
+    household.hbx_enrollments.any_in(id: hbxs.map(&:_id)).update_all(is_active: false)
+  end
+
   # TODO: Fix this to properly respect mulitiple possible employee roles for the same employer
   #       This should probably be done by comparing the hired_on date with todays date.
   #       Also needs to ignore any that were already terminated before a certain date.
@@ -240,12 +258,14 @@ class HbxEnrollment
   def self.find_by_benefit_groups(benefit_groups = [])
     id_list = benefit_groups.collect(&:_id).uniq
 
-    families = nil
-    if id_list.size == 1
-      families = Family.where(:"households.hbx_enrollments.benefit_group_id" => id_list.first)
-    else
-      families = Family.any_in(:"households.hbx_enrollments.benefit_group_id" => id_list )
-    end
+    # families = nil
+    # if id_list.size == 1
+    #   families = Family.where(:"households.hbx_enrollments.benefit_group_id" => id_list.first)
+    # else
+    #   families = Family.any_in(:"households.hbx_enrollments.benefit_group_id" => id_list )
+    # end
+
+    families = Family.where(:"households.hbx_enrollments.benefit_group_id".in => id_list)
 
     enrollment_list = []
     families.each do |family|
@@ -261,12 +281,14 @@ class HbxEnrollment
   def self.find_by_benefit_group_assignments(benefit_group_assignments = [])
     id_list = benefit_group_assignments.collect(&:_id)
 
-    families = nil
-    if id_list.size == 1
-      families = Family.where(:"households.hbx_enrollments.benefit_group_assignment_id" => id_list.first)
-    else
-      families = Family.any_in(:"households.hbx_enrollments.benefit_group_assignment_id" => id_list )
-    end
+    # families = nil
+    # if id_list.size == 1
+    #   families = Family.where(:"households.hbx_enrollments.benefit_group_assignment_id" => id_list.first)
+    # else
+    #   families = Family.any_in(:"households.hbx_enrollments.benefit_group_assignment_id" => id_list )
+    # end
+
+    families = Family.where(:"households.hbx_enrollments.benefit_group_assignment_id".in => id_list)
 
     enrollment_list = []
     families.each do |family|
@@ -280,7 +302,7 @@ class HbxEnrollment
   end
 
   def self.covered(enrollments)
-    enrollments.select{|e| ENROLLED_STATUSES.include?(e.aasm_state)}
+    enrollments.select{|e| ENROLLED_STATUSES.include?(e.aasm_state) && e.is_active? }
   end
 
   private
