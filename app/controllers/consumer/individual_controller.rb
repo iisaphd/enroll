@@ -2,15 +2,20 @@ class Consumer::IndividualController < ApplicationController
   before_action :set_current_person
 
   def welcome
-    @person = Forms::EmployeeRole.new(@person)
   end
 
   def update
+    sanitize_person_params
     save_and_exit = params['exit_after_method'] == 'true'
-    object_params = params.require(:person).permit(*person_parameters_list)
-    @person = Forms::EmployeeRole.new(@person)
 
-    if @person.update_attributes(object_params)
+    # Delete old sub documents
+    @person.addresses.each {|address| address.delete}
+    @person.phones.each {|phone| phone.delete}
+    @person.emails.each {|email| email.delete}
+
+    @person.updated_by = current_user.email unless current_user.nil?
+
+    if @person.update_attributes(person_params)
       if save_and_exit
         redirect_to destroy_user_session_path
       else
@@ -60,11 +65,15 @@ class Consumer::IndividualController < ApplicationController
   end
 
   private
+  def person_params
+    params.require(:person).permit(*person_parameters_list)
+  end
+
   def person_parameters_list
     [
       { :addresses_attributes => [:kind, :address_1, :address_2, :city, :state, :zip] },
-      { :phones_attributes => [:kind, :full_phone_number, :id] },
-      { :email_attributes => [:kind, :address, :id] },
+      { :phones_attributes => [:kind, :full_phone_number] },
+      { :emails_attributes => [:kind, :address] },
       :first_name,
       :last_name,
       :middle_name,
@@ -74,5 +83,25 @@ class Consumer::IndividualController < ApplicationController
       :ssn,
       :gender
     ]
+  end
+
+  def sanitize_person_params
+    person_params["addresses_attributes"].each do |key, address|
+      if address["city"].blank? && address["zip"].blank? && address["address_1"].blank?
+        person_params["addresses_attributes"].delete("#{key}")
+      end
+    end
+
+    person_params["phones_attributes"].each do |key, phone|
+      if phone["full_phone_number"].blank?
+        person_params["phones_attributes"].delete("#{key}")
+      end
+    end
+
+    person_params["emails_attributes"].each do |key, email|
+      if email["address"].blank?
+        person_params["emails_attributes"].delete("#{key}")
+      end
+    end
   end
 end
