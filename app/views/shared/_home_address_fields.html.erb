@@ -33,6 +33,7 @@
       <div style="<%= style %>" class="row row-form-wrapper no-buffer address-row <%= div_class %>">
         <div class="col-md-6 col-sm-6 col-xs-12 form-group form-group-lg no-pd">
           <%= address.hidden_field :kind %>
+          <%= address.hidden_field :id %>
 
           <% if kind == 'home' %>
             <% required = "required" %>

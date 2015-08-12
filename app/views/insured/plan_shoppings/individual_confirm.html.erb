@@ -1,0 +1,58 @@
+<div class="container">
+  <div class="employee-welocome">
+    <div class="row">
+      <div class="col-lg-9 col-md-9 col-sm-10 col-xs-12">
+        <div class="col-md-12 col-sm-12 no-pd col-xs-12" id="confirm_plan">
+          <h3>Confirm - You’re almost done</h3>
+          <p>Please review and confirm that all of the information below is correct. You must select SUBMIT ENROLMENT to submit. You do not have pay today.</p>
+          
+          <p>
+            SELECTED PLAN<br>
+            <% if @employer_profile.present? %>
+            <strong><%= @employer_profile.legal_name %></strong><br>
+            <% end %>
+            <strong><%= @plan.carrier_profile.legal_name %> <%= @plan.name %></strong><br>
+            Metal level : <%= @plan.metal_level %>
+          </p>
+
+          <br>
+
+          <div class="table-border table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Relationship</th>
+                  <th>Age</th>
+                  <th class="text-right" width='60'>Premium</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @enrollment.hbx_enrollment_members.each do |member| %>
+                  <tr>
+                    <td><%= member.person.full_name %></td>
+                    <td><%= member.primary_relationship %></td>
+                    <td><%= dob_in_words(member.person.age_on(Time.now.utc.to_date), member.person.dob) %></td>
+                    <td class="text-right"><%= number_to_currency(@plan.employee_cost_for(member)) %></td>
+                  </tr>
+                <% end %>
+                <tr class="gray-row">
+                  <td colspan="3" class="text-right capital"><strong>Totals</strong></td>
+                  <td class="text-right"><strong><%= number_to_currency(@plan.total_employee_cost) %></strong></td>
+                </tr>
+                <tr>
+                  <td colspan="3" class="text-right">Your coverage start date :</td>
+                  <td class='text-right'><%= @enrollment.effective_on.strftime("%m/%d/%Y") %></td>
+                </tr>
+              </tbody>
+            </table>
+          </div><br>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12 right-section">
+        <%= render  partial: 'shared/individual_progress', locals: {step: '4'} %>
+      </div>
+    </div>
+  </div>
+</div>

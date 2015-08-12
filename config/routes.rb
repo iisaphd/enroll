@@ -50,6 +50,10 @@ Rails.application.routes.draw do
         post 'thankyou'
         post 'waive'
         post 'terminate'
+        get 'individual_show'
+        get 'individual_confirm'
+        post 'individual_checkout'
+        get 'individual_receipt'
       end
     end
 
@@ -180,6 +184,14 @@ Rails.application.routes.draw do
       end
     end
     root 'employee_roles#show'
+
+    resources :individual, controller: 'individual' do
+      collection do
+        get 'welcome'
+        get 'household'
+        get 'group_selection'
+      end
+    end
   end
 
   # used to select which people are going to be covered before plan selection

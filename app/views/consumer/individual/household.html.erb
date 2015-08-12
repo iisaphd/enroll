@@ -1,0 +1,61 @@
+<div class="container">
+  <div id="dependents_info_wrapper">
+    <div class="row">
+      <div class="col-lg-7 col-md-7 col-sm-8 col-xs-12 bottom-pd">
+        <h3>Household Info</h3>
+        <p>Add the people in your household who should be covered by your health insurance policy.</p>
+
+        <h5>Primary Applicant</h5>
+        <div class="row no-buffer">
+          <div class="col-md-12 col-sm-12 col-xs-12 no-pd first">
+            <div class="col-md-6 col-sm-6 no-pd form-group-lg no-pd">
+              <label class="static_label label-floatlabel" for="name">NAME</label>
+              <span class="field_value floatlabel form-control active-floatlabel" id="name"><%= "#{@person.first_name} #{@person.middle_name} #{@person.last_name}" %></span>
+            </div>
+            <div class="col-md-6 col-sm-6 no-pd form-group-lg no-pd">
+              <label class="static_label label-floatlabel" for="relation">RELATION</label>
+              <span class="field_value floatlabel form-control active-floatlabel" id="relation">Self</span>
+            </div>
+          </div>
+        </div>
+
+        <% if @family.active_family_members.present? %>
+          <h5>Household Member</h5>
+        <% end %>
+        <div class="row no-buffer">
+          <div class="fail-search add-member <%= 'hidden' if !@family.active_family_members.empty? %>">
+            <div class="col-md-12 col-sm-12 col-xs-12 no-pd">
+              <p class="fail"><span class="bold">Here's your chance to add family members to your plan.</span><br>Add family members by clicking the "Add Member" button. If you don't need to add more members, or when you are done adding members, click continue.</p>
+              <br>
+              <div class="form-inline text-center">
+                <%= link_to "Add Member", new_consumer_employee_dependent_path(:family_id => @family.id), :remote => true, :class => "btn btn-select" %>
+                  &nbsp; &nbsp;
+                <a class="text-center btn btn-success">Continue</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row no-buffer">
+          <ul class="" id="dependent_ul">
+            <% @family.active_family_members.reject(&:is_primary_applicant).each do |dependent| %>
+              <%= render "consumer/employee_dependents/dependent", dependent: dependent, person: @person %>
+            <% end %>
+          </ul>
+        </div>
+
+        <div id="dependent_buttons" class="focus_effect personal-info-row <%= 'hidden' if @family.active_family_members.empty? %>">
+  	      <div class="col-md-12 no-pd col-sm-12 col-xs-12">
+  		      <%= link_to 'Add Member'.html_safe, new_consumer_employee_dependent_path(:family_id => @family.id), :remote => true, :class => "btn btn-select" %>
+            <% group_selection_url = group_selection_consumer_individual_index_path %>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12 col-md-offset-2 col-sm-offset-1 right-section">
+        <%= render  partial: 'shared/individual_progress', locals: {step: '2', url: group_selection_url} %>
+      </div>
+
+    </div>
+  </div>
+</div>

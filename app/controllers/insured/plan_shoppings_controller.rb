@@ -1,6 +1,6 @@
 class Insured::PlanShoppingsController < ApplicationController
   include Acapi::Notifiers
-  before_action :set_current_person, :only => [:receipt, :thankyou, :waive, :show]
+  before_action :set_current_person, :only => [:receipt, :thankyou, :waive, :show, :individual_show, :individual_confirm, :individual_checkout, :individual_receipt]
 
   def checkout
     plan = Plan.find(params.require(:plan_id))
@@ -116,6 +116,72 @@ class Insured::PlanShoppingsController < ApplicationController
     @max_deductible = thousand_ceil(@plans.map(&:deductible).map {|d| d.is_a?(String) ? d.gsub(/[$,]/, '').to_i : 0}.max)
 
     @change_plan = params[:change_plan].present? ? params[:change_plan] : ''
+  end
+
+  # for individual
+  def individual_show
+    hbx_enrollment_id = params.require(:id)
+
+    Caches::MongoidCache.allocate(CarrierProfile)
+
+    @hbx_enrollment = HbxEnrollment.find(hbx_enrollment_id)
+    @benefit_group = @hbx_enrollment.benefit_group
+    @reference_plan = @benefit_group.reference_plan
+    @plans = @benefit_group.elected_plans.entries.collect() do |plan|
+      PlanCostDecorator.new(plan, @hbx_enrollment, @benefit_group, @reference_plan)
+    end
+
+    # for hsa-eligibility
+    @plan_hsa_status = {}
+    Products::Qhp.in(plan_id: @plans.map(&:id)).map {|qhp| @plan_hsa_status[qhp.plan_id.try(:to_s)] = qhp.hsa_eligibility}
+
+    # for carrier search options
+    if @benefit_group and @benefit_group.plan_option_kind == "metal_level"
+      @carriers = @plans.map{|p| p.try(:carrier_profile).try(:legal_name) }.uniq
+    else
+      @carriers = Array.new(1, @plans.last.try(:carrier_profile).try(:legal_name))
+    end
+    @max_total_employee_cost = thousand_ceil(@plans.map(&:total_employee_cost).map(&:to_f).max)
+    @max_deductible = thousand_ceil(@plans.map(&:deductible).map {|d| d.is_a?(String) ? d.gsub(/[$,]/, '').to_i : 0}.max)
+  end
+
+  def individual_confirm
+    @plan = Plan.find(params.require(:plan_id))
+    @enrollment = HbxEnrollment.find(params.require(:id))
+    @benefit_group = @enrollment.benefit_group
+    @reference_plan = @benefit_group.reference_plan
+    @plan = PlanCostDecorator.new(@plan, @enrollment, @benefit_group, @reference_plan)
+    @family = @person.primary_family
+  end
+
+  def individual_checkout
+    plan = Plan.find(params.require(:plan_id))
+    hbx_enrollment = HbxEnrollment.find(params.require(:id))
+
+    hbx_enrollment.update_current(plan_id: plan.id)
+    hbx_enrollment.inactive_related_hbxs
+
+    benefit_group = hbx_enrollment.benefit_group
+    reference_plan = benefit_group.reference_plan
+    decorated_plan = PlanCostDecorator.new(plan, hbx_enrollment, benefit_group, reference_plan)
+
+    if hbx_enrollment.may_select_coverage?
+      hbx_enrollment.update_current(aasm_state: "coverage_selected")
+      hbx_enrollment.propogate_selection
+
+      UserMailer.plan_shopping_completed(current_user, hbx_enrollment, decorated_plan).deliver_now
+      redirect_to individual_receipt_insured_plan_shopping_path(id: hbx_enrollment.id)
+    else
+      redirect_to :back
+    end
+  end
+
+  def individual_receipt
+    @enrollment = HbxEnrollment.find(params.require(:id))
+    plan = @enrollment.plan
+    benefit_group = @enrollment.benefit_group
+    reference_plan = benefit_group.reference_plan
+    @plan = PlanCostDecorator.new(plan, @enrollment, benefit_group, reference_plan)
   end
 
   private

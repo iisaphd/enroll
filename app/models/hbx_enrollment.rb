@@ -214,8 +214,10 @@ class HbxEnrollment
     census_employee = employee_role.census_employee
     #FIXME creating hbx_enrollment from the fist benefit_group_assignment need to change 
     #it will be better to create a new benefit_group_assignment
-    benefit_group_assignment = census_employee.benefit_group_assignments.by_benefit_group_id(benefit_group.id).first
-    enrollment.benefit_group_assignment_id = benefit_group_assignment.id
+    if census_employee.present?
+      benefit_group_assignment = census_employee.benefit_group_assignments.by_benefit_group_id(benefit_group.id).first
+      enrollment.benefit_group_assignment_id = benefit_group_assignment.id
+    end
     coverage_household.coverage_household_members.each do |coverage_member|
       enrollment_member = HbxEnrollmentMember.new_from(coverage_household_member: coverage_member)
       enrollment_member.eligibility_date = enrollment.effective_on

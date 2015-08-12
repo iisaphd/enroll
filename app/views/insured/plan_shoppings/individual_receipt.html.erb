@@ -1,0 +1,19 @@
+<div class="container">
+  <div class="employee-welocome">
+    <div class="row">
+      <div class="col-lg-9 col-md-9 col-sm-10 col-xs-12">
+        <div class="col-md-12 col-sm-12 no-pd col-xs-12">
+          <h3>Complete</h3>
+          <p>Your enrolment has been submitted. Select GO TO MY ACCOUNT to view the status of your enrollment.</p>
+          <p>You can also contact your insurance carrier directly for additional information or to check the status of your enrolment.<strong>Your enrolment ID is: <%= @enrollment.id %></strong></p>
+        </div>
+
+        <%= link_to 'Print', '#', onclick: 'window.print();return false;', class: "btn btn-default interaction-click-control-print-purchase-confirmation", style: "float:right;" %>
+      </div>
+
+      <div class="col-lg-3 col-md-3 col-sm-3 col-xs-12 right-section plan_receipt">
+        <%= render  partial: 'shared/individual_progress', locals: {step: '5'} %>
+      </div>
+    </div>
+  </div>
+</div><br>
