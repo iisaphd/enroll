@@ -109,29 +109,11 @@
   </div>
 </div>
 
-<div class="row row-form-wrapper no-buffer" id="vlp_document_id_container">
-  <div class="col-lg-5 col-md-5 col-sm-5 col-xs-12 form-group form-group-lg no-pd">
-    Are you currently Incarcerated?
-  </div>
-  <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12 form-group form-group-lg no-pd">
-    <%= f.check_box :is_incarcerated %>
-  </div>
-</div>
-
-<div class="row row-form-wrapper no-buffer" id="vlp_document_id_container">
-  <div class="col-lg-5 col-md-5 col-sm-5 col-xs-12 form-group form-group-lg no-pd">
-    Are you currently Incarcerated?
-  </div>
-  <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12 form-group form-group-lg no-pd">
-    <%= f.check_box :is_incarcerated %>
-  </div>
-</div>
-
 <div class="row">
-  <div class="col-xs-12 ">
+  <div class="col-xs-12">
     What is your race/ethnicity?
   </div>
-  <div class="col-xs-12 ">
+  <div class="col-xs-12">
     <div class="row">
       <%= f.collection_check_boxes(:ethnicity, ethnicity_collection, :name, :name)  do |ethnicity| %>
       <div class="col-lg-4 col-md-4 col-sm-6 col-xs-12">
@@ -140,10 +122,10 @@
       <% end %>
     </div>
   </div>
-  <div class="col-xs-12 ">
+  <div class="col-xs-12">
     IF HISPANIC/LATINO
   </div>
-  <div class="col-xs-12 ">
+  <div class="col-xs-12">
     <div class="row">
       <%= f.collection_check_boxes(:ethnicity, latino_collection, :name, :name)  do |ethnicity| %>
       <div class="col-lg-4 col-md-4 col-sm-6 col-xs-12">
@@ -151,6 +133,15 @@
       </div>
       <% end %>
     </div>
+  </div>
+</div>
+
+<div class="row row-form-wrapper no-buffer" id="vlp_document_id_container">
+  <div class="col-lg-5 col-md-5 col-sm-5 col-xs-12 form-group form-group-lg no-pd">
+    Are you currently Incarcerated?
+  </div>
+  <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12 form-group form-group-lg no-pd">
+    <%= f.check_box :is_incarcerated %>
   </div>
 </div>
 
