@@ -1,7 +1,6 @@
 <div id="consumer_fields" class="focus_effect">
 
   <div class="row row-form-wrapper no-buffer">
-
     <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12 form-group form-group-lg no-pd">
       Are you a US Citizen or US National?
     </div>
@@ -21,11 +20,9 @@
         <% end %>
       </div>
     </div>
-
   </div>
 
   <div class="row row-form-wrapper no-buffer" id="naturalized_citizen_container" style="display: none">
-
     <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12 form-group form-group-lg no-pd">
       Are you a naturalized citizen?
     </div>
@@ -121,45 +118,40 @@
   </div>
 </div>
 
-What is your race/ethnicity?
-<div>
-  White <input type="checkbox" name="ethnicity">
+<div class="row row-form-wrapper no-buffer" id="vlp_document_id_container">
+  <div class="col-lg-5 col-md-5 col-sm-5 col-xs-12 form-group form-group-lg no-pd">
+    Are you currently Incarcerated?
+  </div>
+  <div class="col-lg-7 col-md-7 col-sm-7 col-xs-12 form-group form-group-lg no-pd">
+    <%= f.check_box :is_incarcerated %>
+  </div>
 </div>
-<div>
-  Chinese <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Filipino <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Japanese <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Korean <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Vietnamese <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Other Asian <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Native Hawaiian <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Samon <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Black or African American <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Asian Indian <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Guamanion or Chamorro <input type="checkbox" name="ethnicity">
-</div>
-<div>
-  Other pacific islander <input type="checkbox" name="ethnicity">
+
+<div class="row">
+  <div class="col-xs-12 ">
+    What is your race/ethnicity?
+  </div>
+  <div class="col-xs-12 ">
+    <div class="row">
+      <%= f.collection_check_boxes(:ethnicity, ethnicity_collection, :name, :name)  do |ethnicity| %>
+      <div class="col-lg-4 col-md-4 col-sm-6 col-xs-12">
+        <%= ethnicity.label(:"data-value" => ethnicity.value) { ethnicity.check_box + ethnicity.text } %>
+      </div>
+      <% end %>
+    </div>
+  </div>
+  <div class="col-xs-12 ">
+    IF HISPANIC/LATINO
+  </div>
+  <div class="col-xs-12 ">
+    <div class="row">
+      <%= f.collection_check_boxes(:ethnicity, latino_collection, :name, :name)  do |ethnicity| %>
+      <div class="col-lg-4 col-md-4 col-sm-6 col-xs-12">
+        <%= ethnicity.label(:"data-value" => ethnicity.value) { ethnicity.check_box + ethnicity.text } %>
+      </div>
+      <% end %>
+    </div>
+  </div>
 </div>
 
 <%= f.hidden_field :is_consumer_role, value: 'true' %>
