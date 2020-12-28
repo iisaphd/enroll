@@ -25,6 +25,7 @@ class ShopNoticesNotifierJob < ActiveJob::Base
   def notice_class(notice_type)
     notice_class = ['ShopEmployerNotices::OutOfPocketNotice'].find { |notice| notice == notice_type.classify }
     raise "Unable to find the notice_class" if notice_class.nil?
+
     notice_type.safe_constantize
   end
 
