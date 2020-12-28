@@ -444,7 +444,7 @@ class BrokerAgencies::ProfilesController < ApplicationController
   def broker_profile_params
     return unless params[:organization]
 
-    params.require(:organization).permit(
+    params.fetch(:organization,{}).permit(
       :legal_name,
       :dba,
       :home_page,
