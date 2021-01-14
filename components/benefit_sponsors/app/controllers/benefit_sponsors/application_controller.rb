@@ -104,17 +104,20 @@ module BenefitSponsors
 
     def set_last_portal_visited
       if controller_name == "broker_agency_profiles" && action_name == "show"
-        return if (current_user.blank? || (current_user.person.present? && !current_user.person.broker_role.present?) ||current_user.last_portal_visited == request.referrer)
-        current_user.update_attributes(last_portal_visited: request.referrer)
+        return if current_user.blank? || (current_user.person.present? && !current_user.person.broker_role.present?)
+        current_user.update_attributes(last_portal_visited: request.path)
       end
     end
 
     private
 
+    def broker_agency?
+      @profile_type == "broker_agency"
+    end
+
     def user_not_authorized(exception)
       policy_name = exception.policy.class.to_s.underscore
-
-      flash[:error] = "Access not allowed for #{exception.query}, (Pundit policy)"
+      flash[:error] = "Access not allowed for #{exception.query}, (Pundit policy)" unless broker_agency?
       respond_to do |format|
         format.json { render nothing: true, status: :forbidden }
         format.html { redirect_to(session[:custom_url] || request.referrer || main_app.root_path)}
