@@ -1,5 +1,6 @@
 module SponsoredBenefits
   class ApplicationController < ActionController::Base
+    protect_from_forgery with: :exception
     before_action :set_broker_agency_profile_from_user
 
     private

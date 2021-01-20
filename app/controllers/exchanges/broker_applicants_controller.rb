@@ -8,7 +8,7 @@ class Exchanges::BrokerApplicantsController < ApplicationController
     @people = Person.exists(broker_role: true).broker_role_having_agency
 
     status_params = params.permit(:status)
-    @status = status_params[:status] || 'applicant'
+    @status = BrokerRole::BROKER_ROLE_STATUS_TYPES.include?(status_params[:status]) ? status_params[:status] : 'applicant'
 
     # Status Filter can be applicant | certified | deceritifed | denied | all
     @people = @people.send("broker_role_#{@status}") if @people.respond_to?("broker_role_#{@status}")
