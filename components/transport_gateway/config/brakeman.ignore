@@ -1,0 +1,25 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "Cross-Site Request Forgery",
+      "warning_code": 7,
+      "fingerprint": "2969858e65cf33fe6361523760161bfde7c13f036fc1a4b028beabc0f2663e8a",
+      "check_name": "ForgerySetting",
+      "message": "`protect_from_forgery` should be called in `TransportGateway::ApplicationController`",
+      "file": "app/controllers/transport_gateway/application_controller.rb",
+      "line": 2,
+      "link": "https://brakemanscanner.org/docs/warning_types/cross-site_request_forgery/",
+      "code": null,
+      "render_path": null,
+      "location": {
+        "type": "controller",
+        "controller": "TransportGateway::ApplicationController"
+      },
+      "user_input": null,
+      "confidence": "High",
+      "note": ""
+    }
+  ],
+  "updated": "2021-01-21 14:30:28 -0500",
+  "brakeman_version": "4.8.1"
+}
