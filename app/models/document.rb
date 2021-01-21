@@ -6,6 +6,10 @@ class Document
   include Config::AcaModelConcern
   include Concerns::Observable
 
+  RESOURCE_LIST = %w[BenefitSponsors::Organizations::AcaShopDcEmployerProfile
+                     BenefitSponsors::Organizations::FehbEmployerProfile
+                     BenefitSponsors::Organizations::AcaShopCcaEmployerProfile
+                     EmployeeRole Person ConsumerRole].freeze
 
   ACCESS_RIGHTS = %w(public pii_restricted)
 

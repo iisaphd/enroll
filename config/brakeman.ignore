@@ -103,6 +103,26 @@
     {
       "warning_type": "Mass Assignment",
       "warning_code": 70,
+      "fingerprint": "66641281ab94a441074632175a6432d3e03269b9a693bd7588e0d3f11738abb0",
+      "check_name": "MassAssignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
+      "file": "app/controllers/employers/people_controller.rb",
+      "line": 33,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Employers::PeopleController",
+        "method": "match"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": ""
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
       "fingerprint": "6e197d419416ef96df46eb4c44a1d959d014bffae12c6938b9d7705b1e466b4d",
       "check_name": "MassAssignment",
       "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
@@ -115,6 +135,26 @@
         "type": "method",
         "class": "UsersController",
         "method": "confirm_lock"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": ""
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
+      "fingerprint": "82b13791cf85bfa05460e8b5a1fccf926f429a5aecf6b35f07c1744e71638f1f",
+      "check_name": "MassAssignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
+      "file": "app/controllers/insured/interactive_identity_verifications_controller.rb",
+      "line": 27,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.require(:interactive_verification).permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Insured::InteractiveIdentityVerificationsController",
+        "method": "create"
       },
       "user_input": null,
       "confidence": "Medium",
@@ -137,6 +177,26 @@
       },
       "user_input": null,
       "confidence": "High",
+      "note": ""
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
+      "fingerprint": "bafc06c301ba8b32e471ec2186e94e537fac6bcbc058f06291df92d6176fa290",
+      "check_name": "MassAssignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
+      "file": "app/controllers/employers/people_controller.rb",
+      "line": 144,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.require(:person).permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Employers::PeopleController",
+        "method": "person_params"
+      },
+      "user_input": null,
+      "confidence": "Medium",
       "note": ""
     },
     {
@@ -248,6 +308,6 @@
       "note": ""
     }
   ],
-  "updated": "2021-01-21 15:32:46 -0500",
+  "updated": "2021-01-21 18:23:58 -0500",
   "brakeman_version": "4.10.1"
 }

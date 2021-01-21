@@ -30,7 +30,7 @@ class DocumentsController < ApplicationController
       if model == "AcaShopCcaEmployerProfile"
         model = "BenefitSponsors::Organizations::AcaShopCcaEmployerProfile"
       end
-      model_klass = ['BenefitSponsors::Organizations::AcaShopDcEmployerProfile', 'Person', "BenefitSponsors::Organizations::AcaShopCcaEmployerProfile"].include?(model) ? model.safe_constantize : nil
+      model_klass = Document::RESOURCE_LIST.include?(model) ? model.safe_constantize : nil
       raise "Sorry! Invalid Request" unless model_klass
 
       model_object = model_klass.find(model_id)

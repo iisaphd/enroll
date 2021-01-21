@@ -24,9 +24,7 @@ module Insured
     end
 
     def create
-      @interactive_verification = ::IdentityVerification::InteractiveVerification.new(
-        params.require(:interactive_verification).permit(:session_id, :transaction_id, questions_attributes: {}).to_h
-      )
+      @interactive_verification = ::IdentityVerification::InteractiveVerification.new(params.require(:interactive_verification).permit!)
       respond_to do |format|
         format.html do
           if @interactive_verification.valid?
