@@ -1,0 +1,237 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "File Access",
+      "warning_code": 16,
+      "fingerprint": "34574b045c9cea16b2bc0768a413ecf147264f59b8c7c80eef6dfdab8364d401",
+      "check_name": "SendFile",
+      "message": "Parameter value used in file name",
+      "file": "app/controllers/documents_controller.rb",
+      "line": 17,
+      "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
+      "code": "send_file(BenefitSponsors::Documents::EmployerAttestationDocument.find_by(:identifier => params[:path]).identifier)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "DocumentsController",
+        "method": "download_employer_document"
+      },
+      "user_input": "params[:path]",
+      "confidence": "Weak",
+      "note": ""
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
+      "fingerprint": "3a011fae12dad6be9867045b9be69d5baa81b72d1e01f8e0d357628c0085e4af",
+      "check_name": "MassAssignment",
+      "message": "Parameters should be whitelisted for mass assignment",
+      "file": "app/controllers/exchanges/broker_applicants_controller.rb",
+      "line": 47,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.require(:person).require(:broker_role_attributes).permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Exchanges::BrokerApplicantsController",
+        "method": "update"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": ""
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
+      "fingerprint": "3a011fae12dad6be9867045b9be69d5baa81b72d1e01f8e0d357628c0085e4af",
+      "check_name": "MassAssignment",
+      "message": "Parameters should be whitelisted for mass assignment",
+      "file": "app/controllers/exchanges/broker_applicants_controller.rb",
+      "line": 56,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.require(:person).require(:broker_role_attributes).permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Exchanges::BrokerApplicantsController",
+        "method": "update"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": ""
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
+      "fingerprint": "3a011fae12dad6be9867045b9be69d5baa81b72d1e01f8e0d357628c0085e4af",
+      "check_name": "MassAssignment",
+      "message": "Parameters should be whitelisted for mass assignment",
+      "file": "app/controllers/exchanges/broker_applicants_controller.rb",
+      "line": 61,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.require(:person).require(:broker_role_attributes).permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Exchanges::BrokerApplicantsController",
+        "method": "update"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": ""
+    },
+    {
+      "warning_type": "File Access",
+      "warning_code": 16,
+      "fingerprint": "49f890491d7c2afee6adea867d0d98443cdb5c3b778e2830afb39614ce7362c7",
+      "check_name": "FileAccess",
+      "message": "Model attribute used in file name",
+      "file": "lib/transcript_generator.rb",
+      "line": 48,
+      "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
+      "code": "File.open(\"#{TRANSCRIPT_PATH}/#{@count}_#{Transcripts::PersonTranscript.new.transcript[:identifier]}_#{Time.now.to_i}.bin\", \"wb\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "TranscriptGenerator",
+        "method": "build_transcript"
+      },
+      "user_input": "Transcripts::PersonTranscript.new.transcript[:identifier]",
+      "confidence": "Medium",
+      "note": ""
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
+      "fingerprint": "6e197d419416ef96df46eb4c44a1d959d014bffae12c6938b9d7705b1e466b4d",
+      "check_name": "MassAssignment",
+      "message": "Parameters should be whitelisted for mass assignment",
+      "file": "app/controllers/users_controller.rb",
+      "line": 6,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "UsersController",
+        "method": "confirm_lock"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": ""
+    },
+    {
+      "warning_type": "Cross-Site Request Forgery",
+      "warning_code": 7,
+      "fingerprint": "8c7b5c5b069bc98b25e22fe942e25d32e0be03ee37f96cbbb2779c8bac2787a7",
+      "check_name": "ForgerySetting",
+      "message": "`protect_from_forgery` should be called in `Api::V1::SlcspController`",
+      "file": "app/controllers/api/v1/slcsp_controller.rb",
+      "line": 3,
+      "link": "https://brakemanscanner.org/docs/warning_types/cross-site_request_forgery/",
+      "code": null,
+      "render_path": null,
+      "location": {
+        "type": "controller",
+        "controller": "Api::V1::SlcspController"
+      },
+      "user_input": null,
+      "confidence": "High",
+      "note": ""
+    },
+    {
+      "warning_type": "Cross-Site Scripting",
+      "warning_code": 2,
+      "fingerprint": "c1ff96a3ec7525e3c4d15276201118b431bec5197d4d1cf887332a82158e5fec",
+      "check_name": "CrossSiteScripting",
+      "message": "Unescaped model attribute",
+      "file": "app/views/broker_agencies/applicants/check_ach_routing.js.erb",
+      "line": 5,
+      "link": "https://brakemanscanner.org/docs/warning_types/cross_site_scripting",
+      "code": "AchRecord.find_by(:routing_number => params[:ach_record][:routing_number]).bank_name",
+      "render_path": [
+        {
+          "type": "controller",
+          "class": "BrokerAgencies::BrokerRolesController",
+          "method": "check_ach_routing",
+          "line": 8,
+          "file": "app/controllers/broker_agencies/broker_roles_controller.rb",
+          "rendered": {
+            "name": "broker_agencies/applicants/check_ach_routing",
+            "file": "app/views/broker_agencies/applicants/check_ach_routing.js.erb"
+          }
+        }
+      ],
+      "location": {
+        "type": "template",
+        "template": "broker_agencies/applicants/check_ach_routing"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": ""
+    },
+    {
+      "warning_type": "File Access",
+      "warning_code": 16,
+      "fingerprint": "ef486a2f648e540d2eb04ea78e5c6ba243cbaf21350fdec96467367fb1632736",
+      "check_name": "SendFile",
+      "message": "Model attribute used in file name",
+      "file": "app/controllers/employers/employer_profiles_controller.rb",
+      "line": 242,
+      "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
+      "code": "send_file(EmployerProfile.find(params[:id]).documents.find(params[:ids][0]).identifier, :file_name => EmployerProfile.find(params[:id]).documents.find(params[:ids][0]).title, :content_type => EmployerProfile.find(params[:id]).documents.find(params[:ids][0]).format)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Employers::EmployerProfilesController",
+        "method": "download_documents"
+      },
+      "user_input": "EmployerProfile.find(params[:id]).documents.find(params[:ids][0]).identifier",
+      "confidence": "Medium",
+      "note": ""
+    },
+    {
+      "warning_type": "Cross-Site Scripting",
+      "warning_code": 2,
+      "fingerprint": "f435d56bdacd8a1ceb662cff0ec4488c38edfa542960b683fa8f2da2164a29b3",
+      "check_name": "CrossSiteScripting",
+      "message": "Unescaped model attribute",
+      "file": "app/views/exchanges/hbx_profiles/_view_enrollment_to_update_end_date.html.erb",
+      "line": 22,
+      "link": "https://brakemanscanner.org/docs/warning_types/cross_site_scripting",
+      "code": "fetch_duplicate_enrollment_ids(Person.find(params[:person_id]).primary_family.enrollments.where(:aasm_state.in => ([\"coverage_terminated\", \"coverage_termination_pending\", \"coverage_expired\"]))).map(&:to_s)",
+      "render_path": [
+        {
+          "type": "controller",
+          "class": "Exchanges::HbxProfilesController",
+          "method": "view_enrollment_to_update_end_date",
+          "line": 413,
+          "file": "app/controllers/exchanges/hbx_profiles_controller.rb",
+          "rendered": {
+            "name": "exchanges/hbx_profiles/view_enrollment_to_update_end_date",
+            "file": "app/views/exchanges/hbx_profiles/view_enrollment_to_update_end_date.js.erb"
+          }
+        },
+        {
+          "type": "template",
+          "name": "exchanges/hbx_profiles/view_enrollment_to_update_end_date",
+          "line": 9,
+          "file": "app/views/exchanges/hbx_profiles/view_enrollment_to_update_end_date.js.erb",
+          "rendered": {
+            "name": "exchanges/hbx_profiles/_view_enrollment_to_update_end_date",
+            "file": "app/views/exchanges/hbx_profiles/_view_enrollment_to_update_end_date.html.erb"
+          }
+        }
+      ],
+      "location": {
+        "type": "template",
+        "template": "exchanges/hbx_profiles/_view_enrollment_to_update_end_date"
+      },
+      "user_input": "Person.find(params[:person_id]).primary_family",
+      "confidence": "Weak",
+      "note": ""
+    }
+  ],
+  "updated": "2021-01-21 14:25:38 -0500",
+  "brakeman_version": "4.8.1"
+}
