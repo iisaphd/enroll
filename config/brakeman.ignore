@@ -25,7 +25,7 @@
       "warning_code": 70,
       "fingerprint": "3a011fae12dad6be9867045b9be69d5baa81b72d1e01f8e0d357628c0085e4af",
       "check_name": "MassAssignment",
-      "message": "Parameters should be whitelisted for mass assignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
       "file": "app/controllers/exchanges/broker_applicants_controller.rb",
       "line": 47,
       "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
@@ -45,7 +45,7 @@
       "warning_code": 70,
       "fingerprint": "3a011fae12dad6be9867045b9be69d5baa81b72d1e01f8e0d357628c0085e4af",
       "check_name": "MassAssignment",
-      "message": "Parameters should be whitelisted for mass assignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
       "file": "app/controllers/exchanges/broker_applicants_controller.rb",
       "line": 56,
       "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
@@ -65,7 +65,7 @@
       "warning_code": 70,
       "fingerprint": "3a011fae12dad6be9867045b9be69d5baa81b72d1e01f8e0d357628c0085e4af",
       "check_name": "MassAssignment",
-      "message": "Parameters should be whitelisted for mass assignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
       "file": "app/controllers/exchanges/broker_applicants_controller.rb",
       "line": 61,
       "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
@@ -105,7 +105,7 @@
       "warning_code": 70,
       "fingerprint": "6e197d419416ef96df46eb4c44a1d959d014bffae12c6938b9d7705b1e466b4d",
       "check_name": "MassAssignment",
-      "message": "Parameters should be whitelisted for mass assignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
       "file": "app/controllers/users_controller.rb",
       "line": 6,
       "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
@@ -166,6 +166,22 @@
         "type": "template",
         "template": "broker_agencies/applicants/check_ach_routing"
       },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": ""
+    },
+    {
+      "warning_type": "Cross-Site Request Forgery",
+      "warning_code": 116,
+      "fingerprint": "c8697fda60549ca065789e2ea74c94effecef88b2b5483bae17ddd62ece47194",
+      "check_name": "CSRFTokenForgeryCVE",
+      "message": "Rails 4.2.11 has a vulnerability that may allow CSRF token forgery. Upgrade to Rails 5.2.4.3 or patch",
+      "file": "Gemfile.lock",
+      "line": 639,
+      "link": "https://groups.google.com/g/rubyonrails-security/c/NOjKiGeXUgw",
+      "code": null,
+      "render_path": null,
+      "location": null,
       "user_input": null,
       "confidence": "Medium",
       "note": ""
@@ -232,6 +248,6 @@
       "note": ""
     }
   ],
-  "updated": "2021-01-21 14:25:38 -0500",
-  "brakeman_version": "4.8.1"
+  "updated": "2021-01-21 15:32:46 -0500",
+  "brakeman_version": "4.10.1"
 }

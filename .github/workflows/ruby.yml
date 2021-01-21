@@ -1,4 +1,4 @@
-name: Rspec and Cucumbers
+name: Full suite check
 on: push
 
 env: # https://stackoverflow.com/questions/59867124/how-can-i-access-github-action-environment-variables-within-a-bash-script-run-by
