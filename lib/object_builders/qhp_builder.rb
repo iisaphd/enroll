@@ -173,8 +173,8 @@ class QhpBuilder
           # csr_variant_id: up_plan.hios_id.include?("-") ? up_plan.hios_id.split("-").last : "",
           csr_variant_id: up_plan.coverage_kind == "dental" ? "" : up_plan.hios_id.split("-").last,
           plan_type: @qhp.plan_type.downcase,
-          deductible: @qhp.qhp_cost_share_variances.first.qhp_deductables.first.in_network_tier_1_individual,
-          family_deductible: @qhp.qhp_cost_share_variances.first.qhp_deductables.first.in_network_tier_1_family,
+          deductible: @qhp.qhp_cost_share_variances.first.qhp_deductibles.first.in_network_tier_1_individual,
+          family_deductible: @qhp.qhp_cost_share_variances.first.qhp_deductibles.first.in_network_tier_1_family,
           nationwide: nation_wide,
           dc_in_network: dc_in_network,
           dental_level: @dental_metal_level
@@ -263,8 +263,8 @@ class QhpBuilder
               application_period: (Date.new(@plan_year, 1, 1)..Date.new(@plan_year, 12, 31)),
               service_area_id: mapped_service_area_id,
               # sbc_document: plan.sbc_document, # pending
-              deductible: cost_share_variance.qhp_deductable.in_network_tier_1_individual,
-              family_deductible: cost_share_variance.qhp_deductable.in_network_tier_1_family,
+              deductible: cost_share_variance.qhp_deductibles.in_network_tier_1_individual,
+              family_deductible: cost_share_variance.qhp_deductibles.in_network_tier_1_family,
               is_reference_plan_eligible: true,
             }
             if is_health_product?
@@ -375,7 +375,7 @@ class QhpBuilder
 
   def build_deductible
     plan_deductible_list_params.each do |plan_deductible|
-      @csv.qhp_deductables.build(plan_deductible)
+      @csv.qhp_deductibles.build(plan_deductible)
     end
   end
 

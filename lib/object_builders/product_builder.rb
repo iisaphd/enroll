@@ -92,8 +92,8 @@ class ProductBuilder
           csr_variant_id: csr_variant_id,
           application_period: (Date.new(@qhp.active_year, 1, 1)..Date.new(@qhp.active_year, 12, 31)),
           service_area_id: mapped_service_area_id,
-          deductible: cost_share_variance.qhp_deductables.first.in_network_tier_1_individual,
-          family_deductible: cost_share_variance.qhp_deductables.first.in_network_tier_1_family,
+          deductible: cost_share_variance.qhp_deductibles.first.in_network_tier_1_individual,
+          family_deductible: cost_share_variance.qhp_deductibles.first.in_network_tier_1_family,
           is_reference_plan_eligible: true,
           metal_level_kind: retrieve_metal_level.to_sym,
         }

@@ -117,7 +117,7 @@ class DeductibleBuilder
 
   def build_deductible
     plan_deductible_list_params.each do |plan_deductible|
-      @csv.qhp_deductables.build(plan_deductible)
+      @csv.qhp_deductibles.build(plan_deductible)
     end
   end
 
