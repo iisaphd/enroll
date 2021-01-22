@@ -19,8 +19,6 @@ class DeductibleBuilder
 
   def run
     @xml_plan_counter = 0
-    @success_plan_counter = 0
-    @existing_qhp_counter = 0
     iterate_plans
     show_qhp_stats unless Rails.env.test?
   end
@@ -46,12 +44,9 @@ class DeductibleBuilder
   def show_qhp_stats
     puts "*" * 80
     puts "Total Number of Products imported from xml: #{@xml_plan_counter}."
-    puts "Total Number of Products Saved to database: #{@success_plan_counter}."
-    puts "Total Number of Existing Products : #{@existing_qhp_counter}."
     puts "Check the log file #{@log_path}"
     puts "*" * 80
     @logger.info "\nTotal Number of Plans imported from xml: #{@xml_plan_counter}.\n"
-    @logger.info "\nTotal Number of Plans Saved to database: #{@success_plan_counter}.\n"
   end
 
   def validate_and_persist_qhp
