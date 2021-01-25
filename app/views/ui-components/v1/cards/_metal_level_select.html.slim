@@ -91,30 +91,76 @@
 
 // Shows view summary modal
 .modal.fade#viewSummaryModal tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
-  .modal-dialog role="document"
+  .modal-dialog.modal-lg role="document"
     .modal-content
       .modal-header
         button.close type="button" data-dismiss="modal" aria-label="close" x
         h4.heading-text.mt-0.mb-0.col-10#viewSummaryTitle
       .modal-body
-        table.table.compare-table#modalSummaryData style="font-size:11px"
-					tr
-						td.active
-							strong PLAN BENEFITS
-						td
-							strong CO-PAY
-						td
-							strong COINSURANCE
-					tbody#modalSummaryData
+        .container-fluid
+          .col-xs-4.flex-grow-1
+            table.table#plan-totals-table
+              tbody#plan-totals-body
+                tr
+                  td
+                    strong Type
+                  td#plan-type-detail
+                  td
+                tr
+                  td
+                    strong Carrier
+                  td#plan-carrier-detail
+                  td
+                tr
+                  td
+                    strong Level
+                  td#plan-level-detail
+                  td
+                - if EnrollRegistry[:add_deductible_display].feature.is_enabled
+                  tr
+                    td.deductible-top
+                      strong Deductible
+                    td.deductible-top Medical Indiv.
+                    td.deductible-top#ded-ind-detail
+                  tr
+                    td.deductible-child
+                      strong
+                    td.deductible-child Medical Family
+                    td.deductible-child#ded-fam-detail
+                  tr
+                    td.deductible-child
+                      strong
+                    td.deductible-child Rx Indiv.
+                    td.deductible-child#ded-rx-ind-detail
+                  tr
+                    td.deductible-child
+                      strong
+                    td.deductible-child Rx Family
+                    td.deductible-child#ded-rx-fam-detail
+                tr
+                  td
+                    strong Network
+                  td#plan-network-detail
+                  td
+            div.plan-details-footer
+              div
+                a href="/" id="sbcLink" target="_blank"
+                  i.far.fa-file-pdf.fa-2x.mr-1
+                  | Summary of Benefits and Coverage
+              div
+                button.btn.btn-default.btn-sm#closeModal type="button" data-dismiss="modal" Close
+                button.btn.btn-default.btn-sm#btnMoreDetails type="button" onclick="showMoreDetails()" More Details
 
-      .modal-footer
-        .pull-left
-          a href="/" id="sbcLink" target="_blank"
-            i.far.fa-file-pdf.fa-2x.mr-1
-            | Summary of Benefits and Coverage
-        .pull-right
-          button.btn.btn-default.btn-sm#btnMoreDetails type="button" onclick="showMoreDetails()" More Details
-          button.btn.btn-default.btn-sm#closeModal type="button" data-dismiss="modal" style="margin-top:-1px" Close
+          .col-xs-8.deductible-divider
+            table.table.compare-table#modalSummaryData style="font-size:11px"
+    					tr
+    						td.active
+    							strong PLAN BENEFITS
+    						td
+    							strong CO-PAY
+    						td
+    							strong COINSURANCE
+    					tbody#modalSummaryData
 
 
 
@@ -529,6 +575,18 @@ javascript:
 		selectedReferencePlanID = element.dataset.planId;
     document.getElementById('viewSummaryTitle').innerHTML = selectedSummaryTitle;
     //$('#viewSummaryModal').data('bs.modal').$backdrop.css('background-color','transparent');
+
+    document.getElementById('plan-type-detail').innerHTML = element.dataset.planType.toUpperCase();
+    document.getElementById('plan-carrier-detail').innerHTML = element.dataset.planCarrier.toUpperCase();
+    document.getElementById('plan-level-detail').innerHTML = element.dataset.planLevel.toUpperCase();
+    // Network info to be updated
+    if ( #{EnrollRegistry[:add_deductible_display].feature.is_enabled} ) {
+      document.getElementById('ded-ind-detail').innerHTML = element.dataset.planDedInd;
+      document.getElementById('ded-fam-detail').innerHTML = element.dataset.planDedFam;
+      document.getElementById('ded-rx-ind-detail').innerHTML = element.dataset.planDedRxInd;
+      document.getElementById('ded-rx-fam-detail').innerHTML = element.dataset.planDedRxFam;
+    }
+
 		fetch('/benefit_sponsors/benefit_sponsorships/'+selectedBenefitSponsorsID+'/benefit_applications/'+selectedBenefitApplicationID+'/benefit_packages/reference_product_summary?reference_plan_id='+selectedReferencePlanID)
 			.then((res)=> res.json())
 			.then((data)=> {
