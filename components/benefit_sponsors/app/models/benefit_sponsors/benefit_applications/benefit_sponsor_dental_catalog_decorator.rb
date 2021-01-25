@@ -2,7 +2,7 @@ module BenefitSponsors
   module BenefitApplications
     class BenefitSponsorDentalCatalogDecorator < SimpleDelegator
 
-      Product = Struct.new(:id, :title, :metal_level_kind, :carrier_name, :issuer_id, :sole_source, :coverage_kind, :product_type, :network_information)
+      Product = Struct.new(:id, :title, :metal_level_kind, :carrier_name, :issuer_id, :sole_source, :coverage_kind, :product_type, :network_information, :deductible, :family_deductible)
       ContributionLevel = Struct.new(:id, :display_name, :contribution_factor, :is_offered, :contribution_unit_id) do
         def persisted?
           false
@@ -30,7 +30,7 @@ module BenefitSponsors
 
 
         @contributions = product_packages.by_product_kind(:dental).inject([]) do |contributions, product_package|
-          
+
           if benefit_package.present?
             if sponsored_benefit = benefit_package.sponsored_benefits.detect{|sb| sb.product_package == product_package}
               sponsor_contribution = sponsored_benefit.sponsor_contribution
@@ -42,10 +42,11 @@ module BenefitSponsors
             sponsor_contribution = contribution_service.build_sponsor_contribution(product_package)
           end
 
-          contributions << SponsorContribution.new(product_package.package_kind.to_s,
-            sponsor_contribution.contribution_levels.collect { |cl| 
+          contributions << SponsorContribution.new(
+            product_package.package_kind.to_s,
+            sponsor_contribution.contribution_levels.collect do |cl|
               ContributionLevel.new(cl.id.to_s, cl.display_name, cl.contribution_factor, true, cl.contribution_unit_id)
-            }
+            end
           )
 
           contributions
@@ -78,8 +79,21 @@ module BenefitSponsors
 
         product_packages.by_product_kind(:dental).each do |product_package|
           package_products = product_package.products.collect do |product|
-            # TODO
-            Product.new(product.id, product.title, product.metal_level, carriers[product.issuer_profile_id.to_s], product.issuer_profile_id, false, product.kind.to_s, product.product_type, product.network_information)
+            qhp = Products::Qhp.where(active_year: product.active_year, standard_component_id: product.hios_base_id).first
+            hios_id = product.kind == :dental ? (product.hios_id + "-01") : product.hios_id
+            csr = qhp.qhp_cost_share_variances.where(hios_plan_and_variant_id: hios_id).to_a.first
+
+            combined = csr.qhp_deductibles.first
+            deductible = combined.in_network_tier_1_individual
+            family_deductible = combined.in_network_tier_1_family
+            family_value = family_deductible.match(/[|]\s([$]\d+)/)
+            family_deductible = if family_value
+                                  family_value[1]
+                                else
+                                  "N/A"
+                                end
+
+            Product.new(product.id, product.title, product.metal_level, carriers[product.issuer_profile_id.to_s], product.issuer_profile_id, false, product.kind.to_s, product.product_type, product.network_information, deductible, family_deductible)
           end
           @products[product_package.package_kind] = case product_package.package_kind
             when :multi_product
