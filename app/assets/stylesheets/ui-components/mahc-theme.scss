@@ -438,6 +438,58 @@ thead {
   font-weight: normal;
 }
 
+.dental-deductible-info {
+  display: inline-flex;
+  width:65%;
+}
+
+.rp-deductible-info {
+  display: inline-flex;
+  width:70%;
+}
+
+.rp-deductible-label {
+  display:inline-table;
+}
+
+.rp-deductible-types {
+  width: 100%;
+}
+
+.deductible-divider {
+  border-left: 1px solid #ddd;
+}
+
+.plan-details-footer {
+  .btn {
+    margin-top: 15px;
+  }
+  .btn + .btn {
+    margin-left: 5px;
+  }
+}
+
+#plan-totals-table {
+  font-size: 11px;
+
+  .deductible-top {
+    padding-bottom: 0;
+  }
+
+  .deductible-child {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  tr td {
+    border-top: none;
+  }
+}
+
+#sbcLink {
+  font-size: 12px;
+}
+
 #uic-wrapper {
   width:97%;
   margin-left:20px;
