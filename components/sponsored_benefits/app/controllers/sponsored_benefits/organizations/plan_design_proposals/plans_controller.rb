@@ -22,6 +22,60 @@ module SponsoredBenefits
                 'metal_level': 'Metal Level',
                 'plan_deductible': 'Individual deductible (in network)'
               }
+
+        @plan_deductibles = {}
+        @plans.each do |plan|
+          qhp = Products::Qhp.where(active_year: plan.active_year, standard_component_id: plan.hios_base_id).first
+          hios_id = plan.coverage_kind == "dental" ? (plan.hios_id + "-01") : plan.hios_id
+          csr = qhp.qhp_cost_share_variances.where(hios_plan_and_variant_id: hios_id).to_a.first
+          if csr.qhp_deductibles.count > 1
+            medical = csr.qhp_deductibles.where(deductible_type: "Medical EHB Deductible").first
+            if medical
+              deductible = medical.in_network_tier_1_individual
+              deductible = "N/A" if deductible == "Not Applicable"
+              family_deductible = medical.in_network_tier_1_family
+              fam_value = family_deductible.match(/[|]\s([$]\d+)/)
+              family_deductible = if fam_value
+                                    fam_value[1]
+                                  else
+                                    "N/A"
+                                  end
+            else
+              deductible = "N/A"
+              family_deductible = "N/A"
+            end
+
+            drug = csr.qhp_deductibles.where(deductible_type: "Drug EHB Deductible").first
+            if drug
+              rx_deductible = drug.in_network_tier_1_individual
+              rx_family_deductible = drug.in_network_tier_1_family
+              fam_value = rx_family_deductible.match(/[|]\s([$]\d+)/)
+              rx_family_deductible = if fam_value
+                                       fam_value[1]
+                                     else
+                                       "N/A"
+                                     end
+            else
+              rx_deductible = "N/A"
+              rx_family_deductible = "N/A"
+            end
+          else
+            combined = csr.qhp_deductibles.first
+            deductible = combined.in_network_tier_1_individual
+            deductible = "N/A" if deductible == "Not Applicable"
+            family_deductible = combined.in_network_tier_1_family
+            fam_value = family_deductible.match(/[|]\s([$]\d+)/)
+            family_deductible = if fam_value
+                                  fam_value[1]
+                                else
+                                  family_deductible = "N/A"
+                                end
+            rx_deductible = "N/A"
+            rx_family_deductible = "N/A"
+          end
+
+          @plan_deductibles[plan.id] = {deductible: deductible, family_deductible: family_deductible, rx_deductible: rx_deductible, rx_family_deductible: rx_family_deductible}
+        end
       end
 
       private
