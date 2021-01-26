@@ -112,13 +112,9 @@ module BenefitSponsors
 
     private
 
-    def broker_agency?
-      @profile_type == "broker_agency"
-    end
-
     def user_not_authorized(exception)
       policy_name = exception.policy.class.to_s.underscore
-      flash[:error] = "Access not allowed for #{exception.query}, (Pundit policy)" unless broker_agency?
+      flash[:error] = "Access not allowed for #{exception.query}, (Pundit policy)" unless is_broker_profile?
       respond_to do |format|
         format.json { render nothing: true, status: :forbidden }
         format.html { redirect_to(session[:custom_url] || request.referrer || main_app.root_path)}
