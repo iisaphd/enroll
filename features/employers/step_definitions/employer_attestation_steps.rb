@@ -229,11 +229,9 @@ And(/.+ clicks View Summary$/) do
   sleep 2
   expect(page).to have_content('Select Your Reference Plan')
   wait_for_ajax
-  # binding.pry
   find_all('.reference-plans').first.hover
   expect(page).to have_content("View Summary")
   find_all('.rp-view-summary').first.click
-  # page.first('.rp-view-summary').click
 end
 
 Then(/.+ should see deductible information in summary$/) do
