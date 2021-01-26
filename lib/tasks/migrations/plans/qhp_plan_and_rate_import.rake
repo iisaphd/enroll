@@ -11,7 +11,7 @@ namespace :xml do
   # This is probably a one time run to fix multiple deductibles
   desc "Import qhp deductibles only from xml files"
   task :qhp_deductible, [:file] => :environment do |task, args|
-    files = Dir.glob(File.join(Rails.root, "db/seedfiles/plan_xmls", Settings.aca.state_abbreviation.downcase, "plans/2021", "**", "*.xml"))
+    files = Dir.glob(File.join(Rails.root, "db/seedfiles/plan_xmls", Settings.aca.state_abbreviation.downcase, "plans", "**", "*.xml"))
     qhp_hash = files.inject(DeductibleBuilder.new({})) do |qhp_product_hash, file|
       puts file
       xml = Nokogiri::XML(File.open(file))
