@@ -344,24 +344,24 @@ module BenefitMarkets
 
     def deductibles
       Rails.cache.fetch("product_deductibles_#{id}_#{kind}", expires_in: 1.week) do
-        qhp_cost_share_variance.qhp_deductibles
+        qhp_cost_share_variance&.qhp_deductibles
       end
     end
 
     def medical_deductible
-      deductibles.detect{ |a| [COMBINED_MEDICAL, MEDICAL_ONLY].include?(a.deductible_type) }
+      deductibles&.detect{ |a| [COMBINED_MEDICAL, MEDICAL_ONLY].include?(a.deductible_type) }
     end
 
     def drug_deductible
-      deductibles.detect{ |a| a.deductible_type == DRUG_ONLY }
+      deductibles&.detect{ |a| a.deductible_type == DRUG_ONLY }
     end
 
     def medical_individual_deductible
-      medical_deductible.individual
+      medical_deductible&.individual
     end
 
     def medical_family_deductible
-      medical_deductible.family
+      medical_deductible&.family
     end
 
     def rx_individual_deductible
