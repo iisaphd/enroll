@@ -1,27 +1,35 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
-include ApplicationHelper
-
 module SponsoredBenefits
+  include ApplicationHelper
   RSpec.describe Organizations::PlanDesignProposals::PlansController, type: :controller, dbclean: :around_each do
 
     describe ".index" do
       let!(:current_effective_date) { (TimeKeeper.date_of_record + 2.months).beginning_of_month }
       let!(:issuer_profile) { FactoryGirl.create(:benefit_sponsors_organizations_issuer_profile) }
-      let!(:county_zip) { FactoryGirl.create(:benefit_markets_locations_county_zip,
-        county_name: 'Middlesex',
-        zip: '01754',
-        state: 'MA'
-      ) }
-      let!(:service_area) { FactoryGirl.create(:benefit_markets_locations_service_area, county_zip_ids: [county_zip.id], active_year: current_effective_date.year) }
+      let!(:county_zip) do
+        FactoryGirl.create(:benefit_markets_locations_county_zip,
+                           county_name: 'Middlesex',
+                           zip: '01754',
+                           state: 'MA')
+      end
+      let!(:service_area) do
+        FactoryGirl.create(:benefit_markets_locations_service_area,
+                           county_zip_ids: [county_zip.id],
+                           active_year: current_effective_date.year)
+      end
 
-      let!(:hps) {FactoryGirl.create_list(:benefit_markets_products_health_products_health_product,
-          5,
-          application_period: (current_effective_date.beginning_of_year..current_effective_date.end_of_year),
-          product_package_kinds: [:single_issuer, :metal_level, :single_product],
-          service_area: service_area,
-          issuer_profile_id: issuer_profile.id,
-          metal_level_kind: :gold)}
+      let!(:hps) do
+        FactoryGirl.create_list(:benefit_markets_products_health_products_health_product,
+                                5,
+                                application_period: (current_effective_date.beginning_of_year..current_effective_date.end_of_year),
+                                product_package_kinds: [:single_issuer, :metal_level, :single_product],
+                                service_area: service_area,
+                                issuer_profile_id: issuer_profile.id,
+                                metal_level_kind: :gold)
+      end
 
       before do
         hps.each do |hp|
@@ -30,13 +38,9 @@ module SponsoredBenefits
           qhp.qhp_cost_share_variances << csr
           qhp_d = FactoryGirl.build(:products_qhp_deductable, in_network_tier_1_individual: "$100", in_network_tier_1_family: "$100 | $200")
           csr.qhp_deductibles << qhp_d
-          qhp.save!
-          csr.save!
-          qhp_d.save!
           doc = FactoryGirl.build(:document, identifier: '1:1#1')
           hp.sbc_document = doc
           hp.save!
-          doc.save!
         end
       end
 
@@ -54,6 +58,6 @@ module SponsoredBenefits
         expect(deductibles[hps[3].id][:rx_family_deductible]).to eq('N/A')
       end
     end
-    
+
   end
 end
