@@ -36,7 +36,11 @@ RSpec.describe "insured/families/_enrollment.html.erb" do
         id: "Productid",
         hios_id: "producthiosid",
         health_plan_kind: :hmo,
-        sbc_document: sbc_document
+        sbc_document: sbc_document,
+        medical_individual_deductible: '$200.00',
+        medical_family_deductible: '$200.00',
+        rx_individual_deductible: '$200.00',
+        rx_family_deductible: '$200.00'
     )
   end
 
@@ -174,6 +178,10 @@ RSpec.describe "insured/families/_enrollment.html.erb" do
         id: "productid",
         hios_id: "producthiosid",
         health_plan_kind: :hmo,
+        medical_individual_deductible: '$200.00',
+        medical_family_deductible: '$200.00',
+        rx_individual_deductible: '$200.00',
+        rx_family_deductible: '$200.00',
         sbc_document: sbc_document
       )
     end

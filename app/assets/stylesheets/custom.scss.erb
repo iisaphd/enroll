@@ -1093,9 +1093,6 @@ a.list-group-item.confirm {
 .panel-group .panel .list-group-item {
     border-radius: 0px;
 }
-a.wdfull {
-    width: 100%;
-}
 .list-group-item .panel-heading {
     padding: 0px;
 }
@@ -3021,7 +3018,22 @@ ul.list-qle li a:hover {
     border-radius: 0px;
 }
 a.wdfull {
-    width: 100%;
+  width: 100%;
+}
+.wdfull {
+  width: 100%;
+}
+.plan-premium.plan-details {
+  font-weight: 400;
+}
+.sbc-text {
+  font-weight: normal;
+  span {
+    &::before {
+      content: "\A";
+      white-space: pre;
+    }
+  }
 }
 .list-group-item .panel-heading {
     padding: 0px;
@@ -3815,7 +3827,7 @@ ul.list-right-section li a img {
       font-weight: 400;
     }
   }
-  .panel-footer span {
+  .panel-footer span, .panel-footer div {
     font-size: 12px;
   }
 }
