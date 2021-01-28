@@ -153,6 +153,9 @@ Then(/(.*) should see \"my account\" page with enrollment/) do |named_person|
   enrollment[0].find('.enrollment-created-at', text: exchange_date.strftime("%m/%d/%Y"))
 end
 
+Given(/^.+ should see annual deductible display$/) do
+  expect(page).to have_content "Annual Deductible"
+end
 
 Then(/(.*) should see \"my account\" page with active enrollment/) do |named_person|
   sleep 3 #wait for e-mail nonsense

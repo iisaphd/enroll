@@ -157,13 +157,13 @@
             <div class='col-xs-5'>
               <%= render_plan_type_details(product) %>
             </div>
-            <div class='mt-2 col-xs-7'>
-              <strong>Annual Deductible:</strong>
-            </div>
-            <div class='col-xs-7'><strong>Individual</strong></div>
-            <div class='col-xs-5'>$200.00</div>
-            <div class='col-xs-7'><strong>Family</strong></div>
-            <div class='col-xs-5'>$600.00</div>
+            <% if EnrollRegistry[:add_deductible_display].feature.is_enabled %>
+              <div class='mt-2 col-xs-7'><strong>Annual Deductible:</strong></div>
+              <div class='col-xs-7'><strong>Individual</strong></div>
+              <div class='col-xs-5'><%= number_to_currency(product.deductible_value, precision: 2) %></div>
+              <div class='col-xs-7'><strong>Family</strong></div>
+              <div class='col-xs-5'><%= number_to_currency(product.family_deductible_value, precision: 2) %></div>
+            <% end %>
           </div>
         </div>
         <% if read_only == true %>

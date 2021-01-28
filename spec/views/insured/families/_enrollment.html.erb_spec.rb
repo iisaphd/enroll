@@ -217,7 +217,7 @@ RSpec.describe "insured/families/_enrollment.html.erb" do
     end
 
     it "should display the plan start" do
-      expect(rendered).to have_selector('strong', text: 'Plan Start:')
+      expect(rendered).to have_selector('strong', text: 'Plan Start')
       expect(rendered).to match /#{Date.new(2015,8,10)}/
     end
 
@@ -226,7 +226,7 @@ RSpec.describe "insured/families/_enrollment.html.erb" do
     end
 
     it "should display the Plan Start" do
-      expect(rendered).to have_selector('strong', text: 'Plan Start:')
+      expect(rendered).to have_selector('strong', text: 'Plan Start')
       expect(rendered).to match /#{Date.new(2015,8,10)}/
     end
 
@@ -262,7 +262,7 @@ RSpec.describe "insured/families/_enrollment.html.erb" do
       end
 
       it 'displays future_enrollment_termination_date when enrollment is in coverage_termination_pending state' do
-        expect(rendered).to match /Future enrollment termination date:/
+        expect(rendered).to match(/Future enrollment termination date/)
       end
 
       it 'displays terminated_on when coverage_termination_pending and not future_enrollment_termination_date' do

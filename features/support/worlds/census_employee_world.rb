@@ -240,14 +240,15 @@ And(/(.*) has active coverage in coverage enrolled state/) do |named_person|
   ce = CensusEmployee.where(:first_name => /#{person[:first_name]}/i, :last_name => /#{person[:last_name]}/i).first
   person_rec = Person.where(first_name: /#{person[:first_name]}/i, last_name: /#{person[:last_name]}/i).first
   benefit_package = ce.active_benefit_group_assignment.benefit_package
+  effective_on = TimeKeeper.date_of_record.prev_month
   active_enrollment = FactoryGirl.create(
     :hbx_enrollment,
     household: person_rec.primary_family.active_household,
     coverage_kind: "health",
-    effective_on: TimeKeeper.date_of_record - 1.month,
+    effective_on: effective_on,
     enrollment_kind: "open_enrollment",
     kind: "employer_sponsored",
-    submitted_at: benefit_package.start_on - 1.month,
+    submitted_at: effective_on,
     employee_role_id: person_rec.active_employee_roles.first.id,
     benefit_group_assignment_id: ce.active_benefit_group_assignment.id,
     benefit_sponsorship_id: ce.benefit_sponsorship.id,
