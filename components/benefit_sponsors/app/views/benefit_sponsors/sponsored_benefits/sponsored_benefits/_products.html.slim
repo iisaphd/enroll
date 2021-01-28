@@ -38,8 +38,8 @@
 										                    .rp-plan-info Individual:
 										                    .rp-plan-info Family:
 										                  .pull-right
-										                    .rp-plan-info#ded-ind-value = product.deductible
-										                    .rp-plan-info#ded-fam-value = product.family_deductible
+										                    .rp-plan-info#ded-ind-value = product.deductible_value
+										                    .rp-plan-info#ded-fam-value = product.family_deductible_value
 		                                    span.plan-label Network:
 		                                    span.rp-plan-info
 		                                      - if product.network_information.present?
@@ -47,7 +47,7 @@
 		                                            i.fas.fa-question-circle
 		                                            = "NETWORK NOTES"
 											br
-										span.plan-label.mt-1.rp-view-summary onclick="viewSummary(this)" data-plan-title=product.title data-plan-id=product.id data-plan-type=product.product_type data-plan-carrier=product.carrier_name data-plan-level=product.metal_level_kind data-plan-ded-ind=product.deductible data-plan-ded-fam=product.family_deductible View Summary
+										span.plan-label.mt-1.rp-view-summary onclick="viewSummary(this)" data-plan-title=product.title data-plan-id=product.id data-plan-type=product.product_type data-plan-carrier=product.carrier_name data-plan-level=product.metal_level_kind data-plan-ded-ind=product.deductible_value data-plan-ded-fam=product.family_deductible_value View Summary
 										br
 
 // view model details

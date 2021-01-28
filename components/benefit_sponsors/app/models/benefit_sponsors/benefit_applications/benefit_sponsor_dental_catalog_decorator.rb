@@ -79,21 +79,18 @@ module BenefitSponsors
 
         product_packages.by_product_kind(:dental).each do |product_package|
           package_products = product_package.products.collect do |product|
-            qhp = Products::Qhp.where(active_year: product.active_year, standard_component_id: product.hios_base_id).first
-            hios_id = product.kind == :dental ? (product.hios_id + "-01") : product.hios_id
-            csr = qhp.qhp_cost_share_variances.where(hios_plan_and_variant_id: hios_id).to_a.first
-
-            combined = csr.qhp_deductibles.first
-            deductible = combined.in_network_tier_1_individual
-            family_deductible = combined.in_network_tier_1_family
-            family_value = family_deductible.match(/[|]\s([$]\d+)/)
-            family_deductible = if family_value
-                                  family_value[1]
-                                else
-                                  "N/A"
-                                end
-
-            Product.new(product.id, product.title, product.metal_level, carriers[product.issuer_profile_id.to_s], product.issuer_profile_id, false, product.kind.to_s, product.product_type, product.network_information, deductible, family_deductible)
+            Product.new(
+              product.id,
+              product.title,
+              product.metal_level,
+              carriers[product.issuer_profile_id.to_s],
+              product.issuer_profile_id,
+              false, product.kind.to_s,
+              product.product_type,
+              product.network_information,
+              product.medical_individual_deductible,
+              product.medical_family_deductible
+            )
           end
           @products[product_package.package_kind] = case product_package.package_kind
             when :multi_product
