@@ -14,7 +14,7 @@ FactoryGirl.define do
 
     product_package_kinds { [:single_product, :single_issuer, :metal_level] }
     sequence(:hios_id, (10..99).cycle)  { |n| "41842DC04000#{n}-01" }
-    sequence(:hios_base_id, (10..99).cycle)  { |n| "41842DC04000#{n}-01" }
+    sequence(:hios_base_id, (10..99).cycle)  { |n| "41842DC04000#{n}" }
 
     service_area { create(:benefit_markets_locations_service_area) }
 

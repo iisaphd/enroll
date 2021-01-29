@@ -2,7 +2,22 @@ module BenefitSponsors
   module BenefitApplications
     class BenefitSponsorHealthCatalogDecorator < SimpleDelegator
 
-      Product = Struct.new(:id, :title, :metal_level_kind, :carrier_name, :issuer_id, :sole_source, :coverage_kind, :product_type, :network_information, :deductible_value, :family_deductible_value, :rx_deductible_value, :rx_family_deductible_value)
+      Product = Struct.new(
+        :id,
+        :title,
+        :metal_level_kind,
+        :carrier_name,
+        :issuer_id,
+        :sole_source,
+        :coverage_kind,
+        :product_type,
+        :network_information,
+        :deductible_value,
+        :family_deductible_value,
+        :rx_deductible_value,
+        :rx_family_deductible_value
+      )
+
       ContributionLevel = Struct.new(:id, :display_name, :contribution_factor, :is_offered, :contribution_unit_id)
 
       def sponsor_contributions(benefit_package_id = nil)
@@ -75,52 +90,6 @@ module BenefitSponsors
 
         product_packages.by_product_kind(:health).each do |product_package|
           package_products = product_package.products.collect do |product|
-            qhp = Products::Qhp.where(active_year: product.active_year, standard_component_id: product.hios_base_id).first
-            csr = qhp.qhp_cost_share_variances.where(hios_plan_and_variant_id: product.hios_id).to_a.first
-            if csr.qhp_deductibles.count > 1
-              medical = csr.qhp_deductibles.where(deductible_type: "Medical EHB Deductible").first
-              if medical
-                deductible = medical.in_network_tier_1_individual
-                family_deductible = medical.in_network_tier_1_family
-                fam_value = family_deductible.match(/[|]\s([$]\d+)/)
-                family_deductible = if fam_value
-                                      fam_value[1]
-                                    else
-                                      "N/A"
-                                    end
-              else
-                deductible = "N/A"
-                family_deductible = "N/A"
-              end
-
-              drug = csr.qhp_deductibles.where(deductible_type: "Drug EHB Deductible").first
-              if drug
-                rx_deductible = drug.in_network_tier_1_individual
-                rx_family_deductible = drug.in_network_tier_1_family
-                fam_value = rx_family_deductible.match(/[|]\s([$]\d+)/)
-                rx_family_deductible = if fam_value
-                                         fam_value[1]
-                                       else
-                                         "N/A"
-                                       end
-              else
-                rx_deductible = "N/A"
-                rx_family_deductible = "N/A"
-              end
-            else
-              combined = csr.qhp_deductibles.first
-              deductible = combined.in_network_tier_1_individual
-              family_deductible = combined.in_network_tier_1_family
-              fam_value = family_deductible.match(/[|]\s([$]\d+)/)
-              family_deductible = if fam_value
-                                    fam_value[1]
-                                  else
-                                    family_deductible = "N/A"
-                                  end
-              rx_deductible = "N/A"
-              rx_family_deductible = "N/A"
-            end
-
             Product.new(product.id,
                         product.title,
                         product.metal_level_kind,
@@ -130,10 +99,10 @@ module BenefitSponsors
                         product.is_a?(BenefitMarkets::Products::HealthProducts::HealthProduct) ? "health" : "dental",
                         product.product_type,
                         product.network_information,
-                        deductible,
-                        family_deductible,
-                        rx_deductible,
-                        rx_family_deductible
+                        product.medical_individual_deductible,
+                        product.medical_family_deductible,
+                        product.rx_individual_deductible,
+                        product.rx_family_deductible
             )
           end
           @products[product_package.package_kind] = case product_package.package_kind

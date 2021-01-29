@@ -65,6 +65,10 @@ class Products::QhpCostShareVariance
     csvs.select{ |a| ids.include?(a.hios_plan_and_variant_id) }
   end
 
+  def self.find_qhp_cost_share_variance(id, year, coverage_kind)
+    find_qhp_cost_share_variances([id], year, coverage_kind)
+  end
+
   def plan
     # return @qhp_plan if defined? @qhp_plan
     Rails.cache.fetch("qcsv-plan-#{qhp.active_year}-hios-id-#{hios_plan_and_variant_id}", expires_in: 5.hour) do
