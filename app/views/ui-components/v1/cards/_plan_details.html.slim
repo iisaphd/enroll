@@ -68,10 +68,10 @@
                   table.wdfull
                     tr
                       td Individual
-                      td.pull-right = plan.medical_individual_deductible
+                      td.pull-right = number_to_currency(plan.medical_individual_deductible, precision: 2)
                     tr
                       td Family
-                      td.pull-right = plan.medical_family_deductible
+                      td.pull-right = number_to_currency(plan.medical_family_deductible, precision: 2)
                 - elsif @hbx_enrollment.hbx_enrollment_members.size > 1
                   = plan.family_deductible
                 - else
