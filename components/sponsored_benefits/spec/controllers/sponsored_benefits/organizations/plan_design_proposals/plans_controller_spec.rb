@@ -33,29 +33,26 @@ module SponsoredBenefits
 
       before do
         hps.each do |hp|
-          qhp = create(:products_qhp, active_year: hp.active_year, standard_component_id: hp.hios_id)
-          csr = FactoryGirl.build(:products_qhp_cost_share_variance, hios_plan_and_variant_id: hp.hios_id)
-          qhp.qhp_cost_share_variances << csr
-          qhp_d = FactoryGirl.build(:products_qhp_deductable, in_network_tier_1_individual: "$100", in_network_tier_1_family: "$100 | $200")
-          csr.qhp_deductibles << qhp_d
+          qhp = FactoryGirl.build(:products_qhp, active_year: hp.active_year, standard_component_id: hp.hios_base_id)
+          csv = qhp.qhp_cost_share_variances.build(hios_plan_and_variant_id: hp.hios_id)
+          ded1 = csv.qhp_deductibles.build(in_network_tier_1_individual: "$100", in_network_tier_1_family: "$100 | $200", deductible_type: "Medical EHB Deductible")
+          ded1.save
+          csv.save
           doc = FactoryGirl.build(:document, identifier: '1:1#1')
           hp.sbc_document = doc
           hp.save!
+          FactoryGirl.create(:plan, hios_id: hp.hios_id)
         end
       end
 
       it "returns formatted deductible values" do
-        plans = []
-        hps.each do |hp|
-          plans << double(id: hp.id, active_year: current_effective_date.year, hios_base_id: hp.hios_base_id, hios_id: hp.hios_id, coverage_kind: 'health')
-        end
-
+        plans = Plan.all.to_a
         deductibles = subject.instance_eval { plan_deductible_values(plans) }
 
-        expect(deductibles[hps[0].id][:deductible]).to eq('$100')
-        expect(deductibles[hps[1].id][:family_deductible]).to eq('$200')
-        expect(deductibles[hps[2].id][:rx_deductible]).to eq('N/A')
-        expect(deductibles[hps[3].id][:rx_family_deductible]).to eq('N/A')
+        expect(deductibles[plans[0].id][:deductible]).to eq('$100')
+        expect(deductibles[plans[1].id][:family_deductible]).to eq('$200')
+        expect(deductibles[plans[2].id][:rx_deductible]).to eq('N/A')
+        expect(deductibles[plans[3].id][:rx_family_deductible]).to eq('N/A')
       end
     end
 
