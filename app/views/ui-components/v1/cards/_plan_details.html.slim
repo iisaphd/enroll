@@ -41,7 +41,13 @@
               th scope="col" TYPE
               th scope="col" LEVEL
               th scope="col" NETWORK
-              th scope="col" ANNUAL DEDUCTIBLE
+              th scope="col"
+                - if EnrollRegistry[:add_deductible_display].feature.is_enabled
+                  | ANNUAL DEDUCTIBLE
+                - elsif @hbx_enrollment.hbx_enrollment_members.size > 1
+                  | FAMILY DEDUCTIBLE
+                - else
+                  | DEDUCTIBLE
 
           tbody
             tr
@@ -58,13 +64,18 @@
                       i.fas.fa-question-circle.fa-lg.pl-1 aria-hidden="true"
 
               td
-                table.wdfull
-                  tr
-                    td Individual
-                    td.pull-right = plan.medical_individual_deductible
-                  tr
-                    td Family
-                    td.pull-right = plan.medical_family_deductible
+                - if EnrollRegistry[:add_deductible_display].feature.is_enabled
+                  table.wdfull
+                    tr
+                      td Individual
+                      td.pull-right = plan.medical_individual_deductible
+                    tr
+                      td Family
+                      td.pull-right = plan.medical_family_deductible
+                - elsif @hbx_enrollment.hbx_enrollment_members.size > 1
+                  = plan.family_deductible
+                - else
+                  = plan.deductible
     .row
       .col-xs-3
         .checkbox.no-buffer
