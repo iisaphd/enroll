@@ -26,7 +26,7 @@ module Products
     field :combined_in_out_network_tier_2, type: String
 
     def individual
-      in_network_tier_1_individual.delete('$,').to_i if in_network_tier_1_individual
+      in_network_tier_1_individual.present? ? in_network_tier_1_individual.delete('$,').to_i : 'N/A'
     end
 
     def family
