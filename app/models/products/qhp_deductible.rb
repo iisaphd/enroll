@@ -33,6 +33,5 @@ module Products
       value = in_network_tier_1_family&.match(/[|]\s([$]\d+)/)
       value.present? ? value[1].delete('$,').to_i : 'N/A'
     end
-
   end
 end

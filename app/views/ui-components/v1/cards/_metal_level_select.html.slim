@@ -258,7 +258,7 @@ javascript:
           if ( #{EnrollRegistry[:add_deductible_display].feature.is_enabled} ) {
             innerHTML +=
             `<div>
-                <div class="plan-label rp-deductible-label">Deductible: </div>
+                <div class="plan-label rp-deductible-label run-glossary">Deductible: </div>
                 <div class="rp-deductible-info">
                   <div class="rp-deductible-types">
                     <span class="rp-plan-info">Individual: </span><br>
@@ -286,6 +286,8 @@ javascript:
 
         document.getElementById('yourPlans').append(div);
     }
+
+    runGlossary();
 
     setTimeout(function() {
       buildSponsorContributions(sponsorContribution)

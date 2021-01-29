@@ -17,6 +17,7 @@ module BenefitSponsors
         :rx_deductible_value,
         :rx_family_deductible_value
       )
+
       ContributionLevel = Struct.new(:id, :display_name, :contribution_factor, :is_offered, :contribution_unit_id)
 
       def sponsor_contributions(benefit_package_id = nil)
