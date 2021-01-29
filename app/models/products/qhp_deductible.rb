@@ -26,12 +26,12 @@ module Products
     field :combined_in_out_network_tier_2, type: String
 
     def individual
-      in_network_tier_1_individual.gsub(/\$/,'').gsub(/,/,'').to_i if in_network_tier_1_individual
+      in_network_tier_1_individual.delete('$,').to_i if in_network_tier_1_individual
     end
 
     def family
       value = in_network_tier_1_family&.match(/[|]\s([$]\d+)/)
-      value.present? ? value[1].gsub(/\$/,'').gsub(/,/,'').to_i : 'N/A'
+      value.present? ? value[1].delete('$,').to_i : 'N/A'
     end
 
   end
