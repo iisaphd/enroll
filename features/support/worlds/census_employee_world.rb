@@ -317,13 +317,22 @@ And(/^employees for (.*?) have a selected coverage$/) do |legal_name|
   coverage_household = person.primary_family.households.first
   rating_area_id =  benefit_package.benefit_application.recorded_rating_area_id
   sponsored_benefit_id = benefit_package.sponsored_benefits.first.id
-
-  build_enrollment({household: coverage_household,
-                    benefit_group_assignment: bga,
-                    employee_role: @census_employees.first.employee_role,
-                    sponsored_benefit_package_id: benefit_package.id,
-                    rating_area_id: rating_area_id,
-                    sponsored_benefit_id: sponsored_benefit_id})
+  FactoryGirl.create(
+    :hbx_enrollment,
+    household: coverage_household,
+    coverage_kind: "health",
+    effective_on: benefit_package.start_on,
+    enrollment_kind: "open_enrollment",
+    kind: "employer_sponsored",
+    employee_role: @census_employees.first.employee_role,
+    benefit_group_assignment_id: bga.id,
+    benefit_sponsorship_id: @census_employees.first.benefit_sponsorship.id,
+    sponsored_benefit_package_id: benefit_package.id,
+    sponsored_benefit_id: benefit_package.health_sponsored_benefit.id,
+    rating_area_id: benefit_package.rating_area.id,
+    product_id: benefit_package.health_sponsored_benefit.products(benefit_package.start_on).first.id,
+    issuer_profile_id: benefit_package.health_sponsored_benefit.products(benefit_package.start_on).first.issuer_profile.id
+  )
 end
 
 And(/^employer (.*?) with employee (.*?) is under open enrollment$/) do |legal_name, named_person|
