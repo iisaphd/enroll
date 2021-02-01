@@ -129,7 +129,7 @@ end
 Then(/(.*) should see enrollment on my account page/) do |named_person|
   expect(page).to have_content(named_person)  
   exchange_date = TimeKeeper.date_according_to_exchange_at(Time.current)
-  expect(page).to have_content("Plan Selected: #{exchange_date.strftime("%m/%d/%Y")}")
+  expect(page).to have_content("Plan Selected\n#{exchange_date.strftime('%m/%d/%Y')}")
 end
 
 Then(/(.*) should see \"my account\" page with enrollment/) do |named_person|
@@ -153,6 +153,9 @@ Then(/(.*) should see \"my account\" page with enrollment/) do |named_person|
   enrollment[0].find('.enrollment-created-at', text: exchange_date.strftime("%m/%d/%Y"))
 end
 
+Given(/^.+ should see annual deductible display$/) do
+  expect(page).to have_content(/Annual Deductible/i)
+end
 
 Then(/(.*) should see \"my account\" page with active enrollment/) do |named_person|
   sleep 3 #wait for e-mail nonsense
