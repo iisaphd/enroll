@@ -469,7 +469,7 @@ thead {
   border-left: 1px solid #ddd;
 }
 
-.run-glossary .popover, #referencePlans .popover {
+.run-glossary .popover, #referencePlans .popover, .enrollment-tile .popover {
   background-color: #003260;
   color: white;
   max-width: 350px;
@@ -477,7 +477,7 @@ thead {
   .popover-title {
     background-color: #003260;
     border-bottom: none;
-    color: white;
+    color: white !important;
     font-weight: bold;
     padding-bottom: 0;
     button.close {

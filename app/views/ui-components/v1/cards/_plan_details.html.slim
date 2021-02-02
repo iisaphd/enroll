@@ -37,7 +37,7 @@
       .col-md-12
         table.table.gn-10
           thead
-            tr
+            tr.run-glossary
               th scope="col" TYPE
               th scope="col" LEVEL
               th scope="col" NETWORK
@@ -90,6 +90,10 @@
             
 javascript:
 	
+  $(function() {
+    runGlossary();
+  });
+
 	function comparePlan(element) {
     plansToCompareArray = [];
 		checkboxes = document.querySelectorAll('#compare_plan_checkbox')

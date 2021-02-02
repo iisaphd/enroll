@@ -395,7 +395,7 @@ javascript:
                 </div>
                 <div class="row mt-2">
                   <div class="col-md-12">
-                    <table class="table gn-12">
+                    <table class="table gn-12 run-glossary">
                       <thead>
                         <tr>
                           <th scope="col">TYPE</th>
@@ -456,6 +456,9 @@ javascript:
       else {
         document.getElementById('deductible_display_'+result.product._id).append(deductible)
       }
+      $(function() {
+        runGlossary();
+      });
     });
   }
 
