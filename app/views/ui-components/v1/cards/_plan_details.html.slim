@@ -37,14 +37,12 @@
       .col-md-12
         table.table.gn-10
           thead
-            tr
+            tr.run-glossary
               th scope="col" TYPE
               th scope="col" LEVEL
               th scope="col" NETWORK
               th scope="col"
-                - if EnrollRegistry[:add_deductible_display].feature.is_enabled
-                  | ANNUAL DEDUCTIBLE
-                - elsif @hbx_enrollment.hbx_enrollment_members.size > 1
+                - if @hbx_enrollment.hbx_enrollment_members.size > 1
                   | FAMILY DEDUCTIBLE
                 - else
                   | DEDUCTIBLE
@@ -90,6 +88,10 @@
             
 javascript:
 	
+  $(function() {
+    runGlossary();
+  });
+
 	function comparePlan(element) {
     plansToCompareArray = [];
 		checkboxes = document.querySelectorAll('#compare_plan_checkbox')

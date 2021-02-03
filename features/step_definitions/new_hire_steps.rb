@@ -154,7 +154,7 @@ Then(/(.*) should see \"my account\" page with enrollment/) do |named_person|
 end
 
 Given(/^.+ should see annual deductible display$/) do
-  expect(page).to have_content(/Annual Deductible/i)
+  expect(page).to have_content(/Deductible/i)
 end
 
 Given(/^.+ should see medical and drug deductible information$/) do

@@ -348,7 +348,7 @@ javascript:
       if (#{add_deductible_display_enabled?}) {
         var deductible = parseFloat(result.medical_individual_deductible).toFixed(2);
         var family_deductible = parseFloat(result.medical_family_deductible).toFixed(2);
-        var deductibeType = 'ANNUAL DEDUCTIBLE';
+        var deductibeType = 'DEDUCTIBLE';
       }
       else if (result.member_enrollments.length > 1) {
         var deductible = result.product.family_deductible;
@@ -395,7 +395,7 @@ javascript:
                 </div>
                 <div class="row mt-2">
                   <div class="col-md-12">
-                    <table class="table gn-12">
+                    <table class="table gn-12 run-glossary">
                       <thead>
                         <tr>
                           <th scope="col">TYPE</th>
@@ -456,6 +456,9 @@ javascript:
       else {
         document.getElementById('deductible_display_'+result.product._id).append(deductible)
       }
+      $(function() {
+        runGlossary();
+      });
     });
   }
 
