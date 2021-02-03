@@ -157,6 +157,21 @@ Given(/^.+ should see annual deductible display$/) do
   expect(page).to have_content(/Annual Deductible/i)
 end
 
+Given(/^.+ should see medical and drug deductible information$/) do
+  expect(page).to have_content(/Rx/i)
+  expect(page).to have_content(/Deductible/i)
+end
+
+Then(/^.+ clicks on close button$/) do
+  click_button 'Close'
+end
+
+Then(/^.+ selects plans to compare$/) do
+  page.all("span.checkbox-custom-label")[0].click
+  page.all("span.checkbox-custom-label")[1].click
+  click_button "COMPARE PLANS"
+end
+
 Then(/(.*) should see \"my account\" page with active enrollment/) do |named_person|
   sleep 3 #wait for e-mail nonsense
   enrollments = Person.where(first_name: people[named_person][:first_name]).first.try(:primary_family).try(:active_household).try(:hbx_enrollments) if people[named_person].present?
