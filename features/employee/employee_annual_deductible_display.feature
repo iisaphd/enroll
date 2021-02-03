@@ -15,7 +15,7 @@ Feature: Annual Deductible Display
     And Patrick Doe should see annual deductible display
     And Employee logs out
 
-  Scenario: Annual Deductible display on enrollment tile while plan shopping
+  Scenario: Annual Deductible display on enrollment tile and plan comparison while shopping for plan
     Given Add Deductible Display is Enabled
     Given a CCA site exists with a benefit market
     Given benefit market catalog exists for enrollment_open renewal employer with health benefits
@@ -40,4 +40,7 @@ Feature: Annual Deductible Display
     When Employee clicks Shop for new plan button
     Then Patrick Doe should see the list of plans
     And Patrick Doe should see annual deductible display
+    And Partick Doe selects plans to compare
+    Then Patrick Doe should see medical and drug deductible information
+    Then Partick Doe clicks on close button
     And Employee logs out
