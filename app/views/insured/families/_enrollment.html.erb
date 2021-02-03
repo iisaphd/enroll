@@ -158,7 +158,7 @@
               <%= render_plan_type_details(product) %>
             </div>
             <% if EnrollRegistry[:add_deductible_display].feature.is_enabled %>
-              <div class='mt-2 col-xs-7 run-glossary'><strong>Annual Deductible:</strong></div>
+              <div class='mt-2 col-xs-7 run-glossary'><strong>Deductible:</strong></div>
               <div class='col-xs-7'><strong>Individual</strong></div>
               <div class='col-xs-5'><%= number_to_currency(product.medical_individual_deductible, precision: 2) %></div>
               <div class='col-xs-7'><strong>Family</strong></div>

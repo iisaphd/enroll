@@ -16,10 +16,6 @@ function runGlossary() {
   if ($('.run-glossary').length) {
     var terms = [
       {
-        "term": "Annual Deductible",
-        "description": "The amount you pay for covered health care services before your insurance plan starts to pay. With a $2,000 deductible, for example, you pay the first $2,000 of covered services yourself."
-      },
-      {
         "term": "Deductible",
         "description": "Your annual deductible is the amount you must pay for health care services before your health insurance company will start paying benefits. For example, if your deductible is $1,000, your health insurance company won’t pay benefits until you’ve paid $1,000 for certain health care services. The deductible may not apply to all services."
       }

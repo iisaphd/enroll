@@ -348,7 +348,7 @@ javascript:
       if (#{add_deductible_display_enabled?}) {
         var deductible = parseFloat(result.medical_individual_deductible).toFixed(2);
         var family_deductible = parseFloat(result.medical_family_deductible).toFixed(2);
-        var deductibeType = 'ANNUAL DEDUCTIBLE';
+        var deductibeType = 'DEDUCTIBLE';
       }
       else if (result.member_enrollments.length > 1) {
         var deductible = result.product.family_deductible;

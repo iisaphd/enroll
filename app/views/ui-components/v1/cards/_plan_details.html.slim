@@ -42,9 +42,7 @@
               th scope="col" LEVEL
               th scope="col" NETWORK
               th scope="col"
-                - if EnrollRegistry[:add_deductible_display].feature.is_enabled
-                  | ANNUAL DEDUCTIBLE
-                - elsif @hbx_enrollment.hbx_enrollment_members.size > 1
+                - if @hbx_enrollment.hbx_enrollment_members.size > 1
                   | FAMILY DEDUCTIBLE
                 - else
                   | DEDUCTIBLE
