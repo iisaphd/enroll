@@ -34,14 +34,14 @@ function runGlossary() {
         // finds every instance of the term on the page
         $('.run-glossary:contains(' + term.term + ')').each(function(i, matchingEl) {
           // matches the exact or plural term
-          var termRegex    = new RegExp("\\b(" + term.term + "[s]?)\\b", "gi");
-          var popoverRegex = new RegExp("(<span class=\"glossary\".+?<\/span>)");
+          var termRegex    = new RegExp("\\b(?:" + term.term + "[s]?)\\b", "gi");
+          var popoverRegex = new RegExp("(?:<span class=\"glossary\".+?<\/span>)");
           var description  = term.description;
           var newElement   = "";
           $(matchingEl).html().toString().split(popoverRegex).forEach(function(text){
             // if a matching term has not yet been given a popover, replace it with the popover element
             if (!text.includes("class=\"glossary\"")) {
-              newElement += text.replace(termRegex, '<span class="glossary" data-toggle="popover" data-placement="auto top" data-trigger="click focus" data-boundary="window" data-fallbackPlacement="flip" data-html="true" data-content="' + description + '" data-title="' + term.term + '<button data-dismiss=\'modal\' type=\'button\' class=\'close\' aria-label=\'Close\' onclick=\'hideGlossaryPopovers()\'></button>">$1</span>');
+              newElement += text.replace(termRegex, '<span class="glossary" data-toggle="popover" data-placement="auto top" data-trigger="click focus" data-boundary="window" data-fallbackPlacement="flip" data-html="true" data-content="' + description + '" data-title="' + term.term + '<button data-dismiss=\'modal\' type=\'button\' class=\'close\' aria-label=\'Close\' onclick=\'hideGlossaryPopovers()\'></button>">' + term.term + '</span>');
             }
             else {
               // if the term has already been given a popover, do not search it again
