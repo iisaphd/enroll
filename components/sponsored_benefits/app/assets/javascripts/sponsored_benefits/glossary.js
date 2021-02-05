@@ -35,7 +35,7 @@ function runGlossary() {
         $('.run-glossary:contains(' + term.term + ')').each(function(i, matchingEl) {
           // matches the exact or plural term
           var termRegex    = new RegExp("\\b(?:" + term.term + "[s]?)\\b", "gi");
-          var popoverRegex = new RegExp("(?:<span class=\"glossary\".+?<\/span>)");
+          var popoverRegex = new RegExp("(<span class=\"glossary\".+?<\/span>)");
           var description  = term.description;
           var newElement   = "";
           $(matchingEl).html().toString().split(popoverRegex).forEach(function(text){
@@ -51,7 +51,18 @@ function runGlossary() {
           });
         });
     });
-    $('[data-toggle="popover"]').popover();
+    if( $('#referencePlans').length > 0 ) {
+      $('[data-toggle="popover"]').popover({container: '#referencePlans'});
+    }
+    else if ( $('.reference-plans').length > 0 ) {
+      $('[data-toggle="popover"]').popover({container: '.reference-plans'});
+    }
+    else if ( $('.enrollment-tile').length > 0 ) {
+      $('[data-toggle="popover"]').popover({container: '.enrollment-tile'});
+    }
+    else {
+      $('[data-toggle="popover"]').popover();
+    }
 
     // Because of the change to popover on click instead of hover, you need to
     // manually close each popover. This will close others if you click to open one

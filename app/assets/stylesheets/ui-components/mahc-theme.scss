@@ -469,7 +469,10 @@ thead {
   border-left: 1px solid #ddd;
 }
 
-.run-glossary .popover, #referencePlans .popover, .enrollment-tile .popover {
+.run-glossary .popover,
+#referencePlans .popover,
+.reference-plans .popover,
+.enrollment-tile .popover {
   background-color: #003260;
   color: white;
   max-width: 350px;
@@ -508,7 +511,7 @@ thead {
 
 span.glossary {
   border-bottom: 1px dashed #007bc4;
-  color: #007bc4;
+  color: #007bc4 !important;
 }
 span.glossary:hover {
   cursor: pointer;
