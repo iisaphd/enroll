@@ -54,6 +54,9 @@ function runGlossary() {
     if( $('#referencePlans').length > 0 ) {
       $('[data-toggle="popover"]').popover({container: '#referencePlans'});
     }
+    else if ( $('.plan-type-filters').length > 0 ) {
+      $('[data-toggle="popover"]').popover({container: '.plan-type-filters', placement: 'left'});
+    }
     else if ( $('.reference-plans').length > 0 ) {
       $('[data-toggle="popover"]').popover({container: '.reference-plans'});
     }
