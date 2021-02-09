@@ -2,7 +2,7 @@ module BenefitSponsors
   module BenefitApplications
     class BenefitSponsorDentalCatalogDecorator < SimpleDelegator
 
-      Product = Struct.new(:id, :title, :metal_level_kind, :carrier_name, :issuer_id, :sole_source, :coverage_kind, :product_type, :network_information, :deductible, :family_deductible)
+      Product = Struct.new(:id, :title, :metal_level_kind, :carrier_name, :issuer_id, :sole_source, :coverage_kind, :product_type, :network_information, :deductible_value, :family_deductible_value, :rx_deductible_value, :rx_family_deductible_value)
       ContributionLevel = Struct.new(:id, :display_name, :contribution_factor, :is_offered, :contribution_unit_id) do
         def persisted?
           false
@@ -89,7 +89,9 @@ module BenefitSponsors
               product.product_type,
               product.network_information,
               product.medical_individual_deductible,
-              product.medical_family_deductible
+              product.medical_family_deductible,
+              product.rx_individual_deductible,
+              product.rx_family_deductible
             )
           end
           @products[product_package.package_kind] = case product_package.package_kind

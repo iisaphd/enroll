@@ -200,3 +200,10 @@ Given(/^benefit market catalog exists for (.*) renewal employer with (.*) benefi
   create_benefit_market_catalog_for(current_effective_date)
   create_benefit_market_catalog_for(renewal_effective_date)
 end
+
+Given(/^benefit market catalog exists for (.*) initial employer that has both health and dental benefits$/) do |status|
+  coverage_kinds = [:health, :dental]
+  set_initial_application_dates(status.to_sym)
+  generate_initial_catalog_products_for(coverage_kinds)
+  create_benefit_market_catalog_for(current_effective_date)
+end
