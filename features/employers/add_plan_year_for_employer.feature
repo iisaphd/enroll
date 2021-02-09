@@ -54,7 +54,7 @@ Feature: Add Plan Year For Employer
      And Employer clicks View Summary
      Then Employer should see deductible information in summary
 
-   Scenario: Add Deductible Display Shows on Plan Tile
+   Scenario: Employer clicks Add Dental Benefit button
      Given Add Deductible Display is Enabled
      Given a CCA site exists with a benefit market
      Given benefit market catalog exists for enrollment_open initial employer that has both health and dental benefits
