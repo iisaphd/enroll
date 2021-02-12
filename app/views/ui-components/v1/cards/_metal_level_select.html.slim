@@ -265,8 +265,8 @@ javascript:
                     <span class="rp-plan-info">Family: </span>
                   </div>
                   <div class="pull-right">
-                    <span class="rp-plan-info" id="ded-ind-value">${plan.deductible_value}</span><br>
-                    <span class="rp-plan-info" id="ded-fam-value">${plan.family_deductible_value}</span>
+                    <span class="rp-plan-info" id="ded-ind-value">$${plan.deductible_value}</span><br>
+                    <span class="rp-plan-info" id="ded-fam-value">$${plan.family_deductible_value}</span>
                   </div>
                 </div>
               </div>`
@@ -583,10 +583,12 @@ javascript:
     document.getElementById('plan-level-detail').innerHTML = element.dataset.planLevel.toUpperCase();
     // Network info to be updated
     if ( #{EnrollRegistry[:add_deductible_display].feature.is_enabled} ) {
-      document.getElementById('ded-ind-detail').innerHTML = element.dataset.planDedInd;
-      document.getElementById('ded-fam-detail').innerHTML = element.dataset.planDedFam;
-      document.getElementById('ded-rx-ind-detail').innerHTML = element.dataset.planDedRxInd;
-      document.getElementById('ded-rx-fam-detail').innerHTML = element.dataset.planDedRxFam;
+      document.getElementById('ded-ind-detail').innerHTML = "$" + element.dataset.planDedInd;
+      document.getElementById('ded-fam-detail').innerHTML = "$" + element.dataset.planDedFam;
+      var rxInd = element.dataset.planDedRxInd;
+      document.getElementById('ded-rx-ind-detail').innerHTML = rxInd == "N/A" ? rxInd : "$" + rxInd;
+      var rxFam = element.dataset.planDedRxFam;
+      document.getElementById('ded-rx-fam-detail').innerHTML = rxFam == "N/A" ? rxFam : "$" + rxFam;
     }
 
 		fetch('/benefit_sponsors/benefit_sponsorships/'+selectedBenefitSponsorsID+'/benefit_applications/'+selectedBenefitApplicationID+'/benefit_packages/reference_product_summary?reference_plan_id='+selectedReferencePlanID)
