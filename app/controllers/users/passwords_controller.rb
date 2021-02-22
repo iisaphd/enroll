@@ -37,7 +37,7 @@ class Users::PasswordsController < Devise::PasswordsController
   protected
 
   def after_resetting_password_path_for(resource_name)
-    path = resource_name.last_portal_visited.present? ? resource_name.last_portal_visited : root_url
-    path
+    root_url
+    resource_name.last_portal_visited.present? ? resource_name.last_portal_visited : root_url
   end
 end
