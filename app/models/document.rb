@@ -9,6 +9,7 @@ class Document
   RESOURCE_LIST = %w[BenefitSponsors::Organizations::AcaShopDcEmployerProfile
                      BenefitSponsors::Organizations::FehbEmployerProfile
                      BenefitSponsors::Organizations::AcaShopCcaEmployerProfile
+                     BenefitSponsors::Organizations::GeneralAgencyProfile
                      EmployeeRole Person ConsumerRole].freeze
 
   ACCESS_RIGHTS = %w(public pii_restricted)
