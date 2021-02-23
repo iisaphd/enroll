@@ -79,6 +79,10 @@ class Insured::FamilyMembersController < ApplicationController
     end
 
     if @dependent.save && update_vlp_documents(@dependent.family_member.try(:person).try(:consumer_role), 'dependent', @dependent)
+      active_family_members_count = @family.active_family_members.count
+      immediate_household_members_count = @family.active_household.immediate_family_coverage_household.coverage_household_members.count
+      extended_family_members_count = @family.active_household.extended_family_coverage_household.coverage_household_members.count
+      Rails.logger.info("In FamilyMembersController create action #{params}, #{@family.inspect}") unless active_family_members_count == immediate_household_members_count + extended_family_members_count
       @created = true
       respond_to do |format|
         format.html { render 'show' }
@@ -96,6 +100,12 @@ class Insured::FamilyMembersController < ApplicationController
 
   def destroy
     @dependent.destroy!
+    if @family.present?
+      active_family_members_count = @family.active_family_members&.count
+      immediate_household_members_count = @family.active_household.immediate_family_coverage_household.coverage_household_members.count
+      extended_family_members_count = @family.active_household.extended_family_coverage_household.coverage_household_members.count
+      Rails.logger.info("In FamilyMembersController create action #{params}, #{@family.inspect}") unless active_family_members_count == immediate_household_members_count + extended_family_members_count
+    end
     respond_to do |format|
       format.html { render 'index' }
       format.js { render 'destroyed' }
@@ -122,6 +132,10 @@ class Insured::FamilyMembersController < ApplicationController
   def update
     if ((Family.find(@dependent.family_id)).primary_applicant.person.resident_role?)
       if @dependent.update_attributes(params.require(:dependent))
+        active_family_members_count = @family.active_family_members.count
+        immediate_household_members_count = @family.active_household.immediate_family_coverage_household.coverage_household_members.count
+        extended_family_members_count = @family.active_household.extended_family_coverage_household.coverage_household_members.count
+        Rails.logger.info("In FamilyMembersController create action #{params}, #{@family.inspect}") unless active_family_members_count == immediate_household_members_count + extended_family_members_count
         respond_to do |format|
           format.html { render 'show_resident' }
           format.js { render 'show_resident' }
