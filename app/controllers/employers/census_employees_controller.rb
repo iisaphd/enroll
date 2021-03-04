@@ -160,6 +160,8 @@ class Employers::CensusEmployeesController < ApplicationController
 
   def confirm_effective_date
     confirmation_type = params[:type]
+    return unless CensusEmployee::CONFIRMATION_EFFECTIVE_DATE_TYPES.include?(confirmation_type)
+
     render "#{confirmation_type}_effective_date"
   end
 
@@ -173,6 +175,7 @@ class Employers::CensusEmployeesController < ApplicationController
 
   def show
     @family = @census_employee.employee_role.person.primary_family if @census_employee.employee_role.present?
+    @hbx_enrollments = @census_employee.enrollments_for_display
     @status = params[:status] || ''
   end
 
