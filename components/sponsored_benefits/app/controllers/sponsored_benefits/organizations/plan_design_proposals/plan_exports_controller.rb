@@ -52,7 +52,7 @@ module SponsoredBenefits
               @benefit_group.assign_attributes(dental_benefit_params)
               @benefit_group.elected_dental_plans = @benefit_group.elected_dental_plans_by_option_kind
             else
-              @old_relationship_benefits = @benefit_group.relationship_benefits unless @benefit_group.relationship_benefits == []
+              @old_relationship_benefits = @benefit_group.relationship_benefits if @benefit_group.relationship_benefits.present?
               @benefit_group.relationship_benefits = []
               @benefit_group.assign_attributes(benefit_group_params)
             end
