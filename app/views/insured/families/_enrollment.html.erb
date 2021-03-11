@@ -166,14 +166,13 @@
             <% end %>
           </div>
         </div>
-        <% if read_only == true %>
-
-          <% if !hbx_enrollment.is_coverage_waived? %>
-            <br/>
-            <%= render partial: "employers/census_employees/enrollment_details", locals: { enrollment:  hbx_enrollment} %>
-          <% end %>
-        <% end %>
       </div>
+      <% if read_only == true %>
+        <% if !hbx_enrollment.is_coverage_waived? %>
+          <br/>
+          <%= render partial: "employers/census_employees/enrollment_details", locals: { enrollment:  hbx_enrollment} %>
+        <% end %>
+      <% end %>
     </div>
 
     <div class="panel-footer">
