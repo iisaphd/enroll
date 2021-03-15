@@ -10,12 +10,14 @@
   <div class="panel-body">
     <div id="qle-menu">
       <div class="row col-lg-12 col-md-8 col-sm-12 col-xs-12 ">
-        <% if @employee_role.present? %>
-          Earn a $100 Reward when you complete a qualifying ConnectWell activity.
-          <%= link_to "Learn More", "https://www.mahealthconnector.org/business/employees/connectwell-for-employees", target: "_blank" %>
-        <% elsif @employer_profile.present? %>
-          Save 15% on the cost of your health insurance contributions with our ConnectWell rebate program.
-          <%= link_to "Learn More", "https://www.mahealthconnector.org/business/employers/connectwell-for-employers", target: "_blank" %>
+        <% if EnrollRegistry[:add_external_links].feature.is_enabled %>
+          <% if @employee_role.present? %>
+            Earn a $100 Reward when you complete a qualifying ConnectWell activity.
+            <%= link_to "Learn More", "https://www.mahealthconnector.org/business/employees/connectwell-for-employees", target: "_blank" %>
+          <% elsif @employer_profile.present? %>
+            Save 15% on the cost of your health insurance contributions with our ConnectWell rebate program.
+            <%= link_to "Learn More", "https://www.mahealthconnector.org/business/employers/connectwell-for-employers", target: "_blank" %>
+          <% end %>
         <% end %>
       </div>
     </div>
