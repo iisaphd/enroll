@@ -11,3 +11,7 @@ registry:
             item: true
           - key: :employer_display
             item: true
+          - key: :plan_shopping_display
+            item: true
+          - key: :benefit_application_display
+            item: true
