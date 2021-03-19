@@ -15,3 +15,11 @@ registry:
             item: true
           - key: :benefit_application_display
             item: true
+          - key: :employer_advertisement_url
+            item: https://www.mahealthconnector.org/business/employers/connectwell-for-employers
+          - key: :employer_advertisement_text
+            item: Save 15% on the cost of your health insurance contributions with our ConnectWell rebate program.
+          - key: :employee_advertisement_url
+            item: https://www.mahealthconnector.org/business/employees/connectwell-for-employees
+          - key: :employee_advertisement_text
+            item: Earn a $100 Reward when you complete a qualifying ConnectWell activity.

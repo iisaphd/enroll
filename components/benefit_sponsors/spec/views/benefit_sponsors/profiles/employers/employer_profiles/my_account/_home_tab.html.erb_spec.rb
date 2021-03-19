@@ -280,31 +280,30 @@ RSpec.describe "components/benefit_sponsors/app/views/benefit_sponsors/profiles/
       assign :participation_minimum, 0
       assign :broker_agency_accounts, [broker_agency_account]
       controller.request.path_parameters[:id] = "11111111"
-      render "benefit_sponsors/profiles/employers/employer_profiles/my_account/home_tab"
     end
 
-    it "should display the employer external links advertisement" do
-      expect(rendered).to match(/Save 15% on the cost of your health insurance contributions with our ConnectWell rebate program./i)
-      expect(rendered).to include("href=\"https://www.mahealthconnector.org/business/employers/connectwell-for-employers")
-    end
+    context "when employer setting is enabled" do
+      it "should display the employer external links advertisement" do
+        EnrollRegistry[:add_external_links].feature.stub(:is_enabled).and_return(true)
+        EnrollRegistry[:add_external_links].setting(:employer_display).stub(:item).and_return(true)
 
-    it "should display title" do
-      expect(rendered).to have_selector("h1", text: "My Health Benefits Program")
-    end
+        render "benefit_sponsors/profiles/employers/employer_profiles/my_account/home_tab"
 
-    it "should display benefit groups" do
-      current_plan_year.benefit_groups.each do |bg|
-        expect(rendered).to match(/.*#{bg.title}.*/mi)
-        expect(rendered).to match(/.*#{bg.description}.*/mi)
-        expect(rendered).to match(/.*#{bg.sponsored_benefits.first.reference_product.name.try(:upcase)}.*/mi)
+        expect(rendered).to match(/Save 15% on the cost of your health insurance contributions with our ConnectWell rebate program./i)
+        expect(rendered).to include("href=\"https://www.mahealthconnector.org/business/employers/connectwell-for-employers")
       end
     end
 
-    it "should not display minimum participation requirement" do
-      assign :end_on, end_on_negative
-      expect(rendered).to_not match(/or more needed by/i)
+    context "when employer setting is disabled" do
+      it "should not display the employer external links advertisement" do
+        EnrollRegistry[:add_external_links].feature.stub(:is_enabled).and_return(true)
+        EnrollRegistry[:add_external_links].setting(:employer_display).stub(:item).and_return(false)
+
+        render "benefit_sponsors/profiles/employers/employer_profiles/my_account/home_tab"
+
+        expect(rendered).not_to match(/Save 15% on the cost of your health insurance contributions with our ConnectWell rebate program./i)
+        expect(rendered).not_to include("href=\"https://www.mahealthconnector.org/business/employers/connectwell-for-employers")
+      end
     end
-
   end
-
 end

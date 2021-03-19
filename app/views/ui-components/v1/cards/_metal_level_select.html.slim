@@ -74,13 +74,13 @@
                     = f.radio_button :product_option_choice, carrier_id, class: 'product_option_choice', onclick:"getPlanInfo(this)", data: {name: carrier_name}
                     span.checkmark
 
-  - if EnrollRegistry[:add_external_links].feature.is_enabled && benefit_application_external_link_enabled?
+  - if benefit_application_external_link_enabled?
     br
     .panel
       .panel-body
         .col-xs-12
           'For more information on providers in these networks, please use the
-          = link_to '<u> Provider Search </u> <i class="fa fa-external-link-alt" aria-hidden="true"></i> &nbsp;'.html_safe, 'https://ma.checkbookhealth.org/mashop/', target: "_blank"
+          = link_to '<u> Provider Search </u> <i class="fa fa-external-link-alt" aria-hidden="true"></i> &nbsp;'.html_safe, find_your_doctor_url, target: "_blank"
           'tool
   br
 
