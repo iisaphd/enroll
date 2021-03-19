@@ -11,14 +11,10 @@
       - else
         = render partial: 'benefit_sponsors/profiles/employers/employer_profiles/my_account/employer_welcome'
   - if !@current_plan_year.present?
-    .row
-      .col-xs-4
-        = render partial: 'ui-components/v1/cards/employer_broker_widget'
-        = render partial: 'shared/external_links'
-  - else
-    .row
-      .col-xs-4
-        = render partial: 'shared/external_links'
+    .col-xs-4
+      = render partial: 'ui-components/v1/cards/employer_broker_widget'
+  .col-xs-4
+    = render partial: 'shared/external_links'
 
 javascript:
   $(document).on('ready page:load', function () {
