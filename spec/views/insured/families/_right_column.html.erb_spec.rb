@@ -11,6 +11,7 @@ RSpec.describe "insured/families/_right_column.html.erb" do
       phones: [new_phone(random_value)],
       emails: [new_email],
       has_active_employee_role?: false,
+      has_active_shopping_role?: true,
       has_consumer_role?: false
     )
   end
@@ -34,7 +35,6 @@ RSpec.describe "insured/families/_right_column.html.erb" do
     before :each do
       assign :person, person
       allow(view).to receive(:policy_helper).and_return(double("Policy", updateable?: true))
-      allow(person).to receive(:has_active_shopping_role?).and_return(true)
     end
 
     context "when employee setting is enabled" do
