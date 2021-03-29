@@ -441,6 +441,20 @@ And(/^.+ should see a success message after clicking on create plan year button$
   expect(page).to have_content('Benefit Package successfully created.')
 end
 
+And(/^Employer clicks Add Dental Benefit$/) do
+  enter_plan_year_info
+  find(:xpath, '//*[@id="metal-level-select"]/div/ul/li[1]/a').click
+  wait_for_ajax
+  find(:xpath, '//*[@id="carrier"]/div[1]/div/label').click
+  sleep 2
+  expect(page).to have_content("Add Dental Benefits")
+  find('.interaction-click-control-add-dental-benefits').click
+end
+
+And(/^Employer should see dental benefits$/) do
+  expect(page).to have_content("Dental - Set up Benefit Package")
+end
+
 When(/^.+ enters filter in plan selection page$/) do
   find(:xpath, '//label[@class="checkbox-custom-label"][contains(., "HMO")]').click
   click_link 'Apply'
@@ -634,6 +648,14 @@ And /^employer clicks on linked employee with address$/ do
   @census_employees.first.update_attributes(aasm_state: "employee_role_linked")
   expect(page).to have_content "Eddie Vedder"
   click_link @census_employees.first.full_name
+end
+
+When(/^employer clicks an employee from the roster$/) do
+  click_link @census_employees.first.full_name
+end
+
+Then(/^employer should see the active enrollment tile$/) do
+  expect(page).to have_content(/HEALTH COVERAGE ABC WIDGETS/)
 end
 
 Then /^ER should land on (.*) EE tab$/ do |val|
