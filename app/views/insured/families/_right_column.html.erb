@@ -16,6 +16,8 @@
       <%= render 'consumer_brokers_widget', title: nil %>
     </div>
   <% end %>
-  <%= render partial: 'shared/employee_external_links'%>
+  <% if employee_external_link_enabled? && @person.has_active_shopping_role? %>
+    <%= render partial: 'shared/employee_external_links'%>
+  <% end %>
   <%= render 'qles_panel' %>
 </div>
