@@ -1,11 +1,6 @@
 require "rails_helper"
 
 RSpec.describe Insured::PlanFilterHelper, :type => :helper do
-  before do
-    EnrollRegistry[:add_external_links].feature.stub(:is_enabled).and_return(true)
-    EnrollRegistry[:add_external_links].setting(:plan_shopping_display).stub(:item).and_return(true)
-  end
-
   context "Shows Find Your Doctor link based on market kind" do
     it "should return link for shop" do
       @market_kind="shop"

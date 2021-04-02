@@ -786,6 +786,10 @@ module ApplicationHelper
     add_external_links_enabled? && EnrollRegistry[:add_external_links].setting(:employer_display).item
   end
 
+  def plan_shopping_enabled?
+    add_external_links_enabled? && EnrollRegistry[:add_external_links].setting(:plan_shopping_display).item
+  end
+
   def benefit_application_external_link_enabled?
     add_external_links_enabled? && EnrollRegistry[:add_external_links].setting(:benefit_application_display).item
   end
