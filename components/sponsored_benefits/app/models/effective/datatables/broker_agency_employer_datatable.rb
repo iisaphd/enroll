@@ -103,7 +103,6 @@
 
         def benefit_application_summarized_state(benefit_application)
           return if benefit_application.nil?
-
           aasm_map = {
             :draft => :draft,
             :enrollment_open => :enrolling,
