@@ -99,6 +99,8 @@ module BenefitSponsors
       end
 
       def can_renew?(renewal_effective_date)
+        return false if renewal_product.nil?
+
         renewal_product.premium_tables
                        .effective_period_cover(renewal_effective_date)
                        .present?
