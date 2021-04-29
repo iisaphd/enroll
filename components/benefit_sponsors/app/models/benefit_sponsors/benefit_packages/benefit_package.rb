@@ -187,7 +187,7 @@ module BenefitSponsors
       end
 
       def renewal_date
-        end_on.next_day&.to_date
+        end_on + 1.day
       end
 
       def can_renew?
