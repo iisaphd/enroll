@@ -99,7 +99,9 @@ module BenefitSponsors
       end
 
       def can_renew?(renewal_effective_date)
-        sb.renewal_product.premium_tables.effective_period_cover(renewal_effective_date).present?
+        renewal_product.premium_tables
+                       .effective_period_cover(renewal_effective_date)
+                       .present?
       end
 
       def renew(new_benefit_package)
