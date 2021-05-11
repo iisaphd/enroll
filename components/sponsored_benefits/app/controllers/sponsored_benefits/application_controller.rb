@@ -30,7 +30,7 @@ module SponsoredBenefits
         @broker_agency_profile = BenefitSponsors::Organizations::Profile.find(params[:plan_design_organization_id])
         @broker_agency_profile ||= ::BrokerAgencyProfile.find(params[:plan_design_organization_id]) # Deprecate this
       else
-        org = method(params)
+        org = fetch_plan_design_organization(params)
         return unless org.present?
 
         @broker_agency_profile = BenefitSponsors::Organizations::Profile.find(org.owner_profile_id)
@@ -38,7 +38,7 @@ module SponsoredBenefits
       end
     end
 
-    def method_name(params)
+    def fetch_plan_design_organization(params)
       if params[:plan_design_proposal_id].present?
         SponsoredBenefits::Organizations::PlanDesignProposal.find(params[:plan_design_proposal_id]).plan_design_organization
       elsif params[:id].present? && !request.env['PATH_INFO'].include?('broker_agency_profile')
