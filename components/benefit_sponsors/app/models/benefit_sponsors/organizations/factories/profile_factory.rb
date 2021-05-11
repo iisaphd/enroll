@@ -390,9 +390,7 @@ module BenefitSponsors
         end
 
         def self.current_user(user_id)
-          if user_id.present?
-            User.find(user_id)
-          end
+          User.find(user_id) if user_id.present?
         end
 
         def self.get_profile_type(profile_id)

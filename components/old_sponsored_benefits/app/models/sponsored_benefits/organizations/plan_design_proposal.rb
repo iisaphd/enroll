@@ -57,7 +57,7 @@ module SponsoredBenefits
         # find plan_design_proposal object by id
         def find(id)
           organization = SponsoredBenefits::Organizations::PlanDesignOrganization.where("plan_design_proposals._id" => BSON::ObjectId.from_string(id)).first
-          organization.plan_design_proposals.detect{|proposal| proposal.id == BSON::ObjectId.from_string(id)}
+          organization.plan_design_proposals.detect{|proposal| proposal.id == BSON::ObjectId.from_string(id)} if organization.present?
         end
 
         # find plan_design_proposal object by claim_code
