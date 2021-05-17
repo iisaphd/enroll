@@ -269,9 +269,10 @@ class Organization
         next carrier_names unless CarrierServiceArea.valid_for?(office_location: office_location, carrier_profile: org.carrier_profile)
         next carrier_names if CarrierServiceArea.valid_for_carrier_on(address: office_location.address, carrier_profile: org.carrier_profile, year: active_year, quote_effective_date: quote_effective_date).empty?
       end
-      if sole_source_only ## Only sole source carriers requested
-        next carrier_names unless org.carrier_profile.offers_sole_source?  # skip carrier unless it is a sole source provider
+      if sole_source_only && !org.carrier_profile.offers_sole_source? # Only sole source carriers requested
+        next carrier_names # skip carrier unless it is a sole source provider
       end
+
       carrier_names[org.carrier_profile.id.to_s] = org.carrier_profile.legal_name if has_premium_tables?(org)
       carrier_names
     end
