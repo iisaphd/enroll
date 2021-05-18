@@ -250,7 +250,7 @@ class Organization
   end
 
   def self.get_dental_carriers(office_location, quote_effective_date)
-    dental_carrier_ids = Plan.shop_dental_by_active_year(filters[:active_year]).pluck(:carrier_profile_id).uniq
+    dental_carrier_ids = Plan.shop_dental_by_active_year(quote_effective_date.year).pluck(:carrier_profile_id).uniq
     Organization.exists(carrier_profile: true).inject({}) do |carrier_names, org|
       unless office_location.nil?
         next carrier_names unless CarrierServiceArea.valid_for?(office_location: office_location, carrier_profile: org.carrier_profile)
