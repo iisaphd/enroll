@@ -342,7 +342,7 @@ module BenefitSponsors
           end
         end
 
-        context "when renewal product not available for both health and dental" do 
+        context "when renewal product not available for both health and dental" do
           let!(:health_products) do
             create_list(
               :benefit_markets_products_health_products_health_product,
@@ -555,7 +555,7 @@ module BenefitSponsors
         reference_product.renewal_product = product
         reference_product.save!
       }
-      
+
       let(:renewal_benefit_sponsor_catalog) { benefit_sponsorship.benefit_sponsor_catalog_for(renewal_effective_date) }
       let!(:renewal_application)             { initial_application.renew }
       let(:renewal_benefit_package)         { renewal_application.benefit_packages.build }
