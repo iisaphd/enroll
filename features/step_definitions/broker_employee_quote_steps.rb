@@ -66,7 +66,7 @@ end
 
 And(/^the broker clicks Actions dropdown and clicks View Quotes from dropdown menu$/) do
   path = SponsoredBenefits::Organizations::PlanDesignOrganization.all.first.id.to_s
-  find("#dropdown_for_plan_design_" + path, :text => "Actions").click
+  find("#dropdown_for_plan_design_#{path}", :text => "Actions").click
   find("#plan_design_#{path}> ul > li:nth-child(1) > a", :text => "View Quotes").click
   wait_for_ajax(3, 2)
 end
@@ -77,7 +77,7 @@ end
 
 And(/^the broker clicks Actions dropdown and clicks Create Quote from dropdown menu$/) do
   path = SponsoredBenefits::Organizations::PlanDesignOrganization.all.first.id.to_s
-  find("#dropdown_for_plan_design_" + path, :text => "Actions").click
+  find("#dropdown_for_plan_design_#{path}", :text => "Actions").click
   find("#plan_design_#{path}> ul > li:nth-child(2) > a", :text => "Create Quote").click
   wait_for_ajax(3, 2)
 end

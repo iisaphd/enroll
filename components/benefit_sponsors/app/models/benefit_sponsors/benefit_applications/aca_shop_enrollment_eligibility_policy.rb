@@ -18,11 +18,13 @@ module BenefitSponsors
   class BenefitApplications::AcaShopEnrollmentEligibilityPolicy
     include BenefitMarkets::BusinessRulesEngine
     # rubocop:disable Layout/AlignParameters - Tried several approaches.
+    # rubocop:disable Layout/ArgumentAlignment
     rule  :minimum_participation_rule,
             validate: ->(benefit_application){benefit_application.enrollment_ratio >= benefit_application.employee_participation_ratio_minimum},
             success:  ->(benefit_application){"validated successfully"},
             fail:     ->(benefit_application){"Number of eligible members enrolling: (#{benefit_application.total_enrolled_count}) is less than minimum required: #{benefit_application.eligible_to_enroll_count * benefit_application.employee_participation_ratio_minimum}" }
     # rubocop:enable Layout/AlignParameters
+    # rubocop:enable Layout/ArgumentAlignment
     rule  :non_business_owner_enrollment_count,
             validate: ->(benefit_application){
                             benefit_application.non_business_owner_enrolled.count <= benefit_application.eligible_to_enroll_count &&

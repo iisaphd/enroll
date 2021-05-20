@@ -301,9 +301,9 @@ class CensusEmployee < CensusMember
   end
 
   def renewal_benefit_group_assignment
-    return benefit_group_assignments.order_by(:created_at.desc).detect{ |assignment| assignment.plan_year &. is_renewing? } if is_case_old?
+    return benefit_group_assignments.order_by(:created_at.desc).detect{ |assignment| assignment.plan_year&.is_renewing? } if is_case_old?
 
-    benefit_group_assignments.order_by(:created_at.desc).detect{ |assignment| assignment.benefit_application &. is_renewing? }
+    benefit_group_assignments.order_by(:created_at.desc).detect{ |assignment| assignment.benefit_application&.is_renewing? }
   end
 
   def inactive_benefit_group_assignments
@@ -330,6 +330,7 @@ class CensusEmployee < CensusMember
     end
   end
 
+  # rubocop:disable Style/OptionalBooleanParameter
   def create_benefit_group_assignment(benefit_packages, off_cycle = false)
     assignment = off_cycle ? off_cycle_benefit_group_assignment : active_benefit_group_assignment
     if benefit_packages.present?
@@ -345,6 +346,7 @@ class CensusEmployee < CensusMember
       add_benefit_group_assignment(benefit_packages.first, new_start_on || benefit_packages.first.start_on, benefit_packages.first.end_on)
     end
   end
+  # rubocop:enable Style/OptionalBooleanParameter
 
   def add_renew_benefit_group_assignment(renewal_benefit_packages)
     return unless renewal_benefit_packages.present?
@@ -543,6 +545,7 @@ class CensusEmployee < CensusMember
     )
   end
 
+  # rubocop:disable Metrics/CyclomaticComplexity
   def active_benefit_group_assignment=(benefit_package_id)
     benefit_application = benefit_sponsorship&.benefit_package_by(benefit_package_id)&.benefit_application || benefit_sponsorship&.current_benefit_application
 
@@ -554,6 +557,7 @@ class CensusEmployee < CensusMember
 
     create_benefit_group_assignment(benefit_packages)
   end
+  # rubocop:enable Metrics/CyclomaticComplexity
 
   def active_benefit_group_assignment(coverage_date = TimeKeeper.date_of_record)
     benefit_package_assignment_on(coverage_date) || benefit_group_assignments.reject { |bga| bga.activated_at.present? }.sort_by(&:start_on).reverse.last

@@ -73,9 +73,7 @@ class Insured::GroupSelectionController < ApplicationController
 
     hbx_enrollment = build_hbx_enrollment(family_member_ids)
 
-    if @market_kind == 'shop'
-      raise @adapter.no_employer_benefits_error_message(hbx_enrollment) unless hbx_enrollment.sponsored_benefit_package.shoppable?
-    end
+    raise @adapter.no_employer_benefits_error_message(hbx_enrollment) if @market_kind == 'shop' && !hbx_enrollment.sponsored_benefit_package.shoppable?
 
     if @adapter.is_waiving?(params)
       if hbx_enrollment.save

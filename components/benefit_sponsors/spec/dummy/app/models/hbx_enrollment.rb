@@ -449,17 +449,17 @@ class HbxEnrollment
     waived_enrollment
   end
 
+  # rubocop:disable Metrics/CyclomaticComplexity
   def term_existing_shop_enrollments
     benefit_application = sponsored_benefit_package.benefit_application
     terminating_benefit_package_ids = benefit_application.benefit_packages.pluck(:id)
 
     # cancel or term previous year enrollments if waiver is created under renewal application
     # cancel or term renewal application enrollments if waiver created under the active application
-    if benefit_application.is_renewing?
-      if (effective_on == sponsored_benefit_package.start_on) && employer_profile
-        predecessor_benefit_application = employer_profile.benefit_applications.published_benefit_applications_by_date(effective_on.prev_day).first
-        terminating_benefit_package_ids += predecessor_benefit_application.benefit_packages.pluck(:id) if predecessor_benefit_application.present?
-      end
+
+    if benefit_application.is_renewing? && (effective_on == sponsored_benefit_package.start_on) && employer_profile
+      predecessor_benefit_application = employer_profile.benefit_applications.published_benefit_applications_by_date(effective_on.prev_day).first
+      terminating_benefit_package_ids += predecessor_benefit_application.benefit_packages.pluck(:id) if predecessor_benefit_application.present?
     else
       future_benefit_application = employer_profile.find_plan_year_by_effective_date(benefit_application.effective_period.max.next_day)
       terminating_benefit_package_ids += future_benefit_application.benefit_packages.pluck(:id) if future_benefit_application.present?
@@ -479,6 +479,7 @@ class HbxEnrollment
       term_or_cancel_enrollment(enrollment, family.terminate_date_for_shop_by_enrollment(enrollment))
     end
   end
+  # rubocop:enable Metrics/CyclomaticComplexity
 
   def renewing_enrollments(benefit_package_ids)
     household.hbx_enrollments.where(
@@ -501,11 +502,9 @@ class HbxEnrollment
   def set_predecessor_if_exists
     predecessor_benefit_packages = [sponsored_benefit_package.id]
 
-    if effective_on == sponsored_benefit_package.start_on && sponsored_benefit_package.benefit_application.is_renewing?
-      if employer_profile
-        predecessor_benefit_application = employer_profile.benefit_applications.published_benefit_applications_by_date(effective_on.prev_day).first
-        predecessor_benefit_packages = predecessor_benefit_application.benefit_packages.pluck(:id) if predecessor_benefit_application
-      end
+    if effective_on == sponsored_benefit_package.start_on && sponsored_benefit_package.benefit_application.is_renewing? && employer_profile
+      predecessor_benefit_application = employer_profile.benefit_applications.published_benefit_applications_by_date(effective_on.prev_day).first
+      predecessor_benefit_packages = predecessor_benefit_application.benefit_packages.pluck(:id) if predecessor_benefit_application
     end
 
     predecessor_enrollment = household.hbx_enrollments.where({:sponsored_benefit_package_id.in => predecessor_benefit_packages,

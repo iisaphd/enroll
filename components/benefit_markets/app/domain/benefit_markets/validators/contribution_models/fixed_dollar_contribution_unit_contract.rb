@@ -10,9 +10,7 @@ module BenefitMarkets
         end
 
         rule(:default_contribution_amount) do
-          if key? && value
-            key.failure(text: "invalid default contribution amount for fixed dollar contribution unit", error: result.errors.to_h) unless value >= 0.0
-          end
+          key.failure(text: "invalid default contribution amount for fixed dollar contribution unit", error: result.errors.to_h) if key? && value && value < 0.0
         end
       end
     end

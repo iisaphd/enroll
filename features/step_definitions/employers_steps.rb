@@ -682,9 +682,10 @@ And(/^employer (.*) (.*) contribution percent for the application$/) do |create_
   fill_in "benefit_package[sponsored_benefits_attributes][0][sponsor_contribution_attributes][contribution_levels_attributes][1][contribution_factor]", with: contribution_percent.to_i
   fill_in "benefit_package[sponsored_benefits_attributes][0][sponsor_contribution_attributes][contribution_levels_attributes][2][contribution_factor]", with: contribution_percent.to_i
   fill_in "benefit_package[sponsored_benefits_attributes][0][sponsor_contribution_attributes][contribution_levels_attributes][3][contribution_factor]", with: contribution_percent.to_i
-  if create_or_edit_ba == 'selected'
+  case create_or_edit_ba
+  when 'selected'
     fill_in "benefit_package[sponsored_benefits_attributes][0][sponsor_contribution_attributes][contribution_levels_attributes][4][contribution_factor]", with: contribution_percent.to_i
-  elsif create_or_edit_ba == 'updated'
+  when 'updated'
     fill_in "benefit_package[sponsored_benefits_attributes][0][sponsor_contribution_attributes][contribution_levels_attributes][0][contribution_factor]", with: contribution_percent.to_i
   end
   find_all('input[data-displayname="Child Under 26"]')[0].send_keys(:tab)

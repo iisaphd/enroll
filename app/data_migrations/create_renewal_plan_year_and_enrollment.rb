@@ -72,6 +72,7 @@ class CreateRenewalPlanYearAndEnrollment < MongoidMigrationTask
     end
   end
 
+  # rubocop:disable Metrics/CyclomaticComplexity
   def trigger_passive_renewals_by_effective_date
     benefit_sponsorships = BenefitSponsors::BenefitSponsorships::BenefitSponsorship.where(:benefit_applications =>
                                                                                             { :$elemMatch =>
@@ -107,4 +108,5 @@ class CreateRenewalPlanYearAndEnrollment < MongoidMigrationTask
       puts "Unable to generate renewal PY for employer #{organization.fein} due to #{e}"
     end
   end
+  # rubocop:enable Metrics/CyclomaticComplexity
 end

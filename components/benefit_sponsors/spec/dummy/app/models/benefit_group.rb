@@ -288,9 +288,11 @@ class BenefitGroup
 
   def renewal_elected_plan_ids
     start_on_year = start_on.next_year.year
-    if plan_option_kind == "single_carrier"
+
+    case plan_option_kind
+    when "single_carrier"
       Plan.by_active_year(start_on_year).shop_market.health_coverage.by_carrier_profile(reference_plan.carrier_profile).and(hios_id: /-01/).pluck(:_id)
-    elsif plan_option_kind == "metal_level"
+    when "metal_level"
       Plan.by_active_year(start_on_year).shop_market.health_coverage.by_metal_level(reference_plan.metal_level).and(hios_id: /-01/).pluck(:_id)
     else
       Plan.where(:id.in => elected_plan_ids).pluck(:renewal_plan_id).compact

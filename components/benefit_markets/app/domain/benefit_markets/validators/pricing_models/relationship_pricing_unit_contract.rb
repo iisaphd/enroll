@@ -11,9 +11,7 @@ module BenefitMarkets
         end
 
         rule(:discounted_above_threshold) do
-          if key? && value
-            key.failure(text: "invalid discount threshold for relationship pricing unit", error: result.errors.to_h) unless value >= 0
-          end
+          key.failure(text: "invalid discount threshold for relationship pricing unit", error: result.errors.to_h) if key? && value && value < 0
         end
       end
     end

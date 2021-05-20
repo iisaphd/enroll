@@ -11,15 +11,11 @@ module BenefitMarkets
         end
 
         rule(:default_contribution_factor) do
-          if key? && value
-            key.failure(text: "invalid default contribution factor for fixed percent contribution unit", error: result.errors.to_h) unless value >= 0.0 && value <= 1.0
-          end
+          key.failure(text: "invalid default contribution factor for fixed percent contribution unit", error: result.errors.to_h) if key? && value && value < 0.0 && value > 1.0
         end
 
         rule(:minimum_contribution_factor) do
-          if key? && value
-            key.failure(text: "invalid minimum contribution facotr for fixed percent contribution unit", error: result.errors.to_h) unless value >= 0.0 && value <= 1.0
-          end
+          key.failure(text: "invalid minimum contribution facotr for fixed percent contribution unit", error: result.errors.to_h) if key? && value && value < 0.0 && value > 1.0
         end
       end
     end

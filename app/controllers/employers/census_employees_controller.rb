@@ -13,7 +13,7 @@ class Employers::CensusEmployeesController < ApplicationController
       benefit_sponsors_employer_profile_id: @employer_profile.id,
       active_benefit_group_assignment: benefit_group_id,
       off_cycle_benefit_group_assignment: off_cycle_benefit_group_id,
-      renewal_benefit_group_assignment: renewal_benefit_group_id,
+      renewal_benefit_group_assignment: renewal_benefit_group_id
       # no_ssn_allowed: @benefit_sponsorship.is_no_ssn_enabled
     }))
     # @census_employee.assign_benefit_packages(benefit_group_id: benefit_group_id, renewal_benefit_group_id: renewal_benefit_group_id)
@@ -44,7 +44,7 @@ class Employers::CensusEmployeesController < ApplicationController
     @census_employee.attributes = census_employee_params.merge!({
       active_benefit_group_assignment: benefit_group_id,
       renewal_benefit_group_assignment: renewal_benefit_group_id,
-      off_cycle_benefit_group_assignment: off_cycle_benefit_group_id,
+      off_cycle_benefit_group_assignment: off_cycle_benefit_group_id
       # no_ssn_allowed: @census_employee.no_ssn_allowed || @benefit_sponsorship.is_no_ssn_enabled
     })
 
