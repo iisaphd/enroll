@@ -55,10 +55,12 @@ module SponsoredBenefits
           @plan_design_organization ||= plan_design_proposal.plan_design_organization
         end
 
+        # rubocop:disable Naming/AccessorMethodName
         def requested_plans
-          @requested_plans ||= ::Plan.where(:_id => { '$in': params[:plans].to_a }).map(&:hios_id)
+          @plans ||= ::Plan.where(:_id => { '$in': params[:plans].to_a }).map(&:hios_id)
           @plans = @requested_plans
         end
+        # rubocop:enable Naming/AccessorMethodName
 
         def qhps
           @qhps ||= ::Products::QhpCostShareVariance.find_qhp_cost_share_variances(requested_plans, plan_design_proposal.effective_date.year, "Health")
