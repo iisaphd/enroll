@@ -13,7 +13,7 @@ module BenefitMarkets
           required(:issuer_profile_id).filled(Types::Bson)
           optional(:issuer_hios_id).maybe(:string)
           optional(:county_zip_ids).maybe(:array)
-          required(:covered_states).array(:string)
+          optional(:covered_states).maybe(:array)
         end
 
       end

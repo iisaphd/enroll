@@ -62,8 +62,8 @@ module BenefitMarkets
     end
 
     def products=(attributes)
-      attributes.each do |attribute|
-        product =
+      new_products =
+        attributes.collect do |attribute|
           if attribute.is_a?(Hash)
             kind = attribute[:kind].to_s.titleize
             product_class = "BenefitMarkets::Products::#{kind}Products::#{kind}Product".constantize
@@ -71,8 +71,8 @@ module BenefitMarkets
           else
             attribute
           end
-        products.push(product)
-      end
+        end
+      products << new_products
     end
 
     def lowest_cost_product(effective_date, issuer_hios_ids = nil)
