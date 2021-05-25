@@ -62,8 +62,6 @@ module BenefitMarkets
     end
 
     def products=(attributes)
-      products = []
-
       attributes.each do |attribute|
         product =
           if attribute.is_a?(Hash)
