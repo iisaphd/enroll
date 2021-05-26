@@ -6,8 +6,8 @@ class GroupSelectionEligibilityChecker
   MemberAgeSlug = Struct.new(:dob, :member_id)
 
   def initialize(benefit_package, coverage_kind)
-    @sponsored_benefit = benefit_package.sponsored_benefits.detect do |sb|
-      sb.product_kind.to_s == coverage_kind.to_s
+    @sponsored_benefit = benefit_package&.sponsored_benefits.detect do |sb|
+      sb&.product_kind&.to_s == coverage_kind.to_s
     end
     @contribution_model = @sponsored_benefit.contribution_model if @sponsored_benefit.present?
     @age_calculator = ::BenefitSponsors::CoverageAgeCalculator.new
