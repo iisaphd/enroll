@@ -506,7 +506,7 @@ module BenefitSponsors
       return nil unless termed_or_ineligible_app
 
       compare_date = termed_or_ineligible_app.enrollment_ineligible? ? termed_or_ineligible_app.start_on : termed_or_ineligible_app.end_on
-      recent_bas.select { |recent_ba| recent_ba.start_on > compare_date }.first
+      recent_bas.select { |recent_ba| recent_ba.start_on > compare_date && recent_ba.predecessor_id.blank? && !(recent_ba.active? || recent_ba.expired?) }.first
     end
 
     # use this only for EDI
