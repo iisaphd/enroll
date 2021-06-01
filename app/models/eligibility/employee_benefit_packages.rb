@@ -21,20 +21,21 @@ module Eligibility
 
     def create_benefit_group_assignment(benefit_packages, off_cycle: false)
       assignment = off_cycle ? off_cycle_benefit_group_assignment : active_benefit_group_assignment
-      if benefit_packages.present?
-        if assignment.present?
-          end_date, new_start_on =
-            if assignment.start_on >= TimeKeeper.date_of_record
-              [assignment.start_on, benefit_packages.first.start_on]
-            else
-              [TimeKeeper.date_of_record.prev_day, TimeKeeper.date_of_record]
-            end
-          verified_end_date = assignment.benefit_package.effective_period.cover?(end_date) ? end_date : assignment.benefit_package.effective_period.max
-          assignment.end_benefit(verified_end_date)
-        end
-        deactive_benefit_group_assignments(benefit_packages.first)
-        add_benefit_group_assignment(benefit_packages.first, new_start_on || benefit_packages.first.start_on, benefit_packages.first.end_on)
+      return unless benefit_packages.present?
+
+      if assignment.present?
+        end_date, new_start_on =
+          if assignment.start_on >= TimeKeeper.date_of_record
+            [assignment.start_on, benefit_packages.first.start_on]
+          else
+            start_on = benefit_packages.first.start_on > TimeKeeper.date_of_record ? benefit_packages.first.start_on : TimeKeeper.date_of_record
+            [TimeKeeper.date_of_record.prev_day, start_on]
+          end
+        verified_end_date = assignment.benefit_package.effective_period.cover?(end_date) ? end_date : assignment.benefit_package.effective_period.max
+        assignment.end_benefit(verified_end_date)
       end
+      deactive_benefit_group_assignments(benefit_packages.first)
+      add_benefit_group_assignment(benefit_packages.first, new_start_on || benefit_packages.first.start_on, benefit_packages.first.end_on)
     end
 
     def deactive_benefit_group_assignments(benefit_package)
