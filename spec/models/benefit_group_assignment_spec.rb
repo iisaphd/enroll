@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 describe BenefitGroupAssignment, type: :model, dbclean: :after_each do
@@ -37,7 +39,8 @@ describe BenefitGroupAssignment, type: :model, dbclean: :after_each do
       aasm_state: :active,
       recorded_rating_area: rating_area,
       recorded_service_areas: service_areas,
-      package_kind: :single_product    )
+      package_kind: :single_product
+    )
   end
 
   let!(:benefit_package) { benefit_sponsorship.benefit_applications.first.benefit_packages.first}
@@ -191,8 +194,8 @@ describe BenefitGroupAssignment, type: :model, dbclean: :after_each do
           # end
 
           context "with an associated, matching hbx_enrollment" do
-            let(:employee_role)   { FactoryGirl.build(:employee_role, employer_profile: employer_profile )}
-            let(:hbx_enrollment)  { HbxEnrollment.new(sponsored_benefit_package: benefit_package, employee_role: census_employee.employee_role ) }
+            let(:employee_role)   { FactoryGirl.build(:employee_role, employer_profile: employer_profile)}
+            let(:hbx_enrollment)  { HbxEnrollment.new(sponsored_benefit_package: benefit_package, employee_role: census_employee.employee_role) }
 
             before { benefit_group_assignment.hbx_enrollment = hbx_enrollment }
 
@@ -376,7 +379,7 @@ describe BenefitGroupAssignment, type: :model, dbclean: :after_each do
       end
 
       it "should #{status}return the #{state} enrollments" do
-        result = (result == "active_enrollment") ?  [enrollment] : result
+        result = result == "active_enrollment" ? [enrollment] : result
         expect(census_employee.active_benefit_group_assignment.active_and_waived_enrollments).to eq result
       end
     end
