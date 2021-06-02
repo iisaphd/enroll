@@ -4,9 +4,42 @@ describe BenefitGroupAssignment, type: :model, dbclean: :after_each do
   it { should validate_presence_of :benefit_package_id }
   it { should validate_presence_of :start_on }
   let(:site)                  { build(:benefit_sponsors_site, :with_benefit_market, :as_hbx_profile, :cca) }
-  let(:benefit_sponsor)        { FactoryGirl.create(:benefit_sponsors_organizations_general_organization, :with_aca_shop_cca_employer_profile_initial_application, site: site) }
-  let(:benefit_sponsorship)    { benefit_sponsor.active_benefit_sponsorship }
-  let(:employer_profile)      {  benefit_sponsorship.profile }
+  let(:benefit_sponsor)        { FactoryGirl.create(:benefit_sponsors_organizations_general_organization, :with_aca_shop_cca_employer_profile, site: site) }
+  let(:employer_profile)    { benefit_sponsor.employer_profile }
+  let(:benefit_sponsorship) do
+    sponsorship = employer_profile.add_benefit_sponsorship
+    sponsorship.save
+    sponsorship
+  end
+  let!(:issuer_profile)  { FactoryGirl.create :benefit_sponsors_organizations_issuer_profile, assigned_site: site}
+  let!(:benefit_market_catalog) do
+    create(
+      :benefit_markets_benefit_market_catalog,
+      :with_product_packages,
+      benefit_market: site.benefit_markets.first,
+      issuer_profile: issuer_profile,
+      title: "SHOP Benefits for #{ba_start_on.year}",
+      application_period: (ba_start_on.beginning_of_year..ba_start_on.end_of_year)
+    )
+  end
+  let!(:rating_area) { create_default(:benefit_markets_locations_rating_area) }
+  let!(:service_areas) { benefit_sponsorship.service_areas_on(effective_period.min) }
+  let(:ba_start_on)      { TimeKeeper.date_of_record.beginning_of_month.prev_month }
+  let(:effective_period) { ba_start_on..ba_start_on.next_year.prev_day }
+
+  let!(:initial_application) do
+    create(
+      :benefit_sponsors_benefit_application,
+      :with_benefit_sponsor_catalog,
+      :with_benefit_package,
+      benefit_sponsorship: benefit_sponsorship,
+      effective_period: effective_period,
+      aasm_state: :active,
+      recorded_rating_area: rating_area,
+      recorded_service_areas: service_areas,
+      package_kind: :single_product    )
+  end
+
   let!(:benefit_package) { benefit_sponsorship.benefit_applications.first.benefit_packages.first}
   let(:employee_role_100) { FactoryGirl.create(:employee_role, employer_profile: employer_profile) }
   let(:census_employee) do
