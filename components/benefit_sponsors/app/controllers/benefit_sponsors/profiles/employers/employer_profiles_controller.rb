@@ -113,6 +113,7 @@ module BenefitSponsors
               render :partial => @roster_upload_form.redirection_url
             end
           rescue Exception => e
+            @roster_upload_form.errors.add(:base, 'Missing file') unless params[:file]
             @roster_upload_form.errors.add(:base, e.message)
             render :partial => (@roster_upload_form.redirection_url || default_url)
           end
