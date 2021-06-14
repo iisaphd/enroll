@@ -104,8 +104,12 @@ module BenefitSponsors
 
         def bulk_employee_upload
           authorize @employer_profile, :show?
-          file = params.require(:file)
-          @roster_upload_form = BenefitSponsors::Forms::RosterUploadForm.call(file, @employer_profile)
+          begin
+            file = params.require(:file)
+            @roster_upload_form = BenefitSponsors::Forms::RosterUploadForm.call(file, @employer_profile)
+          rescue Exception => e
+            puts "File was not present"
+          end
           begin
             if @roster_upload_form.save
               redirect_to URI.parse(@roster_upload_form.redirection_url).to_s
