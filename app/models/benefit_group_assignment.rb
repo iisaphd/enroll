@@ -266,33 +266,33 @@ class BenefitGroupAssignment
     end
   end
 
-  # def hbx_enrollment # Deprecated
-  #   return @hbx_enrollment if defined? @hbx_enrollment
-
-  #   if hbx_enrollment_id.blank?
-  #     families = Family.where({
-  #       "households.hbx_enrollments.benefit_group_assignment_id" => BSON::ObjectId.from_string(self.id)
-  #       })
-
-  #     families.each do |family|
-  #       family.households.each do |household|
-  #         household.hbx_enrollments.show_enrollments_sans_canceled.each do |enrollment|
-  #           if enrollment.benefit_group_assignment_id == self.id
-  #             @hbx_enrollment = enrollment
-  #           end
-  #         end
-  #       end
-  #     end
-
-  #     return @hbx_enrollment
-  #   else
-  #     @hbx_enrollment = HbxEnrollment.find(self.hbx_enrollment_id)
-  #   end
-  # end
-
   def hbx_enrollment
-    @hbx_enrollment ||= HbxEnrollment.where(id: hbx_enrollment_id).first || hbx_enrollments.max_by(&:created_at)
+    return @hbx_enrollment if defined? @hbx_enrollment
+
+    if hbx_enrollment_id.blank?
+      families = Family.where(
+        {
+          "households.hbx_enrollments.benefit_group_assignment_id" => BSON::ObjectId.from_string(id)
+        }
+      )
+
+      families.each do |family|
+        family.households.each do |household|
+          household.hbx_enrollments.show_enrollments_sans_canceled.each do |enrollment|
+            @hbx_enrollment = enrollment if enrollment.benefit_group_assignment_id == id
+          end
+        end
+      end
+
+      @hbx_enrollment
+    else
+      @hbx_enrollment = HbxEnrollment.find(hbx_enrollment_id)
+    end
   end
+
+  # def hbx_enrollment
+  #   @hbx_enrollment ||= HbxEnrollment.where(id: hbx_enrollment_id) || hbx_enrollments.max_by(&:created_at)
+  # end
 
   def end_benefit(end_date)
     update_attributes!(end_on: end_date)

@@ -151,8 +151,9 @@ class CensusEmployee < CensusMember
       }
     )
     covered_ce_ids = ces_with_covered_start_ons_and_enrollments.select do |ce|
-      if [ce.active_benefit_group_assignment, ce.active_benefit_group_assignment&.hbx_enrollment].all?
-        HbxEnrollment::ENROLLED_STATUSES.include?(ce.active_benefit_group_assignment.hbx_enrollment.aasm_state)
+      current_enrollment = ce.active_benefit_group_assignment&.hbx_enrollment
+      if current_enrollment
+        HbxEnrollment::ENROLLED_STATUSES.include?(current_enrollment.aasm_state)
       elsif ce.employee_role
         HbxEnrollment.where(employee_role_id: ce.employee_role.id, :aasm_state.in => HbxEnrollment::ENROLLED_STATUSES).present?
       end
@@ -167,8 +168,9 @@ class CensusEmployee < CensusMember
       }
     )
     enrolled_ce_ids = ces_with_hbx_enrollments.select do |ce|
-      if [ce.active_benefit_group_assignment, ce.active_benefit_group_assignment&.hbx_enrollment].all?
-        HbxEnrollment::WAIVED_STATUSES.include?(ce.active_benefit_group_assignment.hbx_enrollment.aasm_state)
+      current_enrollment = ce.active_benefit_group_assignment&.hbx_enrollment
+      if current_enrollment
+        HbxEnrollment::WAIVED_STATUSES.include?(current_enrollment.aasm_state)
       elsif ce.employee_role
         HbxEnrollment.where(employee_role_id: ce.employee_role.id, :aasm_state.in => HbxEnrollment::WAIVED_STATUSES).present?
       end
