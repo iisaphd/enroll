@@ -171,9 +171,7 @@ private
                       elsif max_date.blank?
                         "max sep optional date is not present for #{date_option}. Please specify."
                       elsif !date_option.between?(min_date, max_date)
-                        "Date #{index+1} option out of range."
-                      else
-                        nil
+                        "Date #{index + 1} option out of range."
                       end
       errors.add(:optional_effective_on, error_message) if error_message.present?
     end
