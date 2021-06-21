@@ -29,7 +29,7 @@ class Products::QhpController < ApplicationController
       @plans = @hbx_enrollment.decorated_elected_plans(@coverage_kind)
       @qhps = find_qhp_cost_share_variances&.compact
 
-      @qhps = @qhps.compact.each do |qhp|
+      @qhps = @qhps.each do |qhp|
         qhp.hios_plan_and_variant_id = qhp.hios_plan_and_variant_id[0..13] if @coverage_kind == "dental"
         qhp[:total_employee_cost] = UnassistedPlanCostDecorator.new(qhp.plan, @hbx_enrollment, session[:elected_aptc], tax_household).total_employee_cost
       end
