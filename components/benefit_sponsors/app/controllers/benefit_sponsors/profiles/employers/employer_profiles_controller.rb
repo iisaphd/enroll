@@ -109,6 +109,7 @@ module BenefitSponsors
             @roster_upload_form = BenefitSponsors::Forms::RosterUploadForm.call(file, @employer_profile)
           rescue Exception => e
             render :partial => "/benefit_sponsors/profiles/employers/employer_profiles/_download_new_template"
+            @roster_upload_form.errors.add(:base, e.message)
             @roster_upload_form.errors.add(:base, 'Missing file') unless params[:file]
             return unless file.present?
           end
