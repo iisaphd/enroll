@@ -107,11 +107,10 @@ module BenefitSponsors
           begin
             file = params.require(:file)
             @roster_upload_form = BenefitSponsors::Forms::RosterUploadForm.call(file, @employer_profile)
-          rescue
+          rescue Exception => e
             render :partial => "/benefit_sponsors/profiles/employers/employer_profiles/_download_new_template"
             return unless file.present?
           end
-          
           begin
             if @roster_upload_form.save
               redirect_to URI.parse(@roster_upload_form.redirection_url).to_s
