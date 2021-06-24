@@ -74,6 +74,15 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
       allow(Products::QhpCostShareVariance).to receive(:find_qhp_cost_share_variances).and_return(qhp_cost_share_variances)
     end
 
+    it "should not throw an error if enrollment (and thus plan) not present" do
+      sign_in(user)
+      shop_health_enrollment.update_attributes!(plan_id: nil)
+      get :summary, standard_component_id: "11111100001111-01", hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
+      expect(response).to have_http_status(:success)
+      expect(assigns(:market_kind)).to eq "employer_sponsored"
+      expect(assigns(:coverage_kind)).to eq "health"
+    end
+
     it "should return summary of a plan for shop and coverage_kind as health" do
       sign_in(user)
       get :summary, standard_component_id: "11111100001111-01", hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
