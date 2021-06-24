@@ -56,6 +56,13 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
 
   context "GET comparison" do
 
+    it "should not throw error if qhps blank" do
+      allow_any_instance_of(Products::QhpController).to receive(:find_qhp_cost_share_variances).and_return([])
+      sign_in(user)
+      get :comparison, standard_component_ids: ["11111111111111-01", "11111111111111-02"], hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
+      expect(response).to have_http_status(:success)
+    end
+
     it "should return comparison of multiple plans" do
       sign_in(user)      
       get :comparison, standard_component_ids: ["11111111111111-01", "11111111111111-02"], hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"      
