@@ -46,8 +46,8 @@ Feature: Create Benefit Application by admin UI
         | title                 | aasm_state            | after_submit_title                | message |
         | Publish Pending       | pending               | Canceled                          | Successfully created a draft plan year |
         | Enrolling             | enrollment_open       | Canceled                          | Successfully created a draft plan year |
-        | Enrollment Closed     | enrollment_closed     | Canceled                          | Successfully created a draft plan year |
-        | Enrolled              | binder_paid           | Canceled                          | Successfully created a draft plan year |
+        | Enrollment Closed     | enrollment_closed     | Enrollment Closed                 | Existing plan year with overlapping coverage exists |
+        | Enrolled              | binder_paid           | Enrolled                          | Existing plan year with overlapping coverage exists |
         | Enrollment Ineligible | enrollment_ineligible | Enrollment Ineligible             | Successfully created a draft plan year |
         | Active                | active                | Termination Pending               | Successfully created a draft plan year |
 
