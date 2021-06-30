@@ -64,9 +64,9 @@ module BenefitSponsors
       end
 
       def has_overlap_application?(model_attributes)
-        terminated_bas = @benefit_sponsorship&.benefit_applications&.terminated_or_termination_pending +
-          @benefit_sponsorship&.benefit_applications&.enrollment_eligible +
-          @benefit_sponsorship&.benefit_applications&.enrollment_closed || []
+        terminated_bas = @benefit_sponsorship.benefit_applications.terminated_or_termination_pending +
+                         @benefit_sponsorship.benefit_applications.enrollment_eligible +
+                         @benefit_sponsorship.benefit_applications.enrollment_closed
         terminated_bas.any? {|ba| ba.effective_period.cover?(model_attributes[:effective_period].min)}
       end
 
