@@ -40,6 +40,7 @@ module BenefitSponsors
 
       def product_package_exists
         if product_package.blank? && source_kind == :benefit_sponsor_catalog
+          byebug
           self.errors.add(:base => "Unable to find mappable product package")
         end
       end

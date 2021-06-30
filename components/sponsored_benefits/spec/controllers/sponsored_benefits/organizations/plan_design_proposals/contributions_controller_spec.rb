@@ -99,7 +99,16 @@ module SponsoredBenefits
 			end
 		end
 
-    let!(:sponsor_profile) { FactoryGirl.create(:employer_profile) }
+		let!(:sponsor_profile) do
+			if Settings.aca.state_abbreviation == "DC" # toDo
+				FactoryGirl.create(:employer_profile)
+			else
+				FactoryGirl.create(:benefit_sponsors_organizations_general_organization,
+					:with_site,
+					:with_aca_shop_cca_employer_profile
+				).profiles.first
+			end
+		end
 
     let!(:relationship_benefit) { benefit_group.relationship_benefits.first }
 

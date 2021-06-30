@@ -17,17 +17,10 @@ module BenefitSponsors
         end
       end
 
-      def self.for_new(params)
+      def self.for_new
         form = self.new
-        form.contribution_levels = ContributionLevelForm.for_new({contribution_model: params[:product_package].contribution_model})
+        form.contribution_levels = ContributionLevelForm.for_new
         form
-      end
-
-      def min_contributions_map
-        contribution_levels.inject({}) do |data, cl|
-          data[cl.display_name] = cl.min_contribution_factor * 100
-          data
-        end
       end
     end
   end

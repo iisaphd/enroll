@@ -40,11 +40,13 @@ module Effective
           :filter => {include_blank: false, :as => :select, :collection => SOURCE_KINDS, :selected => "all"}
 
         table_column :plan_year_state, :proc => Proc.new { |row|
-          benefit_application_summarized_state(row.dt_display_benefit_application) if row.dt_display_benefit_application.present?
-        }, :filter => false
+          if row.latest_application.present?
+            benefit_application_summarized_state(row.latest_application)
+          end }, :filter => false
         table_column :effective_date, :proc => Proc.new { |row|
-          row.dt_display_benefit_application.effective_period.min.strftime("%m/%d/%Y") if row.dt_display_benefit_application.present?
-        }, :filter => false, :sortable => true
+          if row.latest_application.present?
+            row.latest_application.effective_period.min.strftime("%m/%d/%Y")
+          end }, :filter => false, :sortable => true
 
         table_column :invoiced?, :proc => Proc.new { |row|
           boolean_to_glyph(@employer_profile.current_month_invoice.present?)}, :filter => false

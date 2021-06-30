@@ -52,16 +52,12 @@ module Config::SiteHelper
     link_to site_home_url, site_home_url
   end
 
-  def site_copyright_period_start
-    EnrollRegistry[:enroll_app].setting(:copyright_period_start).item
-  end
-
   def site_help_url
-    EnrollRegistry[:enroll_app].setting(:help_url).item
+    Settings.site.help_url
   end
 
   def site_business_resource_center_url
-    EnrollRegistry[:enroll_app].setting(:business_resource_center_url).item
+    Settings.site.business_resource_center_url
   end
 
   def link_to_site_business_resource_center
@@ -69,15 +65,15 @@ module Config::SiteHelper
   end
 
   def site_nondiscrimination_notice_url
-    EnrollRegistry[:enroll_app].setting(:nondiscrimination_notice_url).item
+    Settings.site.nondiscrimination_notice_url
   end
 
   def site_policies_url
-    EnrollRegistry[:enroll_app].setting(:policies_url).item
+    Settings.site.policies_url
   end
 
   def site_faqs_url
-    EnrollRegistry[:enroll_app].setting(:faqs_url).item
+    Settings.site.faqs_url
   end
 
   def site_short_name
