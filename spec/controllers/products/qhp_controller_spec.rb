@@ -54,18 +54,29 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
       }
     ).first
   end
-  let(:hbx_enrollment_member){ FactoryGirl.build(:hbx_enrollment_member, is_subscriber:true,  applicant_id: family.primary_family_member.id, coverage_start_on: (TimeKeeper.date_of_record).beginning_of_month, eligibility_date: (TimeKeeper.date_of_record).beginning_of_month) }
+  let(:hbx_enrollment_member) do
+    FactoryGirl.build(
+      :hbx_enrollment_member,
+      is_subscriber: true,
+      applicant_id: family.primary_family_member.id,
+      coverage_start_on: TimeKeeper.date_of_record.beginning_of_month,
+      eligibility_date: TimeKeeper.date_of_record.beginning_of_month
+    )
+  end
 
-  let(:shop_health_enrollment) { FactoryGirl.create(:hbx_enrollment,
-    :with_enrollment_members,
-    household: family.active_household,
-    hbx_enrollment_members: [hbx_enrollment_member],
-    product: health_product,
-    sponsored_benefit_id: package.health_sponsored_benefit.id,
-    benefit_sponsorship_id: benefit_sponsorship.id,
-    sponsored_benefit_package_id: package.id,
-    rating_area_id: rating_area.id
-  )}
+  let(:shop_health_enrollment) do
+    FactoryGirl.create(
+      :hbx_enrollment,
+      :with_enrollment_members,
+      household: family.active_household,
+      hbx_enrollment_members: [hbx_enrollment_member],
+      product: health_product,
+      sponsored_benefit_id: package.health_sponsored_benefit.id,
+      benefit_sponsorship_id: benefit_sponsorship.id,
+      sponsored_benefit_package_id: package.id,
+      rating_area_id: rating_area.id
+    )
+  end
 
   let(:shop_dental_enrollment) { FactoryGirl.create(:hbx_enrollment,
     household: family.active_household,
@@ -102,8 +113,8 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
 
     it "should return comparison of multiple plans" do
       sign_in(user)      
-      # get :comparison, standard_component_ids: ["11111111111111-01", "11111111111111-02"], hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
-      # expect(response).to have_http_status(:success)
+      get :comparison, standard_component_ids: ["11111111111111-01", "11111111111111-02"], hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
+      expect(response).to have_http_status(:success)
     end
   end
 
@@ -130,10 +141,10 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
 
     it "should return summary of a plan for shop and coverage_kind as health" do
       sign_in(user)
-      # get :summary, standard_component_id: "11111100001111-01", hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
-      # expect(response).to have_http_status(:success)
-      # expect(assigns(:market_kind)).to eq "employer_sponsored"
-      # expect(assigns(:coverage_kind)).to eq "health"
+      get :summary, standard_component_id: "11111100001111-01", hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
+      expect(response).to have_http_status(:success)
+      expect(assigns(:market_kind)).to eq "employer_sponsored"
+      expect(assigns(:coverage_kind)).to eq "health"
     end
 
     it "should return summary of a plan for shop and coverage_kind as dental" do
