@@ -6,7 +6,8 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
   include_context "setup benefit market with market catalogs and product packages"
   include_context "setup initial benefit application"
 
-  let(:person) {FactoryGirl.create(:person)}
+  # let(:person) {FactoryGirl.create(:person)}
+  let(:person) { family.primary_person }
   let(:user) { FactoryGirl.create(:user, person: person) }
   let(:family){ FactoryGirl.create(:family, :with_primary_family_member_and_dependent) }
   let(:household){ family.active_household }
@@ -34,6 +35,17 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
       }
     ).first
   end
+  let(:spon_benefit) { initial_application.benefit_packages[0].sponsored_benefits[0] }
+
+  let!(:pricing_determination) do
+    pricing_determination = BenefitSponsors::SponsoredBenefits::PricingDetermination.new({group_size: 4, participation_rate: 75})
+    spon_benefit.pricing_determinations << pricing_determination
+    pricing_unit_id = spon_benefit.product_package.pricing_model.pricing_units.first.id
+    pricing_determination_tier = BenefitSponsors::SponsoredBenefits::PricingDeterminationTier.new({pricing_unit_id: pricing_unit_id, price: 320.00})
+    pricing_determination.pricing_determination_tiers << pricing_determination_tier
+    spon_benefit.save!
+  end
+
   let(:dental_product) do
     BenefitMarkets::Products::Product.where(
       {
@@ -42,14 +54,29 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
       }
     ).first
   end
-  let(:shop_health_enrollment) { FactoryGirl.create(:hbx_enrollment,
-    household: family.active_household,
-    product: health_product,
-    sponsored_benefit_id: package.health_sponsored_benefit.id,
-    benefit_sponsorship_id: benefit_sponsorship.id,
-    sponsored_benefit_package_id: package.id,
-    rating_area_id: rating_area.id
-  )}
+  let(:hbx_enrollment_member) do
+    FactoryGirl.build(
+      :hbx_enrollment_member,
+      is_subscriber: true,
+      applicant_id: family.primary_family_member.id,
+      coverage_start_on: TimeKeeper.date_of_record.beginning_of_month,
+      eligibility_date: TimeKeeper.date_of_record.beginning_of_month
+    )
+  end
+
+  let(:shop_health_enrollment) do
+    FactoryGirl.create(
+      :hbx_enrollment,
+      :with_enrollment_members,
+      household: family.active_household,
+      hbx_enrollment_members: [hbx_enrollment_member],
+      product: health_product,
+      sponsored_benefit_id: package.health_sponsored_benefit.id,
+      benefit_sponsorship_id: benefit_sponsorship.id,
+      sponsored_benefit_package_id: package.id,
+      rating_area_id: rating_area.id
+    )
+  end
 
   let(:shop_dental_enrollment) { FactoryGirl.create(:hbx_enrollment,
     household: family.active_household,
@@ -70,6 +97,11 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
     coverage_kind: "dental"
   )}
 
+  before do
+    ::BenefitMarkets::Products::ProductRateCache.initialize_rate_cache!
+    ::BenefitMarkets::Products::ProductFactorCache.initialize_factor_cache!
+  end
+
   context "GET comparison", :dbclean => :around_each do
 
     it "should not throw error if qhps blank" do
@@ -81,8 +113,8 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
 
     it "should return comparison of multiple plans" do
       sign_in(user)      
-      # get :comparison, standard_component_ids: ["11111111111111-01", "11111111111111-02"], hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
-      # expect(response).to have_http_status(:success)
+      get :comparison, standard_component_ids: ["11111111111111-01", "11111111111111-02"], hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
+      expect(response).to have_http_status(:success)
     end
   end
 
@@ -98,6 +130,7 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
     end
 
     it "should not throw an error if enrollment (and thus plan) not present" do
+      allow(qhp_cost_share_variance).to receive(:hios_plan_and_variant_id=)
       sign_in(user)
       shop_health_enrollment.update_attributes!(plan_id: nil)
       get :summary, standard_component_id: "11111100001111-01", hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
@@ -108,10 +141,10 @@ RSpec.describe Products::QhpController, :type => :controller, dbclean: :after_ea
 
     it "should return summary of a plan for shop and coverage_kind as health" do
       sign_in(user)
-      # get :summary, standard_component_id: "11111100001111-01", hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
-      # expect(response).to have_http_status(:success)
-      # expect(assigns(:market_kind)).to eq "employer_sponsored"
-      # expect(assigns(:coverage_kind)).to eq "health"
+      get :summary, standard_component_id: "11111100001111-01", hbx_enrollment_id: shop_health_enrollment.id, active_year: shop_health_enrollment.effective_on.year, market_kind: "shop", coverage_kind: "health"
+      expect(response).to have_http_status(:success)
+      expect(assigns(:market_kind)).to eq "employer_sponsored"
+      expect(assigns(:coverage_kind)).to eq "health"
     end
 
     it "should return summary of a plan for shop and coverage_kind as dental" do
