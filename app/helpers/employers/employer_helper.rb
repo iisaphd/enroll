@@ -125,35 +125,30 @@ module Employers::EmployerHelper
 
   def render_plan_offerings(benefit_group, coverage_type)
     start_on = benefit_group.plan_year.start_on
-    year = benefit_group.plan_year.start_on.year
     reference_plan = benefit_group.reference_plan
-    carrier_profile = reference_plan.carrier_profile
-    employer_profile = benefit_group.employer_profile
-    profile_and_service_area_pairs = CarrierProfile.carrier_profile_service_area_pairs_for(employer_profile, year)
-    query = profile_and_service_area_pairs.select { |pair| pair.first == carrier_profile.id }
+    profile_and_service_area_pairs = CarrierProfile.carrier_profile_service_area_pairs_for(benefit_group.employer_profile, start_on.year)
+    query = profile_and_service_area_pairs.select { |pair| pair.first == reference_plan.carrier_profile.id }
+    text = ""
 
-    if coverage_type == "dental" && benefit_group.dental_plan_option_kind == "single_plan"
-      plans = benefit_group.elected_dental_plan_ids
-      plans = plans.select{ |a| a.premium_tables.by_date(start_on).present? } if start_on.present?
-      "#{plans.count} Plans"
-    elsif coverage_type == "dental" && benefit_group.dental_plan_option_kind == "single_carrier"
-      plans = Plan.shop_dental_by_active_year(reference_plan.active_year).by_carrier_profile(reference_plan.carrier_profile)
-      plans = plans.select{ |a| a.premium_tables.by_date(start_on).present? } if start_on.present?
-      "All #{reference_plan.carrier_profile.legal_name} Plans (#{plans.count})"
-    else
-      return "1 Plan Only" if benefit_group.single_plan_type?
-      return "Sole Source Plan" if benefit_group.plan_option_kind == 'sole_source'
+    plans = if coverage_type == "dental" && benefit_group.dental_plan_option_kind == "single_plan"
+              benefit_group.elected_dental_plan_ids
+            elsif coverage_type == "dental" && benefit_group.dental_plan_option_kind == "single_carrier"
+              text = "All #{reference_plan.carrier_profile.legal_name}"
+              Plan.shop_dental_by_active_year(reference_plan.active_year).by_carrier_profile(reference_plan.carrier_profile)
+            else
+              return "1 Plan Only" if benefit_group.single_plan_type?
+              return "Sole Source Plan" if benefit_group.plan_option_kind == 'sole_source'
 
-      if benefit_group.plan_option_kind == "single_carrier"
-        plans = Plan.for_service_areas_and_carriers(query, year).shop_market.check_plan_offerings_for_single_carrier.health_coverage.and(hios_id: /-01/)
-        plans = plans.select{ |a| a.premium_tables.by_date(start_on).present? } if start_on.present?
-        "All #{reference_plan.carrier_profile.legal_name} Plans (#{plans.count})"
-      else
-        plans = Plan.for_service_areas_and_carriers(profile_and_service_area_pairs, year).shop_market.check_plan_offerings_for_metal_level.health_coverage.by_metal_level(reference_plan.metal_level).and(hios_id: /-01/)
-        plans = plans.select{ |a| a.premium_tables.by_date(start_on).present? } if start_on.present?
-        "#{reference_plan.metal_level.titleize} Plans (#{plans.count})"
-      end
-    end
+              if benefit_group.plan_option_kind == "single_carrier"
+                text = "All #{reference_plan.carrier_profile.legal_name}"
+                Plan.for_service_areas_and_carriers(query, start_on.year).shop_market.check_plan_offerings_for_single_carrier.health_coverage.and(hios_id: /-01/)
+              else
+                text = reference_plan.metal_level.titleize.to_s
+                Plan.for_service_areas_and_carriers(profile_and_service_area_pairs, start_on.year).shop_market.check_plan_offerings_for_metal_level.health_coverage.by_metal_level(reference_plan.metal_level).and(hios_id: /-01/)
+              end
+            end
+    plans = plans.select{ |a| a.premium_tables.by_date(start_on).present? } if start_on.present?
+    text + " Plans (#{plans.count})"
   end
 
   # deprecated
