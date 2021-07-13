@@ -16,12 +16,10 @@ module BenefitSponsors
           authorize @agency
           authorize @agency, :redirect_home?
           set_ie_flash_by_announcement unless is_employer_profile?
-          respond_to do |format|
-            format.html
-            format.js
-          end
-        else
-          render 'new'
+        end
+        respond_to do |format|
+          format.html
+          format.js
         end
       end
 
@@ -80,7 +78,7 @@ module BenefitSponsors
       private
 
       def profile_type
-        @profile_type = params[:profile_type] || params[:agency][:profile_type] || @agency.profile_type
+        @profile_type = params[:profile_type] || params.dig(:agency, :profile_type) || @agency.profile_type
       end
 
       def default_template

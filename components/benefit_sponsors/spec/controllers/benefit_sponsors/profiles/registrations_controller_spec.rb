@@ -143,11 +143,7 @@ module BenefitSponsors
           end
         end
 
-        context 'invalid request' do
-          it 'should rerender the new template' do
-            expect(response).to render_template("new")
-          end
-        end
+        
       end
 
       it_behaves_like "initialize profile for new", "benefit_sponsor"
