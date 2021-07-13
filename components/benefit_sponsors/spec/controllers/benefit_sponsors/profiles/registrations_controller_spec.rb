@@ -143,7 +143,7 @@ module BenefitSponsors
           end
         end
 
-        
+
       end
 
       it_behaves_like "initialize profile for new", "benefit_sponsor"
