@@ -12,11 +12,14 @@ module BenefitSponsors
 
       def new
         @agency = BenefitSponsors::Organizations::OrganizationForms::RegistrationForm.for_new(profile_type: profile_type, portal: params[:portal])
-        if @agency.present?
+        if @agency.blank?
+          authorize_user!
+        else 
           authorize @agency
           authorize @agency, :redirect_home?
           set_ie_flash_by_announcement unless is_employer_profile?
         end
+
         respond_to do |format|
           format.html
           format.js
