@@ -8,7 +8,7 @@ gem "benefit_sponsors", path: "components/benefit_sponsors"
 
 gem 'aasm', '~> 4.8.0'
 gem 'acapi', git: "https://github.com/ideacrew/acapi.git", branch: 'trunk'
-gem 'addressable', '2.3.8'
+gem 'addressable', '2.8.0'
 gem 'animate-rails', '~> 1.0.7'
 gem 'aws-sdk', '2.2.4'
 gem 'bcrypt', '~> 3.1'
@@ -157,7 +157,7 @@ group :test do
 end
 
 group :production do
-  gem 'eye', '0.8.0'
+  gem 'eye', '0.10.0'
   gem 'newrelic_rpm'
   gem 'unicorn', '~> 4.8.3'
 end
