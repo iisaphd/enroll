@@ -65,7 +65,6 @@ class Insured::FamilyMembersController < ApplicationController
     exception_message = "Error: #{e}"
     exception_message += "Unable to find family for person #{@person&.hbx_id}." if @family.blank?
     Rails.logger.error(exception_message) unless Rails.env.test?
-    puts(exception_message) unless Rails.env.test?
     redirect_to root_path
   end
 
