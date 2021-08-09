@@ -20,10 +20,6 @@ module SponsoredBenefits
         ensure_sic_zip_county
       end
 
-      def persisted?
-        @proposal&.persisted?
-      end
-
       def for_new
         service.ensure_benefits
       end
@@ -116,12 +112,8 @@ module SponsoredBenefits
       def save
         initial_enrollment_period = @effective_date..(@effective_date.next_year.prev_day)
 
-        if @proposal.persisted?
-          @proposal.assign_attributes(title: @title)
-        else
-          profile = SponsoredBenefits::Organizations::AcaShopCcaEmployerProfile.new({sic_code: @sic_code})
-          @proposal = @plan_design_organization.plan_design_proposals.build({title: @title, profile: profile})
-        end
+        profile = SponsoredBenefits::Organizations::AcaShopCcaEmployerProfile.new({sic_code: @sic_code})
+        @proposal = @plan_design_organization.plan_design_proposals.build({title: @title, profile: profile})
 
         sponsorship = @proposal.profile.benefit_sponsorships.first
         sponsorship.assign_attributes({initial_enrollment_period: initial_enrollment_period, annual_enrollment_period_begin_month: @effective_date.month})
