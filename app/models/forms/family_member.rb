@@ -109,6 +109,7 @@ module Forms
       family.save_relevant_coverage_households
       family.save!
       self.id = family_member.id
+      create_census_dependent(family_member)
       true
     end
 
@@ -126,6 +127,7 @@ module Forms
         if address.present?
           person.home_address.try(:destroy)
           person.addresses << address
+          update_census_dependent(person)
           person.save
         end
       else
@@ -146,7 +148,9 @@ module Forms
             next
           end
           if current_address.present?
-            current_address.update(address.permit!)
+            current_address.assign_attributes(address.permit!)
+            update_census_dependent(person)
+            current_address.save
           else
             person.addresses.create(address.permit!)
           end
@@ -268,9 +272,25 @@ module Forms
       end
     end
 
+    def update_census_dependent(person)
+      return unless person.valid?
+
+      Operations::CensusMembers::Update.new.call(person: person, action: 'update_census_dependent')
+    rescue Exception => e
+      Rails.logger.error { "Failed to update census dependent record for #{person.full_name}(#{person.hbx_id}) due to #{e.inspect}" }
+    end
+
+    def create_census_dependent(family_member)
+      Operations::CensusMembers::Create.new.call(family_member: family_member)
+    rescue Exception => e
+      Rails.logger.error { "Failed to create census dependent record for #{family_member.person.full_name}(#{family_member.person.hbx_id}) due to #{e.inspect}" }
+    end
+
     def try_update_person(person)
       person.consumer_role.update_attributes(:is_applying_coverage => is_applying_coverage) if person.consumer_role
-      person.update_attributes(extract_person_params).tap do
+      person.assign_attributes(extract_person_params)
+      update_census_dependent(person)
+      person.save.tap do
         bubble_person_errors(person)
       end
     end
