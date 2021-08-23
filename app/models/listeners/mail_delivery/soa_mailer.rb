@@ -14,7 +14,7 @@ module MailDelivery
         # I18n.transliterate("Text with speceial accent marks")
         # Converts to a string without accent marks
         # => "Instrucciones de recuperacion de contrasena"
-        subject = I18n.transliterate(subject)
+        subject = I18n.transliterate(subject) unless subject.blank?
         send_email_html(recipient, subject, body)
       end
     end
