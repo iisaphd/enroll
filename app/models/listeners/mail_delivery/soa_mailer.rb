@@ -7,6 +7,8 @@ module MailDelivery
     end
 
     def deliver!(mail)
+      subject = mail.subject
+      body = mail.body.raw_source
       mail.to.each do |recipient|
         # https://stackoverflow.com/a/20586777/5331859
         # Will transliterate any special latin accent marks
