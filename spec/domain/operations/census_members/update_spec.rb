@@ -109,14 +109,14 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
 
     context "when on expired/waived enrollment" do
       let(:aasm_state) { 'inactive' }
-      
+
       before do
         hbx_enrollment
         dependent_person.assign_attributes(first_name: "Test11", last_name: 'Doe11')
         Operations::CensusMembers::Update.new.call(person: dependent_person, family_member: dependent, action: 'update_census_dependent')
       end
 
-      it 'should not update census dependent record' do        
+      it 'should not update census dependent record' do
         census_employee.census_dependents.first.reload
         expect(census_employee.census_dependents.first.first_name).not_to eq "Test11"
         expect(census_employee.census_dependents.first.last_name).not_to eq "Doe11"

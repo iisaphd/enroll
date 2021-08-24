@@ -15,7 +15,7 @@ module Operations
       # @param [ String ] action Type of action to perform
       # @return [ BenefitSponsors::Entities::EnrollmentEligibility ] enrollment_eligibility
       def call(params)
-        validate                         = yield validate(params)
+        _validate                        = yield validate(params)
         _census_member_enrolled          = yield census_member_enrolled?(params)
         _update_census_employee_records  = yield update_census_employee_records(params)
         _update_dependent_records        = yield update_census_dependent_records(params)
@@ -32,18 +32,21 @@ module Operations
         Success(params)
       end
 
+      def fetch_family_and_member(params)
+        case params[:action]
+        when 'update_census_employee'
+          family = params[:person]&.primary_family
+          [family, family&.find_family_member_by_person(params[:person])]
+        when 'update_census_dependent'
+          [params[:family_member]&.family, params[:family_member]]
+        when 'update_relationship'
+          family = params[:relationship]&.person&.primary_family
+          [family, family&.find_family_member_by_person(params[:relationship].person)]
+        end
+      end
+
       def census_member_enrolled?(params)
-        family, family_member =
-          case params[:action]
-          when 'update_census_employee'
-            family = params[:person]&.primary_family
-            [family, family&.find_family_member_by_person(params[:person])]
-          when 'update_census_dependent'
-            [params[:family_member]&.family, params[:family_member]]
-          when 'update_relationship'
-            family = params[:relationship]&.person&.primary_family
-            [family, family&.find_family_member_by_person(params[:relationship].person)]
-          end
+        family, family_member = fetch_family_and_member(params)
 
         return Failure("Unable to find family for the given payload: #{params}") unless family.present?
 
@@ -53,12 +56,6 @@ module Operations
           Success(result)
         else
           Failure("Family Member: #{family_member&.id} doesn't have an active coverage, params: #{params}")
-        end
-      end
-
-      def fetch_family_member_ids(enrollments)
-        enrollments.each do |enrollment|
-          enrollment.applicant_ids
         end
       end
 
@@ -139,7 +136,7 @@ module Operations
             'last_name' => person.last_name,
             'dob' => person.dob
           }
-        criteria.keys.each do |changed_attr|
+        criteria.each_key do |changed_attr|
           person.changes.each do |k, v|
             criteria[changed_attr] = v[0] if k == changed_attr
           end

@@ -280,7 +280,7 @@ class PeopleController < ApplicationController
     return unless person.valid?
 
     Operations::CensusMembers::Update.new.call(person: person, action: 'update_census_employee')
-  rescue Exception => e
+  rescue StandardError => e
     Rails.logger.error { "Failed to update census employee record for #{person.full_name}(#{person.hbx_id}) due to #{e.inspect}" }
   end
 
