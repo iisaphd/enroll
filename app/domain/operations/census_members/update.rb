@@ -66,7 +66,7 @@ module Operations
           update_record(params[:person], role.census_employee)
         end
 
-        if result.any?(&:failure)
+        if result&.any?(&:failure)
           Failure(result.select(&:failure).map(&:failure).join(','))
         else
           Success(true)
@@ -85,7 +85,7 @@ module Operations
           update_record(person, census_dependent) if census_dependent.present?
         end
 
-        if result.any?(&:failure)
+        if result&.any?(&:failure)
           Failure(result.select(&:failure).map(&:failure).join(','))
         else
           Success(true)

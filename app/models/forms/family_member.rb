@@ -275,7 +275,7 @@ module Forms
     def update_census_dependent(person)
       return unless person.valid?
 
-      Operations::CensusMembers::Update.new.call(person: person, action: 'update_census_dependent')
+      Operations::CensusMembers::Update.new.call(person: person, family_member: family_member, action: 'update_census_dependent')
     rescue StandardError => e
       Rails.logger.error { "Failed to update census dependent record for #{person.full_name}(#{person.hbx_id}) due to #{e.inspect}" }
     end
