@@ -93,7 +93,7 @@ module Operations
       end
 
       def allowed_relationship_kind?(kind)
-        Operations::CensusMembers::Create::EMPLOYEE_RELATIONSHIP_KINDS.include?(kind)
+        EMPLOYEE_RELATIONSHIP_KINDS.include?(kind)
       end
 
       def update_census_dependent_relationship(params)
