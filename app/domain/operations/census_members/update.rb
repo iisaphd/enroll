@@ -9,14 +9,11 @@ module Operations
     class Update
       send(:include, Dry::Monads[:result, :do])
 
-      EMPLOYEE_RELATIONSHIP_KINDS = ['spouse', 'domestic_partner', 'child', 'child_under_26', 'child_26_and_over', 'disabled_child_26_and_over'].freeze
-
       # @param [ Person ] person Person
       # @param [ String ] action Type of action to perform
       # @return [ BenefitSponsors::Entities::EnrollmentEligibility ] enrollment_eligibility
       def call(params)
         _validate                        = yield validate(params)
-        _census_member_enrolled          = yield census_member_enrolled?(params)
         _update_census_employee_records  = yield update_census_employee_records(params)
         _update_dependent_records        = yield update_census_dependent_records(params)
         _update_dependent_relationship   = yield update_census_dependent_relationship(params)
@@ -45,25 +42,20 @@ module Operations
         end
       end
 
-      def census_member_enrolled?(params)
+      def census_member_enrolled_under_employer?(params, employee_role)
         family, family_member = fetch_family_and_member(params)
+        return false unless family.present?
 
-        return Failure("Unable to find family for the given payload: #{params}") unless family.present?
-
-        result = family.enrollments.shop_market.enrolled_and_renewal.map(&:applicant_ids).flatten.map(&:to_s).include?(family_member.id.to_s)
-
-        if result
-          Success(result)
-        else
-          Failure("Family Member: #{family_member&.id} doesn't have an active coverage, params: #{params}")
-        end
+        family.enrollments.shop_market.enrolled_and_renewal
+              .where(employee_role_id: employee_role.id)
+              .map(&:applicant_ids).flatten.map(&:to_s).include?(family_member.id.to_s)
       end
 
       def update_census_employee_records(params)
         return Success(true) unless params[:action] == 'update_census_employee'
 
-        result = params[:person].active_employee_roles.collect do |role|
-          update_record(params[:person], role.census_employee)
+        result = params[:person].active_employee_roles.collect do |employee_role|
+          update_record(params[:person], employee_role.census_employee, employee_role, params)
         end
 
         if result&.any?(&:failure)
@@ -77,42 +69,44 @@ module Operations
         return Success(true) unless params[:action] == 'update_census_dependent'
 
         person = params[:person]
-        return Failure("No families found, params: #{params}, action: update_census_dependent")  if person.families.blank?
+        return Failure("No families found, params: #{params}, action: update_census_dependent") if person.families.blank?
 
         employee_roles = params[:family_member].family.primary_person.active_employee_roles
-        result = employee_roles.collect do |role|
-          census_dependent = role.census_employee.census_dependents.where(matching_criteria(person)).first
-          update_record(person, census_dependent) if census_dependent.present?
+        result = employee_roles.collect do |employee_role|
+          census_dependent = employee_role.census_employee.census_dependents.where(matching_criteria(person)).first
+          update_record(person, census_dependent, employee_role, params) if census_dependent.present?
         end
 
-        if result&.any?(&:failure)
-          Failure(result.select(&:failure).map(&:failure).join(','))
-        else
-          Success(true)
-        end
-      end
-
-      def allowed_relationship_kind?(kind)
-        EMPLOYEE_RELATIONSHIP_KINDS.include?(kind)
+        result&.any?(&:failure) ? Failure(result.select(&:failure).map(&:failure).join(',')) : Success(true)
       end
 
       def update_census_dependent_relationship(params)
         relationship = params[:relationship]
-        return Success(true) unless params[:action] == 'update_relationship' || allowed_relationship_kind?(relationship&.kind)
+        return Success(true) unless params[:action] == 'update_relationship'
 
         primary_person = relationship.person
         dependent_person = relationship.relative
 
-        primary_person.active_employee_roles.each do |role|
-          census_dependent = role.census_employee.census_dependents.where(matching_criteria(dependent_person)).first
-          census_dependent&.update_attributes(employee_relationship: relationship.kind)
+        primary_person.active_employee_roles.each do |employee_role|
+          census_dependent = employee_role.census_employee.census_dependents.where(matching_criteria(dependent_person)).first
+          if census_member_enrolled_under_employer?(params, employee_role)
+            census_dependent&.update_attributes(employee_relationship: relationship.kind)
+          else
+            Rails.logger.info { "[Operations::CensusMembers::Update] CensusDependent: #{census_dependent.id} is NOT enrolled under #{employee_role.employer_profile.legal_name}" }
+          end
         end
+
         Success(true)
       rescue StandardError => e
         Failure("Unable to update Employee Info Changes for person: #{primary_person.hbx_id}, action: update_relationship due to #{e.inspect}")
       end
 
-      def update_record(person, census_member)
+      def update_record(person, census_member, employee_role, params)
+        unless census_member_enrolled_under_employer?(params, employee_role)
+          Rails.logger.info { "[Operations::CensusMembers::Update] CensusMember: #{census_member.id} is NOT enrolled under #{employee_role.employer_profile.legal_name}" }
+          return
+        end
+
         census_member.update_attributes(build_updated_value_hash(person.changes, required_person_attributes)) if person.changed_attributes
 
         census_member.address.update_attributes(build_updated_value_hash(person.mailing_address.changes)) if person.mailing_address&.changes && census_member.address

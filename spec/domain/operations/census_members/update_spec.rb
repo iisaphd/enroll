@@ -63,18 +63,162 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
 
   describe "when updating person" do
 
-    before do
-      hbx_enrollment
-      allow(person).to receive(:active_employee_roles).and_return([employee_role])
-      person.assign_attributes(first_name: "Johnny", middle_name: 'S', last_name: 'Smith')
-      Operations::CensusMembers::Update.new.call(person: person, action: 'update_census_employee')
-      census_employee.reload
+    context 'when employee is on single roster' do
+
+      before do
+        hbx_enrollment
+        allow(person).to receive(:active_employee_roles).and_return([employee_role])
+        person.assign_attributes(first_name: "Johnny", middle_name: 'S', last_name: 'Smith')
+        Operations::CensusMembers::Update.new.call(person: person, action: 'update_census_employee')
+        census_employee.reload
+      end
+
+      it 'should update census employee record' do
+        expect(census_employee.first_name).to eq "Johnny"
+        expect(census_employee.middle_name).to eq "S"
+        expect(census_employee.last_name).to eq "Smith"
+      end
     end
 
-    it 'should update census employee record' do
-      expect(census_employee.first_name).to eq "Johnny"
-      expect(census_employee.middle_name).to eq "S"
-      expect(census_employee.last_name).to eq "Smith"
+    context 'when employee is on multiple rosters' do
+      let(:current_effective_date_1)  { (TimeKeeper.date_of_record + 2.months).beginning_of_month.prev_year }
+
+      let!(:service_area) do
+        county_zip_id = create(:benefit_markets_locations_county_zip, county_name: 'Middlesex', zip: '01754', state: 'MA').id
+        create(:benefit_markets_locations_service_area, county_zip_ids: [county_zip_id], active_year: current_effective_date_1.year)
+      end
+
+      let(:effective_period_1)          { current_effective_date_1..(current_effective_date_1.next_year.prev_day) }
+      let(:open_enrollment_start_on_1)  { current_effective_date_1.prev_month }
+      let(:open_enrollment_period_1)    { open_enrollment_start_on_1..(open_enrollment_start_on_1 + 5.days) }
+      let!(:organization) do
+        create(:benefit_sponsors_organizations_general_organization, :with_aca_shop_cca_employer_profile, site: site)
+      end
+      let(:profile)               { organization.employer_profile }
+
+      let!(:benefit_sponsorship_1) do
+        benefit_sponsorship = profile.add_benefit_sponsorship
+        benefit_sponsorship.aasm_state = :active
+        benefit_sponsorship.save
+        benefit_sponsorship
+      end
+
+      let!(:rating_area) { create_default(:benefit_markets_locations_rating_area) }
+      let!(:service_areas_1) { benefit_sponsorship_1.service_areas_on(effective_period_1.min) }
+
+      let(:benefit_sponsor_catalog_1) do
+        benefit_sponsorship_1.benefit_sponsor_catalog_for(effective_period_1.min)
+      end
+
+      let!(:application) do
+        create(
+          :benefit_sponsors_benefit_application,
+          :with_benefit_sponsor_catalog,
+          :with_benefit_package,
+          passed_benefit_sponsor_catalog: benefit_sponsor_catalog_1,
+          benefit_sponsorship: benefit_sponsorship_1,
+          effective_period: effective_period_1,
+          aasm_state: :active,
+          open_enrollment_period: open_enrollment_period_1,
+          recorded_rating_area: rating_area,
+          recorded_service_areas: service_areas_1,
+          package_kind: :single_issuer,
+          dental_package_kind: :single_product,
+          dental_sponsored_benefit: false,
+          fte_count: 5,
+          pte_count: 0,
+          msp_count: 0
+        )
+      end
+
+      let!(:census_dependent_1){ build(:census_dependent, first_name: dependent_person.first_name, last_name: dependent_person.last_name, dob: dependent_person.dob)}
+      let!(:census_employee_1) do
+        create(
+          :benefit_sponsors_census_employee,
+          :benefit_sponsorship => benefit_sponsorship_1,
+          :employer_profile => profile,
+          :census_dependents => [census_dependent_1]
+        )
+      end
+      let(:aasm_state) { 'coverage_enrolled' }
+
+      let(:hbx_enrollment_1) do
+        create(
+          :hbx_enrollment,
+          :with_enrollment_members,
+          :with_product,
+          household: family.active_household,
+          aasm_state: aasm_state,
+          effective_on: application.start_on,
+          rating_area_id: application.recorded_rating_area_id,
+          sponsored_benefit_id: application.benefit_packages.first.health_sponsored_benefit.id,
+          sponsored_benefit_package_id: application.benefit_packages.first.id,
+          benefit_sponsorship_id: benefit_sponsorship_1.id,
+          hbx_enrollment_members: [hbx_enrollment_member_1, hbx_enrollment_member_2],
+          employee_role_id: employee_role_1.id
+        )
+      end
+
+      let(:hbx_enrollment_member_1) do
+        build(
+          :hbx_enrollment_member,
+          applicant_id: family.find_family_member_by_person(person).id,
+          is_subscriber: true,
+          eligibility_date: Date.today
+        )
+      end
+
+      let(:hbx_enrollment_member_2) do
+        build(
+          :hbx_enrollment_member,
+          applicant_id: dependent.id,
+          is_subscriber: false,
+          eligibility_date: Date.today
+        )
+      end
+
+      let(:employee_role_1) { create(:benefit_sponsors_employee_role, person: person, census_employee_id: census_employee_1.id, benefit_sponsors_employer_profile_id: profile.id)}
+
+      context 'and enrolled under both employers' do
+        before do
+          hbx_enrollment
+          hbx_enrollment_1
+          allow(person).to receive(:active_employee_roles).and_return([employee_role, employee_role_1])
+          person.assign_attributes(first_name: "Johnny", middle_name: 'S', last_name: 'Smith')
+          Operations::CensusMembers::Update.new.call(person: person, action: 'update_census_employee')
+          census_employee.reload
+          census_employee_1.reload
+        end
+
+        it 'should update census employee records on both rosters' do
+          expect(census_employee.first_name).to eq "Johnny"
+          expect(census_employee.middle_name).to eq "S"
+          expect(census_employee.last_name).to eq "Smith"
+          expect(census_employee_1.first_name).to eq "Johnny"
+          expect(census_employee_1.middle_name).to eq "S"
+          expect(census_employee_1.last_name).to eq "Smith"
+        end
+      end
+
+      context 'and enrolled under only one employer' do
+        before do
+          hbx_enrollment
+          allow(person).to receive(:active_employee_roles).and_return([employee_role, employee_role_1])
+          person.assign_attributes(first_name: "Johnny", middle_name: 'S', last_name: 'Smith')
+          Operations::CensusMembers::Update.new.call(person: person, action: 'update_census_employee')
+          census_employee.reload
+          census_employee_1.reload
+        end
+
+        it 'should update census employee record' do
+          expect(census_employee.first_name).to eq "Johnny"
+          expect(census_employee.middle_name).to eq "S"
+          expect(census_employee.last_name).to eq "Smith"
+          expect(census_employee_1.first_name).not_to eq "Johnny"
+          expect(census_employee_1.middle_name).not_to eq "S"
+          expect(census_employee_1.last_name).not_to eq "Smith"
+        end
+      end
     end
   end
 
