@@ -104,23 +104,18 @@ module Operations
       def update_record(person, census_member, employee_role, params)
         unless census_member_enrolled_under_employer?(params, employee_role)
           Rails.logger.info { "[Operations::CensusMembers::Update] CensusMember: #{census_member.id} is NOT enrolled under #{employee_role.employer_profile.legal_name}" }
-          return
+          return Success("CensusMember: #{census_member.id} is NOT enrolled under #{employee_role.employer_profile.legal_name}")
         end
-
-        census_member.update_attributes(build_updated_value_hash(person.changes, required_person_attributes)) if person.changed_attributes
-
-        census_member.address.update_attributes(build_updated_value_hash(person.mailing_address.changes)) if person.mailing_address&.changes && census_member.address
-
-        email_changes = person.work_or_home_email.changes if person.work_or_home_email
-        census_member.email.update_attributes(build_updated_value_hash(email_changes)) if email_changes.present?
-
+        census_member.update_attributes(build_updated_value_hash(person.changes, required_person_attributes(params[:action]))) if person.changed_attributes
         Success(census_member)
       rescue StandardError => e
         Failure("Unable to update Employee Info Changes for person: #{person.hbx_id}, census_member_id: #{census_member.id} due to #{e.inspect}")
       end
 
-      def required_person_attributes
-        ['first_name', 'middle_name', 'last_name', 'name_sfx', 'dob', 'encrypted_ssn', 'gender']
+      def required_person_attributes(action)
+        person_attributes = ['first_name', 'middle_name', 'last_name', 'name_sfx', 'dob', 'gender']
+        person_attributes << 'encrypted_ssn' if action == 'update_census_employee'
+        person_attributes
       end
 
       def matching_criteria(person)
