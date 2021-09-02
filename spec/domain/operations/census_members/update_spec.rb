@@ -308,4 +308,42 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
       expect(census_employee.last_name).not_to eq "Smith12"
     end
   end
+
+  describe 'enrollment triggers' do
+    context 'census employee demographics updated before enrollment purchase' do
+      let(:aasm_state) { 'shopping' }
+
+      before do
+        allow(person).to receive(:active_employee_roles).and_return([employee_role])
+        person.update_attributes(first_name: "Johnny22", middle_name: 'S22', last_name: 'Smith22')
+        # Operations::CensusMembers::Update.new.call(person: person, action: 'update_census_employee')
+        # census_employee.reload
+        hbx_enrollment.select_coverage!
+        census_employee.reload
+      end
+
+
+      it 'should trigger demographics updates on enrollment purchase' do
+        expect(census_employee.first_name).to eq "Johnny22"
+        expect(census_employee.middle_name).to eq "S22"
+        expect(census_employee.last_name).to eq "Smith22"
+      end
+    end
+
+    context 'census dependent demographics updated before enrollment purchase' do
+      let(:aasm_state) { 'shopping' }
+
+      before do
+        allow(person).to receive(:active_employee_roles).and_return([employee_role])
+        dependent_person.update_attributes(first_name: "Snow11", last_name: 'John11')
+        hbx_enrollment.select_coverage!
+      end
+
+      it 'should trigger demographics updates on enrollment purchase' do
+        dependent = census_employee.census_dependents.first.reload
+        expect(dependent.first_name).not_to eq "Snow11"
+        expect(dependent.last_name).not_to eq "John11"
+      end
+    end
+  end
 end
