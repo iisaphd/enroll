@@ -13,13 +13,15 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
   let(:dependents) { family.family_members.where(is_primary_applicant: false) }
   let(:dependent) { dependents.first }
   let(:dependent_person) { dependent.person }
-  let!(:census_dependent){ build(:census_dependent, first_name: dependent_person.first_name, last_name: dependent_person.last_name, dob: dependent_person.dob)}
+  let!(:census_dependent){ build(:census_dependent, first_name: dependent_person.first_name, last_name: dependent_person.last_name, dob: dependent_person.dob, ssn: dependent_person.ssn)}
+  let(:census_dependents) { [census_dependent] }
+
   let!(:census_employee) do
     create(
       :benefit_sponsors_census_employee,
       :benefit_sponsorship => benefit_sponsorship,
       :employer_profile => abc_profile,
-      :census_dependents => [census_dependent]
+      :census_dependents => census_dependents
     )
   end
   let(:aasm_state) { 'coverage_enrolled' }
@@ -343,6 +345,31 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
         dependent = census_employee.census_dependents.first.reload
         expect(dependent.first_name).not_to eq "Snow11"
         expect(dependent.last_name).not_to eq "John11"
+      end
+    end
+
+    context 'when unenrolled census dependent is present on roster' do
+      let(:aasm_state) { 'shopping' }
+      let!(:unenrolled_cd) do
+        build(
+          :census_dependent,
+          employee_relationship: 'child_under_26',
+          dob: '01/12/2019',
+          first_name: 'unenrolled',
+          last_name: 'dependent'
+        )
+      end
+      let(:census_dependents) { [census_dependent, unenrolled_cd] }
+
+      before do
+        allow(person).to receive(:active_employee_roles).and_return([employee_role])
+        hbx_enrollment.select_coverage!
+        census_employee.reload
+      end
+
+      it 'should delete census_dependent' do
+        expect(census_employee.census_dependents.size).to eq 1
+        expect(census_employee.reload.census_dependents.where(first_name: unenrolled_cd.first_name, last_name: unenrolled_cd.last_name).first).to be_nil
       end
     end
   end
