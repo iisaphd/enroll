@@ -76,27 +76,23 @@ module Operations
         Failure("Unable to create/update census dependents enrolled under hbx enrollment: #{params[:hbx_enrollment].hbx_id} due to #{e.inspect}")
       end
 
+      def matched_dependent(enrollment, census_dependent)
+        enrollment.hbx_enrollment_members.select do |hem|
+          if census_dependent.encrypted_ssn.present?
+            hem.person.dob == census_dependent.dob && hem.person.encrypted_ssn == census_dependent.encrypted_ssn
+          else
+            hem.person.first_name == census_dependent.first_name && hem.person.last_name == census_dependent.last_name && hem.person.dob == census_dependent.dob
+          end
+        end
+      end
+
       def delete_unenrolled_census_dependents(params)
         return Success(true) unless params[:action] == 'update_census_family'
 
         enrollment = params[:hbx_enrollment]
-        census_employee = enrollment&.employee_role&.census_employee
-        return Failure("Unable to delete unenrolled census dependents for given input enrollment: #{enrollment.hbx_id}") if census_employee.nil?
-
+        census_employee = enrollment.employee_role.census_employee
         result = census_employee.census_dependents.collect do |census_dependent|
-          matched_dependent =
-            enrollment.hbx_enrollment_members.select do |hem|
-              if census_dependent.encrypted_ssn.present?
-                hem.person.dob == census_dependent.dob
-                hem.person.encrypted_ssn == census_dependent.encrypted_ssn
-              else
-                hem.person.first_name == census_dependent.first_name
-                hem.person.last_name == census_dependent.last_name
-                hem.person.dob == census_dependent.dob
-              end
-            end
-
-          if matched_dependent.present?
+          if matched_dependent(enrollment, census_dependent).present?
             Success(true)
           else
             census_dependent.destroy
