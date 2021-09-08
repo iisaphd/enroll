@@ -26,6 +26,8 @@ namespace :xml do
           row["plan_id_fy".to_sym]
         end.squish
 
+        next if new_hios_id.blank? && row[:crosswalk_level].include?('Discontinue with no crosswalk')
+
         # old model
         new_plans =  Plan.where(hios_id: /#{new_hios_id}/, active_year: @current_year)
         # cat_age_off_renewal_plan =  Plan.where(hios_id: /#{hios_id_cat_age_off_2018}/, active_year: @current_year)
