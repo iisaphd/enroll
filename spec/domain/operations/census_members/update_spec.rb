@@ -318,8 +318,6 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
       before do
         allow(person).to receive(:active_employee_roles).and_return([employee_role])
         person.update_attributes(first_name: "Johnny22", middle_name: 'S22', last_name: 'Smith22')
-        # Operations::CensusMembers::Update.new.call(person: person, action: 'update_census_employee')
-        # census_employee.reload
         hbx_enrollment.select_coverage!
         census_employee.reload
       end
@@ -343,8 +341,8 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
 
       it 'should trigger demographics updates on enrollment purchase' do
         dependent = census_employee.census_dependents.first.reload
-        expect(dependent.first_name).not_to eq "Snow11"
-        expect(dependent.last_name).not_to eq "John11"
+        expect(dependent.first_name).to eq "Snow11"
+        expect(dependent.last_name).to eq "John11"
       end
     end
 
