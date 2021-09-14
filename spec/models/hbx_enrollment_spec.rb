@@ -2512,7 +2512,8 @@ describe HbxEnrollment,"reinstate and change end date", type: :model, :dbclean =
       let(:aasm_state) { :active }
       let(:census_dependents) { nil }
       let(:census_employee) do
-        create(:census_employee,
+        create(
+          :census_employee,
           :with_active_assignment,
           benefit_sponsorship: benefit_sponsorship,
           employer_profile: benefit_sponsorship.profile,
