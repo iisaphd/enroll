@@ -61,7 +61,7 @@ module Operations
         census_employee = enrollment.employee_role.census_employee
 
         # Updates census_employees
-        census_employee.update_attributes(requrired_person_attributes_hash(ce_person, true))
+        census_employee.update_attributes(required_person_attributes_hash(ce_person, true))
 
         # Updates census dependents
         result = enrollment.hbx_enrollment_members.collect do |hbx_enrollment_member|
@@ -198,7 +198,7 @@ module Operations
         person_attributes
       end
 
-      def requrired_person_attributes_hash(person, include_ssn)
+      def required_person_attributes_hash(person, include_ssn)
         required_person_attributes(include_ssn).inject({}) do |attr_hash, attribute|
           attr_hash[attribute] = person.send(attribute)
           attr_hash

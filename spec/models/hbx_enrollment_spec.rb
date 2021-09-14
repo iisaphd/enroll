@@ -2505,12 +2505,24 @@ describe HbxEnrollment,"reinstate and change end date", type: :model, :dbclean =
       let(:employee_updated_at) { employee_created_at }
 
       let(:person) {FactoryGirl.create(:person, first_name: 'John', last_name: 'Smith', dob: '1966-10-10'.to_date, ssn: '123456789')}
-      let(:shop_family) {FactoryGirl.create(:family, :with_primary_family_member)}
+      let(:shop_family) {FactoryGirl.create(:family, :with_primary_family_member_and_dependent)}
       let!(:sponsored_benefit) {benefit_sponsorship.benefit_applications.first.benefit_packages.first.health_sponsored_benefit}
       let!(:update_sponsored_benefit) {sponsored_benefit.update_attributes(product_package_kind: :single_product)}
 
       let(:aasm_state) { :active }
-      let(:census_employee) { create(:census_employee, :with_active_assignment, benefit_sponsorship: benefit_sponsorship, employer_profile: benefit_sponsorship.profile, benefit_group: current_benefit_package, hired_on: hired_on, created_at: employee_created_at, updated_at: employee_updated_at) }
+      let(:census_dependents) { nil }
+      let(:census_employee) do
+        create(:census_employee,
+          :with_active_assignment,
+          benefit_sponsorship: benefit_sponsorship,
+          employer_profile: benefit_sponsorship.profile,
+          benefit_group: current_benefit_package,
+          hired_on: hired_on,
+          created_at: employee_created_at,
+          updated_at: employee_updated_at,
+          census_dependents: census_dependents
+        )
+      end
       let(:employee_role) { FactoryGirl.create(:employee_role, benefit_sponsors_employer_profile_id: abc_profile.id, hired_on: census_employee.hired_on, census_employee_id: census_employee.id) }
       let(:enrollment_kind) { "open_enrollment" }
       let(:special_enrollment_period_id) { nil }
@@ -2557,6 +2569,67 @@ describe HbxEnrollment,"reinstate and change end date", type: :model, :dbclean =
         it 'should re-instate census employee' do
           census_employee.reload
           expect(census_employee.employee_role_linked?).to be_truthy
+        end
+      end
+
+      context 'when dependent record is updated' do
+        let(:dependent) { shop_family.family_members.where(is_primary_applicant: false)[0] }
+        let(:dependent_person) { dependent.person }
+        let!(:census_dependent){ build(:census_dependent, first_name: dependent_person.first_name, last_name: dependent_person.last_name, dob: dependent_person.dob, ssn: dependent_person.ssn)}
+        let(:census_dependents) { [census_dependent] }
+        let!(:shop_enrollment) do
+          create(
+            :hbx_enrollment,
+            :with_enrollment_members,
+            coverage_kind: "health",
+            product: sponsored_benefit.reference_product,
+            kind: "employer_sponsored",
+            enrollment_kind: enrollment_kind,
+            household: shop_family.active_household,
+            aasm_state: 'coverage_selected',
+            effective_on: effective_on,
+            rating_area_id: current_benefit_package.benefit_application.recorded_rating_area_id,
+            sponsored_benefit_id: current_benefit_package.sponsored_benefits[0].id,
+            sponsored_benefit_package_id: current_benefit_package.id,
+            benefit_sponsorship_id: benefit_sponsorship.id,
+            benefit_group_assignment_id: census_employee.active_benefit_group_assignment.id,
+            hbx_enrollment_members: [hbx_enrollment_member1, hbx_enrollment_member2],
+            employee_role_id: employee_role.id
+          )
+        end
+
+        let(:hbx_enrollment_member1) do
+          build(
+            :hbx_enrollment_member,
+            applicant_id: shop_family.primary_applicant.id,
+            is_subscriber: true,
+            eligibility_date: Date.today
+          )
+        end
+
+        let(:hbx_enrollment_member2) do
+          build(
+            :hbx_enrollment_member,
+            applicant_id: dependent.id,
+            is_subscriber: false,
+            eligibility_date: Date.today
+          )
+        end
+
+        before do
+          census_employee.terminate_employee_role!
+          dependent = census_employee.reload.census_dependents[0]
+          dependent.update_attributes(first_name: "Snow11", last_name: 'John11')
+          shop_enrollment.reinstate
+        end
+
+        it 'should update dependent record' do
+          expect(census_employee.reload.census_dependents[0].first_name).to eq 'Snow11'
+          expect(census_employee.reload.census_dependents[0].last_name).to eq 'John11'
+        end
+
+        it 'should not create duplicate dependent records' do
+          expect(census_employee.reload.census_dependents.size).to eq 1
         end
       end
     end
