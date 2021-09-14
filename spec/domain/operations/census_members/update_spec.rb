@@ -369,6 +369,31 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
         expect(census_employee.census_dependents.size).to eq 1
         expect(census_employee.reload.census_dependents.where(first_name: unenrolled_cd.first_name, last_name: unenrolled_cd.last_name).first).to be_nil
       end
+
+      context 'when only primary enrolled' do
+
+        let(:primary_hbx_enrollment_member) { hbx_enrollment_member1 }
+        let(:hbx_enrollment) do
+          create(
+            :hbx_enrollment,
+            :with_enrollment_members,
+            :with_product,
+            household: family.active_household,
+            aasm_state: aasm_state,
+            effective_on: predecessor_application.start_on,
+            rating_area_id: predecessor_application.recorded_rating_area_id,
+            sponsored_benefit_id: predecessor_application.benefit_packages.first.health_sponsored_benefit.id,
+            sponsored_benefit_package_id: predecessor_application.benefit_packages.first.id,
+            benefit_sponsorship_id: predecessor_application.benefit_sponsorship.id,
+            hbx_enrollment_members: [primary_hbx_enrollment_member],
+            employee_role_id: employee_role.id
+          )
+        end
+
+        it 'should delete all census dependents' do
+          expect(census_employee.census_dependents.size).to eq 0
+        end
+      end
     end
   end
 end

@@ -15,7 +15,6 @@ module Operations
       def call(params)
         _validate                        = yield validate(params)
         _update_census_family            = yield update_census_family(params)
-        _delete_unenrolled_dependents    = yield delete_unenrolled_census_dependents(params)
         _update_census_employee_records  = yield update_census_employee_records(params)
         _update_dependent_records        = yield update_census_dependent_records(params)
         _update_dependent_relationship   = yield update_census_dependent_relationship(params)
@@ -64,6 +63,7 @@ module Operations
         census_employee.update_attributes(required_person_attributes_hash(ce_person, true))
 
         # Updates census dependents
+        census_employee.census_dependents.destroy_all
         result = enrollment.hbx_enrollment_members.collect do |hbx_enrollment_member|
           person = hbx_enrollment_member.person
           next if ce_person == person
@@ -74,35 +74,6 @@ module Operations
         result&.any?(&:failure) ? Failure(result.select(&:failure).map(&:failure).join(',')) : Success("Census Members are updated, enrollment: #{enrollment.hbx_id}")
       rescue StandardError => e
         Failure("Unable to create/update census dependents enrolled under hbx enrollment: #{params[:hbx_enrollment].hbx_id} due to #{e.inspect}")
-      end
-
-      def matched_dependent(enrollment, census_dependent)
-        enrollment.hbx_enrollment_members.select do |hem|
-          if census_dependent.encrypted_ssn.present?
-            hem.person.dob == census_dependent.dob && hem.person.encrypted_ssn == census_dependent.encrypted_ssn
-          else
-            hem.person.first_name == census_dependent.first_name && hem.person.last_name == census_dependent.last_name && hem.person.dob == census_dependent.dob
-          end
-        end
-      end
-
-      def delete_unenrolled_census_dependents(params)
-        return Success(true) unless params[:action] == 'update_census_family'
-
-        enrollment = params[:hbx_enrollment]
-        census_employee = enrollment.employee_role.census_employee
-        result = census_employee.census_dependents.collect do |census_dependent|
-          if matched_dependent(enrollment, census_dependent).present?
-            Success(true)
-          else
-            census_dependent.destroy
-            Rails.logger.info { "[CensusMembers::Update] Successfully deleted unenrolled census_dependent: #{census_dependent.full_name}, enrollment: #{enrollment.hbx_id}" }
-            Success("Successfully deleted unenrolled census_dependent: #{census_dependent.full_name}")
-          end
-        end
-        result&.any?(&:failure) ? Failure(result.select(&:failure).map(&:failure).join(',')) : Success("Unerolled Census Members are deleted, enrollment: #{enrollment.hbx_id}")
-      rescue StandardError => e
-        Failure("Unable to delete unerolled census dependents under hbx enrollment: #{params[:hbx_enrollment].hbx_id} due to #{e.inspect}")
       end
 
       def update_census_dependent(census_employee, hbx_enrollment_member)
