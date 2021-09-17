@@ -93,7 +93,10 @@
           <tr>
             <th class="remove-top-bdr"><%= l10n("carrier_appointments") %>:</th>
             <td class="remove-top-bdr">
-              <% broker_role_fields.object.carrier_appointments.each do |name,value| %>
+              <% carrier_appointments = broker_role_fields.object.carrier_appointments.merge({"United Health Care" => nil})%>
+              <% carrier_appointments.each do |name,value| %>
+                <% next if name == "Guardian" %>
+                <% next if name == "Minuteman Health" %>
                 <div class="col-xs-6">
                   <div class="row">
                     <div class="enroll-checkbox">
@@ -110,6 +113,10 @@
                             <% if name == "united_health_care" %>
                               <span>
                                 UnitedHealthcare
+                              </span>
+                            <% elsif name == "Neighborhood Health Plan" %>
+                              <span>
+                                Always Health Plan
                               </span>
                             <% else %>
                               <span>
