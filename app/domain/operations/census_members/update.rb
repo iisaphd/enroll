@@ -9,6 +9,8 @@ module Operations
     class Update
       send(:include, Dry::Monads[:result, :do])
 
+      VALID_RELATIONSHIP_KINDS = ["spouse", "domestic_partner", "child", "child_under_26", "child_26_and_over", "disabled_child_26_and_over"].freeze
+
       # @param [ Person ] person Person
       # @param [ String ] action Type of action to perform
       # @return [ BenefitSponsors::Entities::EnrollmentEligibility ] enrollment_eligibility
@@ -121,7 +123,7 @@ module Operations
 
       def update_census_dependent_relationship(params)
         relationship = params[:relationship]
-        return Success(true) unless params[:action] == 'update_relationship'
+        return Success(true) unless params[:action] == 'update_relationship' && VALID_RELATIONSHIP_KINDS.include?(relationship.kind)
 
         primary_person = relationship.person
         dependent_person = relationship.relative

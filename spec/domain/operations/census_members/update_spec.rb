@@ -284,7 +284,7 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
       end
     end
 
-    context "should update census dependent relationship if it is invalid employee relationship kind" do
+    context "should NOT update census dependent relationship if it is invalid employee relationship kind" do
       let(:relationship) { 'sibling' }
 
       it 'should not update relationship' do
