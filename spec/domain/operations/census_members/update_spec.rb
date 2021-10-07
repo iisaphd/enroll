@@ -26,6 +26,8 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
   end
   let(:aasm_state) { 'coverage_enrolled' }
 
+  let(:kind) { 'employer_sponsored' }
+
   let(:hbx_enrollment) do
     create(
       :hbx_enrollment,
@@ -33,6 +35,7 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
       :with_product,
       household: family.active_household,
       aasm_state: aasm_state,
+      kind: kind,
       effective_on: predecessor_application.start_on,
       rating_area_id: predecessor_application.recorded_rating_area_id,
       sponsored_benefit_id: predecessor_application.benefit_packages.first.health_sponsored_benefit.id,
@@ -79,6 +82,24 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
         expect(census_employee.first_name).to eq "Johnny"
         expect(census_employee.middle_name).to eq "S"
         expect(census_employee.last_name).to eq "Smith"
+      end
+
+      context 'when employee is in cobra status' do
+        let(:kind) { 'employer_sponsored_cobra' }
+
+        before do
+          hbx_enrollment
+          allow(person).to receive(:active_employee_roles).and_return([employee_role])
+          person.assign_attributes(first_name: "Johnny", middle_name: 'S', last_name: 'Smith')
+          Operations::CensusMembers::Update.new.call(person: person, action: 'update_census_employee')
+          census_employee.reload
+        end
+
+        it 'should update census employee record' do
+          expect(census_employee.first_name).not_to eq "Johnny"
+          expect(census_employee.last_name).not_to eq "Smith"
+        end
+
       end
     end
 
@@ -255,6 +276,22 @@ RSpec.describe Operations::CensusMembers::Update, :dbclean => :after_each do
 
     context "when on expired/waived enrollment" do
       let(:aasm_state) { 'inactive' }
+
+      before do
+        hbx_enrollment
+        dependent_person.assign_attributes(first_name: "Test11", last_name: 'Doe11')
+        Operations::CensusMembers::Update.new.call(person: dependent_person, family_member: dependent, action: 'update_census_dependent')
+      end
+
+      it 'should not update census dependent record' do
+        census_employee.census_dependents.first.reload
+        expect(census_employee.census_dependents.first.first_name).not_to eq "Test11"
+        expect(census_employee.census_dependents.first.last_name).not_to eq "Doe11"
+      end
+    end
+
+    context "when on cobra enrollment" do
+      let(:kind) { 'employer_sponsored_cobra' }
 
       before do
         hbx_enrollment

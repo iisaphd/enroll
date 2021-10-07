@@ -49,7 +49,8 @@ module Operations
         family, family_member = fetch_family_and_member(params)
         return false unless family.present?
 
-        family.enrollments.shop_market.enrolled_and_renewal
+        family.enrollments.where(kind: 'employer_sponsored')
+              .enrolled_and_renewal
               .where(employee_role_id: employee_role.id)
               .map(&:applicant_ids).flatten.map(&:to_s).include?(family_member.id.to_s)
       end
