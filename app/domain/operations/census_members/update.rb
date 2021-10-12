@@ -88,7 +88,7 @@ module Operations
           census_dependent.name_sfx = person.name_sfx
           census_dependent.employee_relationship = build_relationship(hbx_enrollment_member.family_member)
         end
-        dependent.save ? Success(true) : Failure("Unable to create/update census dependent for person #{person.hbx_id}, hbx enrollment: #{hbx_enrollment_member.enrollment.hbx_id}")
+        dependent.save ? Success(true) : Failure("Unable to create/update census dependent for person #{person.hbx_id}, hbx enrollment: #{hbx_enrollment_member.hbx_enrollment.hbx_id}")
       end
 
       # Updates census employee with only changed attributes

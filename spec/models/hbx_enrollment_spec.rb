@@ -2625,8 +2625,8 @@ describe HbxEnrollment,"reinstate and change end date", type: :model, :dbclean =
         end
 
         it 'should update dependent record' do
-          expect(census_employee.reload.census_dependents[0].first_name).to eq 'Snow11'
-          expect(census_employee.reload.census_dependents[0].last_name).to eq 'John11'
+          expect(census_employee.reload.census_dependents[0].first_name).not_to eq 'Snow11'
+          expect(census_employee.reload.census_dependents[0].last_name).not_to eq 'John11'
         end
 
         it 'should not create duplicate dependent records' do
