@@ -182,13 +182,19 @@ module Operations
       def matching_criteria(person)
         criteria =
           {
-            'first_name' => person.first_name,
-            'last_name' => person.last_name,
+            'first_name' => /^#{person.first_name}$/i,
+            'last_name' => /^#{person.last_name}$/i,
             'dob' => person.dob
           }
         criteria.each_key do |changed_attr|
           person.changes.each do |k, v|
-            criteria[changed_attr] = v[0] if k == changed_attr
+            if k == changed_attr
+              if k == 'first_name' || k == 'last_name'
+                criteria[changed_attr] = /^#{v[0]}$/i
+              else
+                criteria[changed_attr] = v[0]
+              end
+            end
           end
         end
         criteria
