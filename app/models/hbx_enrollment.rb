@@ -1735,7 +1735,7 @@ class HbxEnrollment
   def update_employee_roster
     return unless EnrollRegistry.feature_enabled?(:employee_roster_updates) && employer_profile&.enable_roster_updates
 
-    valid_states_for_roster_updates = [:coverage_selected, :auto_renewing, :coverage_enrolled, :coverage_reinstated, :renewing_coverage_selected, :renewing_coverage_enrolled]
+    valid_states_for_roster_updates = [:coverage_selected, :coverage_enrolled, :coverage_reinstated, :renewing_coverage_selected, :renewing_coverage_enrolled]
     # Blocks creation of duplicate census records
     # Had to use DateTime as timestamp uses current date instead of system date
     reinstated_event = workflow_state_transitions.where(event: "reinstate_coverage!", :created_at.gte => (DateTime.now.utc - 1.minute)).first
