@@ -188,13 +188,13 @@ module Operations
           }
         criteria.each_key do |changed_attr|
           person.changes.each do |k, v|
-            if k == changed_attr
-              if k == 'first_name' || k == 'last_name'
-                criteria[changed_attr] = /^#{v[0]}$/i
-              else
-                criteria[changed_attr] = v[0]
-              end
-            end
+            next unless k == changed_attr
+
+            criteria[changed_attr] = if ['first_name', 'last_name'].include?(k)
+                                       /^#{v[0]}$/i
+                                     else
+                                       v[0]
+                                     end
           end
         end
         criteria
