@@ -70,11 +70,7 @@ module BenefitMarketWorld
   def set_initial_application_dates(status)
     case status
     when :draft, :enrollment_open
-      if TimeKeeper.date_of_record.month > 10
-        current_effective_date TimeKeeper.date_of_record.beginning_of_month
-      else
-        current_effective_date (TimeKeeper.date_of_record + 2.months).beginning_of_month
-      end
+      current_effective_date (TimeKeeper.date_of_record + 2.months).beginning_of_month
     when :enrollment_closed, :enrollment_eligible, :enrollment_extended
       current_effective_date (TimeKeeper.date_of_record + 1.months).beginning_of_month
     when :active, :terminated, :termination_pending, :expired
@@ -89,11 +85,7 @@ module BenefitMarketWorld
     when :enrollment_closed, :enrollment_eligible, :enrollment_extended
       current_effective_date (TimeKeeper.date_of_record + 1.months).beginning_of_month.prev_year
     when :active, :terminated, :termination_pending, :expired
-      if TimeKeeper.date_of_record.month > 10
-        current_effective_date (TimeKeeper.date_of_record - 3.months).beginning_of_month.prev_year
-      else
-        current_effective_date (TimeKeeper.date_of_record - 1.months).beginning_of_month.prev_year
-      end
+      current_effective_date (TimeKeeper.date_of_record - 1.months).beginning_of_month.prev_year
     end
   end
 
@@ -199,6 +191,10 @@ Given(/^benefit market catalog exists for (.*) initial employer with (.*) benefi
   set_initial_application_dates(status.to_sym)
   generate_initial_catalog_products_for(coverage_kinds)
   create_benefit_market_catalog_for(current_effective_date)
+  if TimeKeeper.date_of_record.month > 10
+    create_benefit_market_catalog_for(TimeKeeper.date_of_record.beginning_of_year.prev_year) unless BenefitMarkets::BenefitMarketCatalog.by_application_date(TimeKeeper.date_of_record.prev_year).present?
+    create_benefit_market_catalog_for(TimeKeeper.date_of_record.beginning_of_year.next_year) unless BenefitMarkets::BenefitMarketCatalog.by_application_date(TimeKeeper.date_of_record.next_year).present?
+  end
 end
 
 # Following step can be used to initialize benefit market catalog for renewing employer with health/dental benefits
@@ -210,6 +206,8 @@ Given(/^benefit market catalog exists for (.*) renewal employer with (.*) benefi
   generate_renewal_catalog_products_for(coverage_kinds)
   create_benefit_market_catalog_for(current_effective_date)
   create_benefit_market_catalog_for(renewal_effective_date)
+  
+  create_benefit_market_catalog_for(TimeKeeper.date_of_record.beginning_of_year.prev_year) if TimeKeeper.date_of_record.month > 10 && !BenefitMarkets::BenefitMarketCatalog.by_application_date(TimeKeeper.date_of_record.prev_year).present?
 end
 
 Given(/^benefit market catalog exists for (.*) initial employer that has both health and dental benefits$/) do |status|

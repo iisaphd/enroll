@@ -68,11 +68,7 @@ module BenefitApplicationWorld
     when :enrollment_closed, :enrollment_eligible, :enrollment_extended
       current_effective_date((TimeKeeper.date_of_record + 1.months).beginning_of_month)
     when :active, :terminated, :termination_pending, :expired
-      if TimeKeeper.date_of_record.month > 10
-        current_effective_date(TimeKeeper.date_of_record.beginning_of_month.prev_year)
-      else
-        current_effective_date((TimeKeeper.date_of_record + 2.months).beginning_of_month.prev_year)
-      end
+      current_effective_date((TimeKeeper.date_of_record + 2.months).beginning_of_month.prev_year)
     end
   end
 
