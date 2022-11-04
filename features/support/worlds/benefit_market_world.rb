@@ -71,7 +71,7 @@ module BenefitMarketWorld
     case status
     when :draft, :enrollment_open
       if TimeKeeper.date_of_record.month > 10
-        current_effective_date (TimeKeeper.date_of_record).beginning_of_month
+        current_effective_date TimeKeeper.date_of_record.beginning_of_month
       else
         current_effective_date (TimeKeeper.date_of_record + 2.months).beginning_of_month
       end
