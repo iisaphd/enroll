@@ -206,7 +206,7 @@ Given(/^benefit market catalog exists for (.*) renewal employer with (.*) benefi
   generate_renewal_catalog_products_for(coverage_kinds)
   create_benefit_market_catalog_for(current_effective_date)
   create_benefit_market_catalog_for(renewal_effective_date)
-  
+
   create_benefit_market_catalog_for(TimeKeeper.date_of_record.beginning_of_year.prev_year) if TimeKeeper.date_of_record.month > 10 && !BenefitMarkets::BenefitMarketCatalog.by_application_date(TimeKeeper.date_of_record.prev_year).present?
 end
 
