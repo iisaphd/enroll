@@ -1,18 +1,24 @@
-k6_load_test: Performance Test
+name: k6
+
+# Controls when the action will run. 
 on:
+  # Triggers the workflow on push to release cadence branch
   push:
-    branches:
-     - rc-*
+    branches: [ rc-* ]
 
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  name: k6 Load Test
-  runs-on: ubuntu-latest
 
-  steps:
-    - name: Checkout
-      uses: actions/checkout@v1
-
-    - name: Run local k6 test
-      uses: grafana/k6-action@v0.2.0
-      with:
-        filename: test.js
+  k6_load_test:
+    name: k6 Load Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Run cloud k6 test
+        uses: k6io/action@v0.1
+        with:
+          filename: .github/test.js
