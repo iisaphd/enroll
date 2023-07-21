@@ -1,0 +1,187 @@
+# frozen_string_literal: true
+
+require 'dry/monads'
+require 'dry/monads/do'
+require 'rails_helper'
+
+RSpec.describe ::Operations::Transformers::FamilyTo::Cv3Family, dbclean: :around_each do
+  let(:primary_applicant) { FactoryBot.create(:person, :with_consumer_role, hbx_id: "732020") }
+  let(:dependent1) { FactoryBot.create(:person, hbx_id: "732021") }
+  let(:dependent2) { FactoryBot.create(:person, hbx_id: "732022") }
+  let(:family) { FactoryBot.create(:family, :with_primary_family_member, person: primary_applicant) }
+  let(:family_member2) { FactoryBot.create(:family_member, family: family, person: dependent1) }
+  let(:family_member3) { FactoryBot.create(:family_member, family: family, person: dependent2) }
+  let!(:application) { FactoryBot.create(:financial_assistance_application, family_id: family.id, aasm_state: 'submitted', hbx_id: "830293", effective_date: DateTime.new(2021,1,1,4,5,6)) }
+  let!(:applicant1) { FactoryBot.create(:financial_assistance_applicant, application: application, family_member_id: primary_applicant.id, is_primary_applicant: true, person_hbx_id: primary_applicant.hbx_id) }
+  let!(:applicant2) { FactoryBot.create(:financial_assistance_applicant, application: application, family_member_id: family_member2.id, person_hbx_id: dependent1.hbx_id) }
+  let!(:applicant3) { FactoryBot.create(:financial_assistance_applicant, application: application, family_member_id: family_member3.id, person_hbx_id: dependent2.hbx_id) }
+  let(:create_instate_addresses) do
+    application.applicants.each do |appl|
+      appl.addresses = [FactoryBot.build(:financial_assistance_address,
+                                         :address_1 => '1111 Awesome Street NE',
+                                         :address_2 => '#111',
+                                         :address_3 => '',
+                                         :city => 'Washington',
+                                         :country_name => '',
+                                         :kind => 'home',
+                                         :state => FinancialAssistanceRegistry[:enroll_app].setting(:state_abbreviation).item,
+                                         :zip => '20001',
+                                         county: '')]
+      appl.save!
+    end
+    application.save!
+  end
+  let(:create_relationships) do
+    application.applicants.first.update_attributes!(is_primary_applicant: true) unless application.primary_applicant.present?
+    application.ensure_relationship_with_primary(applicant2, 'child')
+    application.ensure_relationship_with_primary(applicant3, 'child')
+    application.build_relationship_matrix
+    application.save!
+  end
+
+  describe '#transform_applications' do
+
+    subject { Operations::Transformers::FamilyTo::Cv3Family.new.transform_applications(family) }
+
+    context "when application is invalid" do
+      before do
+        create_instate_addresses
+        create_relationships
+        application.save!
+        allow(::FinancialAssistance::Operations::Applications::Transformers::ApplicationTo::Cv3Application).to receive_message_chain('new.call').with(application).and_return(Dry::Monads::Result::Failure.new(application))
+      end
+
+      it "should throw a failure if cv3 application throws failure" do
+        expect(subject).to be_a(Dry::Monads::Result::Failure)
+      end
+    end
+
+    context "when all applicants are valid" do
+      before do
+        create_instate_addresses
+        create_relationships
+        application.save!
+        allow(::FinancialAssistance::Operations::Applications::Transformers::ApplicationTo::Cv3Application).to receive_message_chain('new.call').with(application).and_return(::Dry::Monads::Result::Success.new(application))
+      end
+
+      it "should successfully submit a cv3 application and get a response back" do
+        expect(subject).to include(application)
+      end
+    end
+
+    # context "when a family member is deleted" do
+    #   before do
+    #     create_instate_addresses
+    #     create_relationships
+    #     application.save!
+    #     allow(::FinancialAssistance::Operations::Applications::Transformers::ApplicationTo::Cv3Application).to receive_message_chain('new.call').with(application).and_return(::Dry::Monads::Result::Success.new(application))
+    #     family.family_members.last.delete
+    #     family.reload
+    #   end
+
+    #   it "should ignore the application and return an empty array" do
+    #     expect(subject).to be_empty
+    #   end
+    # end
+  end
+
+  describe '#transform_households' do
+    let(:aasm_state) { 'coverage_selected' }
+    let!(:shopping_enrollment) do
+      create(
+        :hbx_enrollment,
+        :with_enrollment_members,
+        :individual_unassisted,
+        family: family,
+        aasm_state: aasm_state,
+        product_id: product.id,
+        applied_aptc_amount: Money.new(44_500),
+        consumer_role_id: primary_applicant.consumer_role.id,
+        enrollment_members: family.family_members
+      )
+    end
+    let(:product) { create(:benefit_markets_products_health_products_health_product, :ivl_product, issuer_profile: issuer) }
+    let(:issuer) { create(:benefit_sponsors_organizations_issuer_profile, abbrev: 'ANTHM') }
+
+    subject { Operations::Transformers::FamilyTo::Cv3Family.new.transform_households(family.households) }
+
+    context 'when enrollment is in shopping state' do
+      let(:aasm_state) { 'shopping' }
+      it 'should not include hbx_enrollments in the hash' do
+        expect(subject[0][:hbx_enrollments]).to be_nil
+      end
+    end
+
+    context 'when enrollment is coverage_selected state' do
+      let(:aasm_state) { 'coverage_selected' }
+      it 'should include hbx_enrollments in the hash' do
+        expect(subject[0][:hbx_enrollments]).to be_present
+      end
+    end
+  end
+
+  describe '#transform_tax_household_groups' do
+    let!(:tax_household_group) do
+      family.tax_household_groups.create!(
+        assistance_year: TimeKeeper.date_of_record.year,
+        source: 'Admin',
+        start_on: TimeKeeper.date_of_record.beginning_of_year
+      )
+    end
+
+    let!(:tax_household) do
+      tax_household_group.tax_households.create!(
+        effective_starting_on: TimeKeeper.date_of_record.beginning_of_year,
+        yearly_expected_contribution: 100.00,
+        max_aptc: 50.00
+      )
+    end
+
+    let!(:tax_household_member) do
+      tax_household.tax_household_members.create!(
+        applicant_id: family.primary_applicant.id,
+        is_ia_eligible: true,
+        is_medicaid_chip_eligible: true,
+        is_subscriber: true,
+        magi_medicaid_monthly_household_income: 50_000
+      )
+    end
+
+    before do
+      family.person.person_relationships << [
+        PersonRelationship.new(relative_id: primary_applicant.id, kind: 'self'),
+        PersonRelationship.new(relative_id: dependent1.id, kind: 'child'),
+        PersonRelationship.new(relative_id: dependent2.id, kind: 'child')
+      ]
+      family.save!
+    end
+
+    subject { Operations::Transformers::FamilyTo::Cv3Family.new.transform_tax_household_groups([tax_household_group]) }
+
+    it 'should include hbx_enrollments in the hash' do
+      contract_result = AcaEntities::Contracts::Households::TaxHouseholdGroupContract.new.call(subject.first)
+      result = AcaEntities::Households::TaxHouseholdGroup.new(contract_result.to_h)
+      expect(result).to be_a AcaEntities::Households::TaxHouseholdGroup
+    end
+  end
+
+  describe '#fetch_slcsp_benchmark_premium_for_member' do
+    let(:slcsp_info) do
+      {
+        "732020" => {:health_only_slcsp_premiums => {:cost => 986.26, :product_id => BSON::ObjectId('615640c688753f0b86eba985'), :member_identifier => "732021", :monthly_premium => 986.26}},
+        "732021" => {:health_only_slcsp_premiums => {:cost => 986.26, :product_id => BSON::ObjectId('615640c688753f0b86eba985'), :member_identifier => "732021", :monthly_premium => 986.26}},
+        "732022" => {:health_only_slcsp_premiums => {:cost => 986.26, :product_id => BSON::ObjectId('615640c688753f0b86eba985'), :member_identifier => "732022", :monthly_premium => 986.26}}
+      }
+    end
+
+    let(:cv3_family) { Operations::Transformers::FamilyTo::Cv3Family.new }
+
+    it 'should return slcsp_info for each family_member' do
+      family.family_members.each do |member|
+        person_hbx_id = member.person.hbx_id
+        member_slcsp_info = cv3_family.fetch_slcsp_benchmark_premium_for_member(person_hbx_id, slcsp_info)
+        expect(member_slcsp_info).to eq slcsp_info.dig(person_hbx_id, :health_only_slcsp_premiums, :cost)&.to_money&.to_hash
+      end
+    end
+  end
+end

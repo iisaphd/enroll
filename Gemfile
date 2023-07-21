@@ -1,127 +1,188 @@
+# frozen_string_literal: true
+
 source 'https://rubygems.org'
+git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
+ruby '2.5.9'
+gem 'rails', '~> 5.2.4.3'
+gem 'sidekiq'
+gem 'ffaker'
+gem 'globalid'
+#######################################################
+# FIXME
+#######################################################
 
-# Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '4.2.3'
+# Update to use features from new version
+gem 'effective_datatables', path: './project_gems/effective_datatables-2.6.14'
+# gem 'jquery-datatables-rails', '3.4.0'config/initializers/effective_datatables.rb
 
-# Use SCSS for stylesheets
-# gem 'sass-rails', '~> 5.0'
+# Verify this gem git reference is necessary.  Otherwise point it to release level
+gem 'prawn', :git => 'https://github.com/prawnpdf/prawn.git', :ref => '8028ca0cd2'
 
-# Use Uglifier as compressor for JavaScript assets
-gem 'uglifier', '>= 1.3.0'
-# Use CoffeeScript for .coffee assets and views
-gem 'coffee-rails', '~> 4.1.0'
-# See https://github.com/sstephenson/execjs#readme for more supported runtimes
-gem 'therubyracer', platforms: :ruby
+## Fix this dependency -- bring into project
+# gem 'recurring_select', :git => 'https://github.com/brianweiner/recurring_select'
 
-# Use jquery as the JavaScript library
-gem 'jquery-rails'
-gem 'jquery-ui-rails'
-gem 'animate-rails', '~> 1.0.7'
-gem 'maskedinput-rails'
-# Turbolinks makes following links in your web application faster. Read more: https://github.com/rails/turbolinks
-gem 'jquery-turbolinks'
-gem 'turbolinks'
+## Fix this dependency -- bring into project
+gem 'simple_calendar', :git => 'https://github.com/harshared/simple_calendar.git'
 
-# Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
-gem 'jbuilder', '~> 2.0'
+## Verify Rails 5 eliminates need for this gem with MongoDB
+gem 'database_cleaner',       '~> 1.7'
+#######################################################
 
-# bundle exec rake doc:rails generates the API under doc/api.
-gem 'sdoc', '~> 0.4.0', group: :doc
-gem 'less-rails-bootstrap', '~> 3.3.1.0'
-gem 'font-awesome-rails'
-gem 'nokogiri-happymapper', :require => 'happymapper'
+#######################################################
+# Local components/engines
+#######################################################
+gem 'acapi',              git: "https://github.com/ideacrew/acapi.git", branch: 'amqp_proc_title'
+gem 'aca_entities',       git: 'https://github.com/ideacrew/aca_entities.git', branch: 'trunk'
+gem 'event_source',       git:  'https://github.com/ideacrew/event_source.git', branch: 'trunk'
+gem "benefit_markets",    path: "components/benefit_markets"
+gem "benefit_sponsors",   path: "components/benefit_sponsors"
+gem 'financial_assistance', path: 'components/financial_assistance'
+gem "notifier",           path: "components/notifier"
+gem 'openhbx_cv2',        git:  'https://github.com/ideacrew/openhbx_cv2.git', branch: 'trunk'
+gem 'resource_registry',  git:  'https://github.com/ideacrew/resource_registry.git', branch: 'trunk'
+# gem 'resource_registry',  git: '../resource_registry'
 
-gem 'mongoid', '~> 4.0.2'
-gem 'origin', '~> 2.1.1'
-gem 'moped', '~> 2.0.4'
-gem 'carrierwave-mongoid', '0.7.1', :require => 'carrierwave/mongoid'
-gem "mongoid_auto_increment"
-# gem 'mongoid-autoinc'
-gem 'mongoid-versioning'
+gem "sponsored_benefits", path: "components/sponsored_benefits"
+gem "transport_gateway",  path: "components/transport_gateway"
+gem "transport_profiles", path: "components/transport_profiles"
+gem 'ui_helpers',         path: "components/ui_helpers"
+#######################################################
 
-gem 'money-rails', '~> 1.3.0'
-gem "mongoid-enum", '~> 0.2.0'
-gem 'mongo_session_store-rails4', '~> 6.0.0'
+## MongoDB gem dependencies
+gem 'bson',                     '~> 4.3'
+gem 'mongoid',                  '~> 7.0.2'
+gem 'mongo',                    '~> 2.6'
+gem 'mongo_session_store',      '~> 3.1'
+gem 'mongoid-autoinc',          '~> 6.0'
+gem 'mongoid-history',          '~> 0.8'
+# gem 'mongoid-versioning',       '~> 1.2.0'
+gem 'mongoid_userstamp',        '~> 0.4', :path => "./project_gems/mongoid_userstamp-0.4.0"
+gem 'mongoid_rails_migrations', '~> 1.2'
 
-## Add field-level encryption
-# gem 'mongoid-encrypted-fields', '~> 1.3.3'
-gem 'symmetric-encryption', '~> 3.6.0'
+## General gems
+gem 'aasm',                     '~> 4.8'
+gem 'addressable',              '~> 2.3'
+gem 'animate-rails',            '~> 1.0.10'
+gem 'recurring_select'
 
-# Use ActiveModel has_secure_password
-# gem 'bcrypt', '~> 3.1.7'
-
-gem 'acapi', git: "git://github.com/dchbx/acapi.git", branch: 'development'
-# gem 'acapi', path: "../acapi"
-
-gem 'aasm', '~> 4.0.7'
-gem 'haml'
-# gem 'bh'
-
-gem 'devise', '~> 3.4.1'
-# gem 'devise_ldap_authenticatable', '~> 0.8.1'
-gem 'cancancan', '~> 1.9.2'
-
-# will provide fast group premium plan fetch
-gem 'redis-rails'
-
+gem 'aws-sdk',                  '~> 2.2.4'
+gem 'bcrypt',                   '~> 3.1'
+gem 'bootsnap',                 '>= 1.1', require: false
+gem 'browser',                  '2.7.0'
+gem 'ckeditor',                 '~> 4.2.4'
+gem 'coffee-rails',             '~> 4.2.2'
+gem 'combine_pdf',              '~> 1.0'
+gem 'config',                   '~> 2.0'
+gem 'curl',                     '~> 0.0.9'
+gem 'devise',                   '~> 4.5'
+gem 'devise-jwt', "~> 0.5.9"
+gem 'jwt', "~> 2.2.1"
+gem 'haml',                     '~> 5.0'
+gem 'httparty',                 '~> 0.16'
+gem 'i18n',                     '~> 1.5'
+gem 'i18n-tasks', '~> 0.9.33'
+gem 'interactor',               '~> 3.0'
+gem 'interactor-rails',         '~> 2.2'
+gem 'jbuilder',                 '~> 2.7'
+gem 'jquery-rails',             '~> 4.3'
 gem 'kaminari'
+gem 'kaminari-mongoid'
+gem 'kaminari-actionview'
+gem 'language_list',            '~> 1'
+gem 'mail',                     '~> 2.7'
+gem 'maskedinput-rails',        '~> 1.4'
+gem 'money-rails',              '~> 1.13'
+gem 'net-ssh',                  '= 4.2.0'
+gem 'nokogiri',                 '~> 1.10.8'
+gem 'nokogiri-happymapper',     '~> 0.8.0', :require => 'happymapper'
+gem 'non-stupid-digest-assets'
+gem 'pundit',                   '~> 2.0'
+gem "recaptcha",                '~> 4.13', require: 'recaptcha/rails'
+gem 'redcarpet',                '~> 3.4'
+gem 'redis',                    '~> 4.0'
+gem 'redis-rails',              '~> 5.0.2'
+gem 'resque',                   '~> 1.26.0'
+gem 'roo',                      '~> 2.1'
+gem 'rubyzip', '>= 1.3.0'
+gem 'ruby-saml',                '~> 1.3'
+gem 'sassc',                    '~> 2.0'
+gem 'sass-rails',               '~> 5'
+gem 'slim',                     '~> 3.0'
+gem 'slim-rails',               '~> 3.2'
+gem 'symmetric-encryption',     '3.9.1'
+gem 'turbolinks',               '~> 5'
+gem 'uglifier',                 '>= 4'
+gem 'virtus',                   '~> 1.0'
+gem 'wicked_pdf',               '~> 1.1.0'
+gem 'wkhtmltopdf-binary-edge',  '~> 0.12.3.0'
+gem 'webpacker',                '~> 4.0.2'
+gem 'fast_jsonapi'
+gem 'loofah', '~> 2.3.1'
+gem 'stimulus_reflex', '~> 3.3'
 
-gem 'sprockets' , "~> 2.12.3"
-# for I18n
-gem 'rails-i18n', '~> 4.0.0'
-gem 'mail'
-gem 'bson', '2.3.0'
-# gem 'rypt', '0.2.0'
+group :doc do
+  gem 'sdoc',                   '~> 1.0'
+end
 
-gem 'language_list', '~> 1.1.0'
-gem 'bootstrap-multiselect-rails', '~> 0.9.9'
-
-group :development, :test do
-  # Call 'byebug' anywhere in the code to stop execution and get a debugger console
-  gem 'pry'
-  gem 'pry-rails'
-  gem 'pry-stack_explorer'
-  gem 'pry-byebug'
-  gem 'pry-remote'
-
-  # Access an IRB console on exception pages or by using <%= console %> in views
-  gem 'web-console', '~> 2.0'
+group :development do
+  gem "certified",              '~> 1'
+  gem 'overcommit',             '~> 0.47'
+  gem 'rubocop',                require: false
+  gem 'rubocop-rspec'
+  gem 'rubocop-git'
+  # Access an interactive console on exception pages or by calling 'console' anywhere in the code.
+  gem 'web-console',            '>= 3'
+  gem 'listen',                 '>= 3.0.5', '< 3.2'
 
   # Spring speeds up development by keeping your application running in the background. Read more: https://github.com/rails/spring
   gem 'spring'
+  gem 'spring-watcher-listen'
+end
 
-  # Use Capistrano for deployment
-  gem 'capistrano', '3.3.5'
-  # gem 'capistrano-scm-gitcopy'
-  gem 'capistrano-rails', '~> 1.1.2'
-  gem 'ruby-progressbar', '1.6.0'
-
-  # Keep these in Development and Test environments for access by rails generators
-  gem 'rspec-rails', '~> 3.1.0'
-  gem 'factory_girl_rails', "~> 4.0"
-  gem 'forgery'
+group :development, :test do
+  gem 'dotenv-rails'
+  gem 'action-cable-testing'
+  # gem 'bundler-audit',          '~> 0.6'
+  gem 'brakeman'
+  gem 'capistrano',             '~> 3.1'
+  gem 'capistrano-rails',       '1.4'
+  gem 'climate_control',        '~> 0.2.0'
+  gem 'email_spec',             '~> 2'
+  gem 'factory_bot_rails',      '~> 4.11'
+  gem 'forgery',                '~> 0.7.0'
+  gem 'parallel_tests',         '~> 2.26.2'
+  gem 'rails-controller-testing'
+  gem 'railroady',              '~> 1.5.3'
+  gem 'rspec-rails'
+  gem 'rspec_junit_formatter'
+  gem 'stimulus_reflex_testing'
+  gem 'yard',                   '~> 0.9.20',  require: false
+  gem 'yard-mongoid',           '~> 0.1',     require: false
 end
 
 group :test do
-  gem 'mongoid-rspec'
-  gem 'watir'
-  gem 'cucumber-rails', '~> 1.4.2', :require => false
-  gem 'database_cleaner', '1.3.0'
-  gem 'shoulda-matchers', require: false
-  gem 'email_spec'
-  gem 'action_mailer_cache_delivery', '~> 0.3.7'
-#  gem 'headless'
+  gem 'action_mailer_cache_delivery', '~> 0.3'
+  gem 'capybara',                     '~> 3.12'
+  gem 'capybara-screenshot',          '~> 1.0.18'
+  gem 'cucumber-rails',               '2.0', :require => false
+  gem 'fakeredis',                    '~> 0.7.0', :require => 'fakeredis/rspec'
+  gem 'mongoid-rspec',                '~> 4'
+  gem 'rspec-instafail',              '~> 1'
+  gem 'rspec-benchmark'
+  gem 'ruby-progressbar',             '~> 1'
+  gem 'shoulda-matchers',             '~> 3'
+  gem 'simplecov',                    '~> 0.14',  :require => false
+  gem 'test-prof'
+  gem 'warden',                       '~> 1.2.7'
+  gem 'watir',                        '~> 6.10.3'
+  gem 'webdrivers', '~> 3.0'
+  gem 'webmock',                      '~> 3.0.1'
 end
 
 group :production do
-  # Use Unicorn as the app server
-  gem 'unicorn', '~> 4.8.3'
-  gem 'eye'
-
-  # New Relic gem
-  gem 'newrelic_rpm'
-
+  gem 'eye',          '~> 0.10.0'
+  gem 'newrelic_rpm', '~> 5.0'
+  gem 'unicorn',      '~> 4.8'
+  gem 'puma',         '~> 3.12.4'
 end
-
-gem 'aws-sdk', '~> 2'

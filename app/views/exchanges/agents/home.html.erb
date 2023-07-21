@@ -1,33 +1,36 @@
-<div class='content'>
-  <div class='container top-pd'>
-	<h3> Welcome to DC HealthLink </h3>
 
-	<h4> <%=@cac ? 'Certified Application Counselor (CAC)' : 'Customer Service Representative (CSR)'%> </h4>
-     <ul>
-     	<li> <%=link_to 'New Phone Application', begin_enrollment_exchanges_agents_path(
-     	original_application_type: 'phone')  %> <br/></li>
+<% if current_user.has_csr_subrole? %>
 
-     	<li> <%=link_to 'New Paper Application', begin_enrollment_exchanges_agents_path(
-     	original_application_type: 'paper')  %> </li>
-     </ul>
-     <br/>
-    <% if @person %>
-         <div>
-         	<br/>
-            You have entered data for <%=@person.first_name%> <%=@person.last_name %>. <br/><br/>
-            <% if @person.emails.first %>     
-                 <%= link_to "Send Confirmation Email to #{@person.emails.first.address}",
-                  send_enrollment_confirmation_exchanges_agents_path(person_id: @person.id), data: {remote: true},
-                   class: 'btn btn-transparent' %>
-                  <br/><br/>     
-            <% else %>
-                They did not provide an email for followup.
-            <% end %>     
-            <br/>
-         </div>
-    <% end %>
-    <div id='sent_email_status'></div>  
-    <br/> 
-    <p> Federal Regulations apply</p>
+<div class="content landing">
+  <%= render "exchanges/agents/primary_nav", :active_tab => "home-tab" %>
+  <div class="container top-pd">
+    <div aria-labelledby="inbox-tab" id="inbox" class="tab-pane-hbx" role="tabpanel">
+      <div class="col-xs-12" id="tabContent">
+          <%= render 'consumer_application_links' %>
+      </div>
+    </div>
   </div>
 </div>
+
+<% else %>
+
+<div class='content'>
+   <div class='container top-pd'>
+       <h4> <%= @title%> </h4>
+       <br/>
+       <div class='col-md-12 col-lg-12'>
+         <p> After working on an enrollment return to this page via the person icon in the header </p>
+         <br/>
+       </div>
+        <br/>
+        <div>
+            <div id='inbox'>
+            <div class="row col-md-10">
+               <%=render 'message_list', provider: current_user.person %>
+            </div>
+           </div>
+        </div>
+    </div>
+</div>
+
+<% end %>

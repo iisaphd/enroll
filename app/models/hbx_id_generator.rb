@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'securerandom'
 
 class HbxIdGenerator
@@ -16,8 +18,24 @@ class HbxIdGenerator
     provider.generate_policy_id
   end
 
+  def generate_payment_transaction_id
+    provider.generate_payment_transaction_id
+  end
+
   def generate_organization_id
     provider.generate_organization_id
+  end
+
+  def generate_application_id
+    provider.generate_application_id
+  end
+
+  def generate_family_id
+    provider.generate_family_id
+  end
+
+  def generate_tax_household_group_id
+    provider.generate_tax_household_group_id
   end
 
   def self.slug!
@@ -28,6 +46,10 @@ class HbxIdGenerator
     self.instance.generate_policy_id
   end
 
+  def self.generate_payment_transaction_id
+    self.instance.generate_payment_transaction_id
+  end
+
   def self.generate_member_id
     self.instance.generate_member_id
   end
@@ -36,9 +58,26 @@ class HbxIdGenerator
     self.instance.generate_organization_id
   end
 
+  def self.generate_application_id
+    self.instance.generate_application_id
+  end
+
+  def self.generate_family_id
+    self.instance.generate_family_id
+  end
+
+  def self.generate_tax_household_group_id
+    self.instance.generate_tax_household_group_id
+  end
+
   class AmqpSource
     def self.generate_id_from_sequence(sequence_name)
-      request_result = Acapi::Requestor.request("sequence.next", {:sequence_name => sequence_name})
+      request_result = nil
+      retry_attempt = 0
+      while (retry_attempt < 3) && request_result.nil?
+        request_result = Acapi::Requestor.request("sequence.next", {:sequence_name => sequence_name}, 2)
+        retry_attempt += 1
+      end
       JSON.load(request_result.stringify_keys["body"]).first.to_s
     end
 
@@ -50,8 +89,24 @@ class HbxIdGenerator
       generate_id_from_sequence("policy_id")
     end
 
+    def self.generate_payment_transaction_id
+      generate_id_from_sequence("payment_transaction_id")
+    end
+
     def self.generate_organization_id
       generate_id_from_sequence("organization_id")
+    end
+
+    def self.generate_application_id
+      generate_id_from_sequence("faa_application_id")
+    end
+
+    def self.generate_family_id
+      generate_id_from_sequence("family_id")
+    end
+
+    def self.generate_tax_household_group_id
+      generate_id_from_sequence("tax_household_group_id")
     end
   end
 
@@ -64,6 +119,10 @@ class HbxIdGenerator
       random_uuid
     end
 
+    def self.generate_payment_transaction_id
+      random_uuid
+    end
+
     def self.generate_member_id
       random_uuid
     end
@@ -71,11 +130,21 @@ class HbxIdGenerator
     def self.random_uuid
       SecureRandom.uuid.gsub("-","")
     end
+
+    def self.generate_application_id
+      random_uuid
+    end
+
+    def self.generate_family_id
+      random_uuid
+    end
+
+    def self.generate_tax_household_group_id
+      random_uuid
+    end
   end
 end
 
 # Fix slug setting on request reload
-unless Rails.env.production?
-  HbxIdGenerator.slug!
-end
+HbxIdGenerator.slug! unless Rails.env.production?
 

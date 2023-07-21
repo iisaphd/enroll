@@ -1,0 +1,1 @@
+require 'Factory_bot'

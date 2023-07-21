@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-describe FamilyMember do
+describe FamilyMember, dbclean: :after_each do
   subject { FamilyMember.new(:is_primary_applicant => nil, :is_coverage_applicant => nil) }
 
   before(:each) do
@@ -17,6 +17,28 @@ describe FamilyMember do
     expect(subject).to have_errors_on(:is_coverage_applicant)
   end
 
+end
+
+describe FamilyMember, "given a person", dbclean: :after_each do
+  let(:person) { Person.new }
+  subject { FamilyMember.new(:person => person) }
+
+  it "delegates #ivl_coverage_selected to person" do
+    expect(person).to receive(:ivl_coverage_selected)
+    subject.ivl_coverage_selected
+  end
+end
+
+
+describe FamilyMember, "given a person", dbclean: :after_each do
+  let(:person) { create :person ,:with_family }
+
+  it "should error when trying to save duplicate family member" do
+    family_member = FamilyMember.new(:person => person) 
+    person.families.first.family_members << family_member
+    person.families.first.family_members << family_member
+    expect(family_member.errors.full_messages.join(",")).to match(/Family members Duplicate family_members for person/)
+  end
 end
 
 describe FamilyMember, dbclean: :after_each do
@@ -71,7 +93,7 @@ describe FamilyMember, dbclean: :after_each do
 
     it "should raise error with nil family" do
       family_member = FamilyMember.new(**family_member_params)
-      expect{family_member.parent}.to raise_error
+      expect{family_member.parent}.to raise_error(RuntimeError, "undefined parent family")
     end
   end
 
@@ -88,8 +110,8 @@ describe FamilyMember, dbclean: :after_each do
   end
 
   context "broker" do
-    let(:broker_role)   {FactoryGirl.create(:broker_role)}
-    let(:broker_role2)  {FactoryGirl.create(:broker_role)}
+    let(:broker_role)   {FactoryBot.create(:broker_role)}
+    let(:broker_role2)  {FactoryBot.create(:broker_role)}
 
     it "with broker_role" do
       family_member = ag.family_members.create(**family_member_params)
@@ -158,25 +180,59 @@ describe FamilyMember, dbclean: :after_each do
   end
 end
 
-describe FamilyMember, "which is inactive" do
-  it "can be reactivated with a specified relationship"
+describe FamilyMember, "which is inactive", dbclean: :after_each do
+  # TODO: Note 7/17/2019 this wasn't even a finished block, xit'd out
+  xit "can be reactivated with a specified relationship" do
+
+  end
 end
 
-describe FamilyMember, "given a relationship to update" do
-  let(:family) { Family.new }
-  let(:primary_applicant_person) { double }
+describe FamilyMember, "given a relationship to update", dbclean: :after_each do
+  let(:family) { FactoryBot.create(:family, :with_primary_family_member)}
   let(:relationship) { "spouse" }
-  let(:person) { double(:id => "12345")  }
-  subject { FamilyMember.new(:family => family, :person => person) }
-
-  before(:each) do 
-    allow(family).to receive(:primary_applicant_person).and_return(primary_applicant_person)
-    allow(primary_applicant_person).to receive(:find_relationship_with).with(person).and_return(relationship)
-  end
+  let(:person) { FactoryBot.build(:person) }
+  subject { FactoryBot.build(:family_member, person: person, family: family) }
 
   it "should do nothing if the relationship is the same" do
-    subject.update_relationship(relationship)
+    subject.update_relationship(subject.primary_relationship)
   end
 
-  it "should update the relationship if different"
+  it "should update the relationship if different" do
+    expect(subject.primary_relationship).not_to eq relationship
+    subject.update_relationship(relationship)
+    expect(subject.primary_relationship).to eq relationship
+  end
 end
+
+describe FamilyMember, 'call back deactivate_tax_households on update', dbclean: :after_each do
+  let!(:person) {FactoryBot.create(:person)}
+  let!(:family) {FactoryBot.create(:family, :with_primary_family_member, person: person)}
+  let!(:household) {FactoryBot.create(:household, family: family)}
+  let!(:tax_household) {FactoryBot.create(:tax_household, household: household, effective_ending_on: nil, is_eligibility_determined: true)}
+  let!(:eligibility_determination) {FactoryBot.create(:eligibility_determination, tax_household: tax_household, csr_percent_as_integer: 10)}
+
+  it 'should deactivate eligibility when member is updated' do
+    family.active_household.tax_households << tax_household
+    family.save!
+    family.primary_applicant.update_attributes!(is_active: false)
+    family.reload
+    expect(family.active_household.tax_households.first.effective_ending_on).not_to eq nil
+  end
+end
+
+# TODO: Renable the spec on the after hook is enabled on family_member model
+# describe FamilyMember, 'call back deactivate_tax_households on create', dbclean: :after_each do
+#   let!(:person) {FactoryBot.create(:person)}
+#   let!(:spouse)  { FactoryBot.create(:person)}
+#   let!(:family) {FactoryBot.create(:family, :with_primary_family_member, person: person)}
+#   let!(:household) {FactoryBot.create(:household, family: family)}
+#   let!(:tax_household) {FactoryBot.create(:tax_household, household: household, effective_starting_on: Date.new(2020, 1, 1), effective_ending_on: nil, is_eligibility_determined: true)}
+#   let!(:eligibility_determination) {FactoryBot.create(:eligibility_determination, tax_household: tax_household, csr_percent_as_integer: 10)}
+#   it 'should deactivate eligibility when member is updated' do
+#     family.active_household.tax_households << tax_household
+#     family.save!
+#     family.family_members.create(is_primary_applicant: false, person: spouse)
+#     family.reload
+#     expect(family.active_household.tax_households.first.effective_ending_on).not_to eq nil
+#   end
+# end

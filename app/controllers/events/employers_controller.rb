@@ -1,22 +1,42 @@
 module Events
   class EmployersController < ::ApplicationController
-    include Acapi::Notifiers
+    include Acapi::Amqp::Responder
 
-    def self.subscription_details
-      [EmployerProfile::BINDER_PREMIUM_PAID_EVENT_NAME]
-    end
-
-    def call(event_name, e_start, e_end, msg_id, payload)
-      e_type = event_name.split(".").last
-      employer = payload.stringify_keys["employer"]
-      event_payload = render_to_string "updated", :formats => ["xml"], :locals => { :employer => employer }
-
-      notify("acapi.info.events.employer.#{e_type}", {:body => event_payload})
-    end
-
-    def self.subscribe
-      ActiveSupport::Notifications.subscribe(*self.subscription_details) do |e_name, e_start, e_end, msg_id, payload|
-        self.new.call(e_name, e_start,e_end,msg_id,payload)
+    def resource(connection, delivery_info, properties, body)
+      reply_to = properties.reply_to
+      headers = (properties.headers || {}).stringify_keys
+      employer_id = headers["employer_id"]
+      plan_year_id = headers["plan_year_id"].present? ? headers["plan_year_id"].to_s : nil
+      employer_org = ::BenefitSponsors::Organizations::Organization.employer_by_hbx_id(employer_id).first
+      manual_gen = headers["manual_gen"].present? && (headers["manual_gen"] == "true" || headers["manual_gen"] == true) ? true : false
+      if !employer_org.nil?
+        employer = employer_org.employer_profile
+        event_payload = render_to_string "events/v2/employers/updated", :formats => ["xml"], :locals => { employer: employer, manual_gen: manual_gen, benefit_application_id: plan_year_id }
+        with_response_exchange(connection) do |ex|
+          ex.publish(
+            event_payload,
+            {
+              :routing_key => reply_to,
+              :headers => {
+                :return_status => "200",
+                :employer_id => employer_id
+              }
+            }
+          )
+        end
+      else
+        with_response_exchange(connection) do |ex|
+          ex.publish(
+            "",
+            {
+              :routing_key => reply_to,
+              :headers => {
+                :return_status => "404",
+                :employer_id => employer_id
+              }
+            }
+          )
+        end
       end
     end
   end

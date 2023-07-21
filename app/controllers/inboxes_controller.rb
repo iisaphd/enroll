@@ -6,6 +6,7 @@ class InboxesController < ApplicationController
 
   def new
     @new_message = @inbox_provider.inbox.messages.build
+    @element_to_replace_id = params[:family_actions_id]
   end
 
   def create
@@ -22,16 +23,21 @@ class InboxesController < ApplicationController
   end
 
   def show
-    @message.update_attributes(message_read: true)
+    @message.update_attributes(message_read: true) unless current_user.has_hbx_staff_role?
     respond_to do |format|
       format.html
       format.js
     end
   end
 
+
   def destroy
     #@message.destroy
     @message.update_attributes(folder: Message::FOLDER_TYPES[:deleted])
+    flash[:notice] = "Successfully deleted inbox message."
+    if params[:url].present?
+      @inbox_url = params[:url]
+    end
   end
 
   private
@@ -46,7 +52,7 @@ class InboxesController < ApplicationController
   end
 
   def find_hbx_profile
-    @profile = HbxProfile.find(params["profile_id"])
+    @profile = ::BenefitSponsors::Organizations::HbxProfile.find(params["profile_id"])
   end
 
   def find_message
@@ -55,6 +61,6 @@ class InboxesController < ApplicationController
 
   def set_inbox_and_assign_message
     @inbox = @inbox_provider.inbox
-    @new_message = Message.new(params.require(:message).permit!)
+    @new_message = Message.new(params.require(:message).permit(:subject, :body, :folder, :to, :from, :sender_id, :parent_message_id, :message_read))
   end
 end

@@ -1,3 +1,16 @@
+$(document).ready(function() {
+	$('#new_person_wrapper #btn-continue').on('click', function() {
+		if ( $('.select-employer input').is(':checked') ) {
+			if ( $('.select-employer input:checked').hasClass('employer-sponsored') ) {
+				var form_class = $('.select-employer input:checked').attr('id');
+				$('form.'+form_class).submit();
+			} else {
+				$('.new_person:last').submit();
+			}
+		}
+	});
+});
+
 function displayEmployeeRoleSearch() {
 	$("#overlay").css("display", "none");
 	$("a.name").css("padding-top", "30px");
@@ -50,7 +63,7 @@ function match_person()
 		//Sidebar Switch - Search Active
 				$(".overlay-in").css("display", "block");
 			}
-		});  
+		});
 	} else {
 		$('#personal_info .employee-info').addClass('require-field');
 	}
@@ -87,3 +100,20 @@ $(function () {
 		match_person();
 	});
 });
+
+var EmployeeRole = ( function( window, undefined ) {
+  function disableTerminateSubmit(hbx_id) {
+    var target = $('#terminate_confirm_' + hbx_id);
+    var terminate_reason = target.find('select.interaction-choice-control-terminate-reason').val();
+    if(terminate_reason == undefined || terminate_reason == ""){
+      target.find('.terminate_reason_submit').attr("disabled",true);
+    }else{
+      target.find('.terminate_reason_submit').attr("disabled",false);
+    }
+  }
+
+  return {
+    disableTerminateSubmit : disableTerminateSubmit,
+  };
+})( window );
+

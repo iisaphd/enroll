@@ -1,13 +1,15 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 describe Address, "with proper validations" do
   let(:address_kind) { "home" }
-  let(:address_1) { "1 Clear Crk" }
+  let(:address_1) { "1 Clear Crk NE" }
   let(:city) { "Irvine" }
   let(:state) { "CA" }
   let(:zip) { "20171" }
 
-  let(:address_params) {
+  let(:address_params) do
     {
       kind: address_kind,
       address_1: address_1,
@@ -15,7 +17,7 @@ describe Address, "with proper validations" do
       state: state,
       zip: zip
     }
-  }
+  end
 
   subject { Address.new(address_params) }
 
@@ -88,9 +90,9 @@ describe Address, "with proper validations" do
     it { should validate_presence_of :state }
     it { should validate_presence_of :zip }
 
-    let(:person) {Person.new(first_name: "John", last_name: "Doe", gender: "male", dob: "10/10/1974", ssn: "123456789" )}
-    let(:address) {FactoryGirl.create(:address)}
-    let(:employer){FactoryGirl.create(:employer_profile)}
+    let(:person) {Person.new(first_name: "John", last_name: "Doe", gender: "male", dob: "10/10/1974", ssn: "123456789")}
+    let(:address) {FactoryBot.create(:address)}
+    let(:employer){FactoryBot.create(:employer_profile)}
 
 
     context "accepts all valid values" do
@@ -107,18 +109,84 @@ describe Address, "with proper validations" do
     end
   end
 
+  context '#county_check' do
+    let(:address) { FactoryBot.build(:address, county: county, zip: zip, state: state) }
+    let(:county) { 'county' }
+    let(:zip) { '04660' }
+    let(:state) { 'ME' }
+    let(:setting) { double }
+
+    before do
+      allow(EnrollRegistry).to receive(:feature_enabled?).with(:validate_quadrant).and_return(false)
+      allow(EnrollRegistry).to receive(:[]).with(:enroll_app).and_return(setting)
+      allow(setting).to receive(:setting).with(:state_abbreviation).and_return(double(item: 'ME'))
+    end
+
+    context 'when county disabled' do
+      before do
+        allow(EnrollRegistry).to receive(:feature_enabled?).with(:display_county).and_return(false)
+      end
+
+      context 'when county exists' do
+
+        it 'returns true when county is nil' do
+          expect(address.valid?).to eq true
+        end
+      end
+
+      context 'when county is nil' do
+        let(:county) { nil }
+
+        it 'returns true' do
+          expect(address.valid?).to eq true
+        end
+      end
+    end
+
+    context 'when county enabled' do
+      before do
+        allow(EnrollRegistry).to receive(:feature_enabled?).with(:display_county).and_return(true)
+      end
+
+      context 'when county present' do
+
+        it 'returns true' do
+          expect(address.valid?).to eq true
+        end
+      end
+
+      context 'when county is blank' do
+        let(:county) { nil }
+
+        context 'when out of state' do
+          let(:state) { 'DC' }
+
+          it 'returns true' do
+            expect(address.valid?).to eq true
+          end
+        end
+
+        context 'when in state' do
+
+          it 'returns false' do
+            expect(address.valid?).to eq false
+          end
+        end
+      end
+    end
+  end
 end
 
 describe 'view helpers/presenters' do
-  let(:address) {
-     Address.new(
-       address_1: "An address line 1",
-       address_2: "An address line 2",
-       city: "A City",
-       state: "CA",
-       zip: "21222"
-     )
-  }
+  let(:address) do
+    Address.new(
+      address_1: "An address line 1 NE",
+      address_2: "An address line 2",
+      city: "A City",
+      state: "CA",
+      zip: "21222"
+    )
+  end
 
   describe '#to_s' do
     it 'returns a string with a formated address' do
@@ -139,12 +207,12 @@ describe 'view helpers/presenters' do
 
   describe "#to_html" do
     it "returns the address with html tags" do
-      expect(address.to_html).to eq "<div>An address line 1</div><div>An address line 2</div><div>A City, CA 21222</div>"
+      expect(address.to_html).to eq "<div>An address line 1 NE</div><div>An address line 2</div><div>A City, CA 21222</div>"
     end
 
     it "retuns address with html tags if no address_2 field is present" do
       address.address_2 = ""
-      expect(address.to_html).to eq "<div>An address line 1</div><div>A City, CA 21222</div>"
+      expect(address.to_html).to eq "<div>An address line 1 NE</div><div>A City, CA 21222</div>"
     end
   end
 end
@@ -165,6 +233,117 @@ describe '#home?' do
   end
 end
 
+describe '#fetch_county_fips_code' do
+  let!(:us_county) { BenefitMarkets::Locations::CountyFips.create({ state_postal_code: 'ME',  county_fips_code: '23003', county_name: 'Aroostook'}) }
+
+  context 'fips code for county exists' do
+    let(:address) do
+      Address.new(
+        address_1: "An address line 1",
+        address_2: "An address line 2",
+        city: "A City",
+        state: "ME",
+        county: 'Aroostook',
+        zip: "21222"
+      )
+    end
+
+    it ' should return county fips code' do
+      expect(address.fetch_county_fips_code).to eq '23003'
+    end
+  end
+
+  context 'fips code for county does not exists' do
+    let(:address) do
+      Address.new(
+        address_1: "An address line 1",
+        address_2: "An address line 2",
+        city: "A City",
+        state: "test",
+        county: 'test',
+        zip: "21222"
+      )
+    end
+
+    it ' should return nil' do
+      expect(address.fetch_county_fips_code).to eq ""
+    end
+  end
+
+  context 'find fips code by state and zip code if county does not exists' do
+    let!(:county_zip) { BenefitMarkets::Locations::CountyZip.create({ state: 'ME',  zip: '21222', county_name: 'Aroostook'}) }
+    let!(:address) do
+      Address.new(
+        address_1: "An address line 1",
+        address_2: "An address line 2",
+        city: "A City",
+        state: "ME",
+        county: 'test',
+        zip: "21222"
+      )
+    end
+
+    it 'should return county fips code' do
+      expect(address.fetch_county_fips_code).to eq '23003'
+    end
+
+    context 'more than one county for state and zip code' do
+      let!(:county_zip_2) { ::BenefitMarkets::Locations::CountyZip.create({ state: 'ME',  zip: '21222', county_name: 'Aroostook'}) }
+      let!(:address) do
+        Address.new(
+          address_1: "An address line 1",
+          address_2: "An address line 2",
+          city: "A City",
+          state: "ME",
+          county: 'test',
+          zip: "21222"
+        )
+      end
+
+      it ' should return nil' do
+        expect(address.fetch_county_fips_code).to eq ""
+      end
+    end
+  end
+
+  context 'finds fips code by formatting state and zip code' do
+    let!(:county_zip) { ::BenefitMarkets::Locations::CountyZip.create({ state: 'ME',  zip: '04930', county_name: 'Somerset'}) }
+    let!(:us_county) { BenefitMarkets::Locations::CountyFips.create({ state_postal_code: 'ME',  county_fips_code: '23025', county_name: 'Somerset'}) }
+    let!(:address) do
+      Address.new(
+        address_1: "An address line 1",
+        address_2: "An address line 2",
+        city: "A City",
+        state: "me",
+        county: 'test',
+        zip: "04930 "
+      )
+    end
+
+    it 'should return county fips code' do
+      expect(address.fetch_county_fips_code).to eq '23025'
+    end
+  end
+
+  context 'finds fips code by formatting county name' do
+    let!(:address) do
+      Address.new(
+        address_1: "An address line 1",
+        address_2: "An address line 2",
+        city: "A City",
+        state: "ME",
+        county: 'AROOSTOOK',
+        zip: "21222 "
+      )
+    end
+
+    it 'should return county fips code' do
+      expect(address.fetch_county_fips_code).to eq '23003'
+    end
+  end
+
+end
+
 describe '#clean_fields' do
   it 'removes trailing and leading whitespace from fields' do
 
@@ -177,27 +356,27 @@ describe '#clean_fields' do
   end
 end
 
-describe '#matches?' do
-  let(:address) {
-     Address.new(
-       address_1: "An address line 1",
-       address_2: "An address line 2",
-       city: "A City",
-       state: "CA",
-       zip: "21222"
-     )
-  }
+describe '#matches_addresses?' do
+  let(:address) do
+    Address.new(
+      address_1: "An address line 1",
+      address_2: "An address line 2",
+      city: "A City",
+      state: "CA",
+      zip: "21222"
+    )
+  end
 
   context 'addresses are the same' do
     let(:second_address) { address.clone }
     it 'returns true' do
-      expect(address.matches?(second_address)).to be_truthy
+      expect(address.matches_addresses?(second_address)).to be_truthy
     end
 
     context 'mismatched case' do
       before { second_address.address_1.upcase! }
       it 'returns true' do
-        expect(address.matches?(second_address)).to be_truthy
+        expect(address.matches_addresses?(second_address)).to be_truthy
       end
     end
   end
@@ -209,7 +388,58 @@ describe '#matches?' do
       a
     end
     it 'returns false' do
-      expect(address.matches?(second_address)).to be_falsey
+      expect(address.matches_addresses?(second_address)).to be_falsey
+    end
+  end
+end
+
+describe "#kind" do
+  let(:office_location) {FactoryBot.build(:office_location, :primary)}
+  let(:address) {FactoryBot.build(:address)}
+
+  context "write kind" do
+    it "kind should be work with primary office_location when primary" do
+      allow(address).to receive(:office_location).and_return office_location
+      address.kind = 'primary'
+      expect(address.read_attribute(:kind)).to eq 'work'
+    end
+
+    it "kind should not be itself with normal office_location" do
+      allow(office_location).to receive(:is_primary).and_return false
+      allow(address).to receive(:office_location).and_return office_location
+      address.kind = 'primary'
+      expect(address.read_attribute(:kind)).to eq 'primary'
+    end
+
+    it "kind should be itself without office_location" do
+      address.kind = 'primary'
+      expect(address.read_attribute(:kind)).to eq 'primary'
+    end
+  end
+
+  context "read kind" do
+    it "should return primary when kind is work and has primary office_location" do
+      allow(address).to receive(:office_location).and_return office_location
+      address.write_attribute(:kind, 'work')
+      expect(address.kind).to eq 'primary'
+    end
+
+    it "should return primary when kind is home and has primary office_location" do
+      allow(address).to receive(:office_location).and_return office_location
+      address.write_attribute(:kind, 'home')
+      expect(address.kind).to eq 'home'
+    end
+
+    it "should return itself when kind is work but has normal office_location" do
+      allow(office_location).to receive(:is_primary).and_return false
+      allow(address).to receive(:office_location).and_return office_location
+      address.write_attribute(:kind, 'work')
+      expect(address.kind).to eq 'work'
+    end
+
+    it "should return itself" do
+      address.write_attribute(:kind, 'work')
+      expect(address.kind).to eq 'work'
     end
   end
 end

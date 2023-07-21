@@ -1,6 +1,7 @@
 class PersonRelationship
   include Mongoid::Document
   include Mongoid::Timestamps
+  include Mongoid::History::Trackable
 
   embedded_in :person
 
@@ -13,6 +14,7 @@ class PersonRelationship
                               foster\ child daughter-in-law sister-in-law mother-in-law sister ward
                               stepdaughter child sponsored\ dependent dependent\ of\ a\ minor\ dependent
                               guardian court\ appointed\ guardian collateral\ dependent life\ partner)
+
   Relationships = [
     "spouse",
     "life_partner",
@@ -41,8 +43,28 @@ class PersonRelationship
     "stepparent",
     "trustee", # no inverse
     "unrelated",
-    "ward"
+    'ward',
+    'cousin'
   ]
+  # rubocop:disable Naming/ConstantName
+  Relationships += ['domestic_partners_child', 'parents_domestic_partner'] if EnrollRegistry.feature_enabled?(:mitc_relationships)
+  Relationships.freeze
+
+  Relationships_UI = [
+    "spouse",
+    "domestic_partner",
+    "child",
+    "parent",
+    "sibling",
+    "unrelated",
+    "aunt_or_uncle",
+    "nephew_or_niece",
+    "grandchild",
+    'grandparent'
+  ]
+  Relationships_UI += ['father_or_mother_in_law', 'daughter_or_son_in_law', 'brother_or_sister_in_law', 'cousin', 'domestic_partners_child', 'parents_domestic_partner'] if EnrollRegistry.feature_enabled?(:mitc_relationships)
+  # rubocop:enable Naming/ConstantName
+  Relationships_UI.freeze
 
   InverseMap = {
     "child" => "parent",
@@ -59,6 +81,8 @@ class PersonRelationship
     "daughter_or_son_in_law" => "father_or_mother_in_law",
     "guardian" => "ward",
     "ward" => "guardian",
+    'domestic_partners_child' => 'parents_domestic_partner',
+    'parents_domestic_partner' => 'domestic_partners_child',
 
     # bi directional
     "self" => "self",
@@ -78,17 +102,42 @@ class PersonRelationship
 
   SymmetricalRelationships = %W[head\ of\ household spouse ex-spouse cousin ward trustee annuitant other\ relationship other\ relative self]
 
-  Kinds = SymmetricalRelationships | Relationships
+  Kinds = SymmetricalRelationships | Relationships | BenefitEligibilityElementGroup::INDIVIDUAL_MARKET_RELATIONSHIP_CATEGORY_KINDS
 
   field :relative_id, type: BSON::ObjectId
   field :kind, type: String
 
-	validates_presence_of :relative_id, message: "Choose a relative"
+  track_history :on => [:fields],
+                :scope => :person,
+                :modifier_field => :modifier,
+                :modifier_field_optional => true,
+                :version_field => :tracking_version,
+                :track_create  => true,    # track document creation, default is false
+                :track_update  => true,    # track document updates, default is true
+                :track_destroy => true
+
+  validates_presence_of :relative_id, message: "Choose a relative"
   validates :kind,
             presence: true,
             allow_blank: false,
             allow_nil:   false,
             inclusion: {in: Kinds, message: "%{value} is not a valid person relationship"}
+
+  after_save :notify_updated
+  after_update :relationship_updated, if: :kind_changed?
+
+  def notify_updated
+    person.notify_updated
+  end
+
+  # On dependent's relationship to primary update, we do not update
+  # Dependent's Person(and its embedded docs)/FamilyMember. We update
+  # PrimaryPerson's PersonRelationship's Kind and this will not trigger a change on dependent.
+  # This is the reason why we have to call person_create_or_update_handler on relative
+  # to be able to notify FAA engine with the relationship change.
+  def relationship_updated
+    relative&.person_create_or_update_handler
+  end
 
   def parent
     raise "undefined parent class: Person" unless person?

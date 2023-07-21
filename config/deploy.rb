@@ -1,8 +1,8 @@
 # config valid only for current version of Capistrano
-lock '3.3.5'
+lock '~> 3.14.1'
 
-set :application, 'enroll'
-set :repo_url, 'https://github.com/dchbx/enroll.git'
+set :application, 'trunk'
+set :repo_url, 'https://github.com/ideacrew/enroll.git'
 
 # Default branch is :master
 # ask :branch, proc { `git rev-parse --abbrev-ref HEAD`.chomp }.call
@@ -28,7 +28,7 @@ set :bundle_path, nil
 set :pty, true
 
 # Default value for :linked_files is []
-set :linked_files, (fetch(:linked_files, []) | ['config/mongoid.yml', 'config/initializers/devise.rb', 'config/secrets.yml', "config/environments/production.rb", "config/symmetric-encryption.yml"])
+set :linked_files, (fetch(:linked_files, []) | ['config/mongoid.yml', 'config/initializers/devise.rb', 'config/secrets.yml', "config/environments/production.rb", "config/symmetric-encryption.yml", 'config/saml.yml', 'config/unicorn.rb', 'eyes/enroll.eye.rb', 'config/ssl/wfpk.pem'])
 
 # Default value for linked_dirs is []
 set :linked_dirs, fetch(:linked_dirs, []).push('log', 'pids', 'eye', "public/sbc")
@@ -51,7 +51,16 @@ namespace :assets do
 #      execute "rm -rf #{shared_path}/public/assets/*"
       within release_path do
         with rails_env: fetch(:rails_env) do
-          execute :rake, "assets:precompile"
+          puts("Setting to review environment.") if ENV['ENROLL_REVIEW_ENVIRONMENT']
+          execute("cd #{release_path} && rm -rf node_modules && rm -f package-lock.json")
+          execute("cd #{release_path} && nvm use 12 && npm install --global yarn && yarn install")
+          execute :rake, "assets:clobber"
+          execute("cd #{release_path} && nvm use 12 && RAILS_ENV=production NODE_ENV=production bundle exec rake assets:precompile")
+          execute :rake, "seed:translations[db/seedfiles/english_translations_seed.rb]"
+          client_variable = ENV['CLIENT'].downcase || ENV['client'].downcase
+          puts("Switching to #{client_variable} configuration.") unless client_variable.nil?
+          execute :rake, "configuration:client_configuration_toggler client='#{client_variable}'" unless client_variable.nil?
+          puts("No client configuration present, using current committed configuration.") if client_variable.nil?
         end
       end
     end
@@ -71,7 +80,6 @@ namespace :deploy do
     on roles(:web), in: :groups, limit: 3, wait: 10 do
     end
   end
-
 end
 
 after "deploy:publishing", "deploy:restart"

@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe CarrierProfile, :type => :model do
+RSpec.describe CarrierProfile, :type => :model, dbclean: :after_each do
   it { should delegate_method(:hbx_id).to :organization }
   it { should delegate_method(:legal_name).to :organization }
   it { should delegate_method(:dba).to :organization }
@@ -9,15 +9,34 @@ RSpec.describe CarrierProfile, :type => :model do
   it { should delegate_method(:updated_by).to :organization }
 
 
-  let(:organization) {FactoryGirl.create(:organization)}
+  let(:organization) {FactoryBot.create(:organization)}
   let(:abbrev) {"uhc"}
+
+  describe "class methods" do
+    context "carrier_profile_service_area_pairs_for when the calculation model is not simple" do
+      before do
+        allow(employer).to receive(:use_simple_employer_calculation_model?).and_return(false)
+      end
+
+      let!(:carrier_profile) { create(:carrier_profile, with_service_areas: 0, issuer_hios_ids: ['99999']) }
+      let!(:carrier_service_area_2017) { create(:carrier_service_area, issuer_hios_id: carrier_profile.issuer_hios_ids.first, active_year: '2017') }
+      let!(:carrier_service_area_2018) { create(:carrier_service_area, issuer_hios_id: carrier_profile.issuer_hios_ids.first, active_year: '2018') }
+      let!(:employer) { create(:employer_profile) }
+
+      it "should return the appropriate service area based on year" do
+        expect(CarrierProfile.carrier_profile_service_area_pairs_for(employer, '2017' )).to contain_exactly([carrier_profile.id, carrier_service_area_2017.service_area_id])
+        expect(CarrierProfile.carrier_profile_service_area_pairs_for(employer, '2018' )).to contain_exactly([carrier_profile.id, carrier_service_area_2018.service_area_id])
+      end
+    end
+  end
 
   describe ".new" do
 
     let(:valid_params) do
       {
         organization: organization,
-        abbrev: abbrev
+        abbrev: abbrev,
+        issuer_hios_ids: ['11111', '22222']
       }
     end
 
@@ -36,6 +55,11 @@ RSpec.describe CarrierProfile, :type => :model do
       it "should save" do
         expect(carrier_profile.save).to be_truthy
       end
+
+      it "should not offer sole source" do
+        expect(carrier_profile.offers_sole_source?).to be_falsey
+      end
+
       context "and it is saved" do
         before do
           carrier_profile.save
@@ -49,7 +73,7 @@ RSpec.describe CarrierProfile, :type => :model do
   end
 
   describe ".associated_carrier_profile" do
-    let(:organization) {FactoryGirl.create(:organization)}
+    let(:organization) {FactoryBot.create(:organization)}
     let(:abbrev) {"uhc"}
 
     let(:valid_params) do
@@ -60,7 +84,7 @@ RSpec.describe CarrierProfile, :type => :model do
     end
 
     context "with associated_carrier_profile" do
-      let(:associated_carrier_profile) {FactoryGirl.create(:carrier_profile)}
+      let(:associated_carrier_profile) {FactoryBot.create(:carrier_profile)}
       let(:carrier_profile) {CarrierProfile.new(**valid_params)}
 
       before {associated_carrier_profile}
@@ -70,7 +94,7 @@ RSpec.describe CarrierProfile, :type => :model do
       end
 
       it "should return associated_carrier_profile" do
-        expect(carrier_profile.associated_carrier_profile).to be_a CarrierProfile
+        carrier_profile.associated_carrier_profile.should be_an_instance_of CarrierProfile
         expect(carrier_profile.associated_carrier_profile).to eq associated_carrier_profile
       end
 

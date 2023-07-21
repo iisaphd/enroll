@@ -1,20 +1,21 @@
 class PlanCostDecorator < SimpleDelegator
   attr_reader :member_provider, :benefit_group, :reference_plan
 
-  def initialize(plan, member_provider, benefit_group, reference_plan)
+  include ShopPolicyCalculations
+  include Config::AcaModelConcern
+
+  def initialize(plan, member_provider, benefit_group, reference_plan, max_cont_cache = {})
     super(plan)
     @member_provider = member_provider
     @benefit_group = benefit_group
     @reference_plan = reference_plan
+    @max_contribution_cache = max_cont_cache
+    @plan = plan
+    @multiple_rating_areas = multiple_market_rating_areas?
   end
 
-  def members
-    case member_provider.class
-    when HbxEnrollment
-      member_provider.hbx_enrollment_members
-    when CensusEmployee
-      [member_provider] + member_provider.census_dependents
-    end
+  def sole_source?
+    @benefit_group.sole_source?
   end
 
   def plan_year_start_on
@@ -26,17 +27,9 @@ class PlanCostDecorator < SimpleDelegator
     end
   end
 
-  def age_of(member)
-    case member.class
-    when HbxEnrollmentMember
-      member.age_on_effective_date
-    else
-      member.age_on(plan_year_start_on)
-    end
-  end
-
-  def benefit_relationship(person_relationship)
-    PlanCostDecorator.benefit_relationship(person_relationship)
+  def child_index(member)
+    @children = members.select(){|member| age_of(member) < 21} unless defined?(@children)
+    @children.index(member)
   end
 
   def self.benefit_relationship(person_relationship)
@@ -68,6 +61,7 @@ class PlanCostDecorator < SimpleDelegator
       "guardian" => nil,
       "court_appointed_guardian" => nil,
       "collateral_dependent" => "child_under_26",
+      "domestic_partner" => "domestic_partner",
       "life_partner" => "domestic_partner",
       "child" => "child_under_26",
       "grandchild" => nil,
@@ -77,24 +71,9 @@ class PlanCostDecorator < SimpleDelegator
     }[person_relationship]
   end
 
-  def relationship(member)
-    if member.is_subscriber?
-      "employee"
-    else
-      benefit_relationship(member.primary_relationship)
-    end
-  end
-
-
   def relationship_benefit_for(member)
-    relationship =
-    case member.class
-    when HbxEnrollmentMember
-      (relationship(member))
-    else
-      member.employee_relationship
-    end
-    benefit_group.relationship_benefit_for(relationship)
+    relationship = relationship_for(member)
+    @reference_plan.coverage_kind == 'dental' ? benefit_group.dental_relationship_benefit_for(relationship) : benefit_group.relationship_benefit_for(relationship)
   end
 
   def employer_contribution_percent(member)
@@ -102,54 +81,78 @@ class PlanCostDecorator < SimpleDelegator
     if relationship_benefit && relationship_benefit.offered?
       relationship_benefit.premium_pct
     else
-      0.0
+      0.00
     end
   end
 
+  def reference_plan_member_premium(member)
+    rate_lookup(reference_plan, plan_year_start_on, age_of(member), member, benefit_group)
+  end
+
   def reference_premium_for(member)
-    reference_plan.premium_for(plan_year_start_on, age_of(member))
+    # FIXME: I've just fixed this to use the plan rate cache - it seems there
+    #        multiple areas where this isn't being used - we need to correct this.
+    reference_plan_member_premium(member)
+  rescue
+    0.00
+  end
+
+  def rate_lookup(the_plan, start_on_date, age, member, benefit_group)
+    rate_value = if @multiple_rating_areas
+      Caches::PlanDetails.lookup_rate_with_area(the_plan.id, start_on_date, age, benefit_group.rating_area)
+    else
+      Caches::PlanDetails.lookup_rate(the_plan.id, start_on_date, age)
+    end
+    value = if the_plan.health?
+      if use_simple_employer_calculation_model?
+        1.0
+      else
+        benefit_group.sic_factor_for(the_plan).to_f * benefit_group.group_size_factor_for(the_plan).to_f
+      end
+    else
+      1.0
+    end
+    (rate_value * large_family_factor(member) * value)
   end
 
   def premium_for(member)
     relationship_benefit = relationship_benefit_for(member)
-    if relationship_benefit && relationship_benefit.offered?
-      __getobj__.premium_for(plan_year_start_on, age_of(member))
+    if relationship_benefit && relationship_benefit.offered? && benefit_group
+      value = rate_lookup(__getobj__, plan_year_start_on, age_of(member), member, benefit_group)
+      BigDecimal.new("#{value}").round(2).to_f
     else
-      0.0
+      0.00
     end
   end
 
   def max_employer_contribution(member)
-    (reference_premium_for(member) * employer_contribution_percent(member)) / 100.00
+    return @max_contribution_cache.fetch(member._id) if @max_contribution_cache.has_key?(member._id)
+    @max_contribution_cache[member._id] = ((large_family_factor(member) * (reference_premium_for(member) * employer_contribution_percent(member))) / 100.00).round(2)
   end
 
   def employer_contribution_for(member)
-    [max_employer_contribution(member), premium_for(member)].min
+    return 0 if @member_provider.present? && @member_provider.is_cobra_status?
+    ([max_employer_contribution(member), premium_for(member)].min * large_family_factor(member)).round(2)
   end
 
   def employee_cost_for(member)
-    if @benefit_group.present?
+    (if @benefit_group.present?
       premium_for(member) - employer_contribution_for(member)
     else
       __getobj__.premium_for(plan_year_start_on, age_of(member))
-    end
-  end
-
-  def total_premium
-    members.reduce(0) do |sum, member|
-      sum + premium_for(member)
-    end
+    end * large_family_factor(member)).round(2)
   end
 
   def total_employer_contribution
-    members.reduce(0) do |sum, member|
-      sum + employer_contribution_for(member)
-    end
+    return 0 if @member_provider.present? && @member_provider.is_cobra_status?
+    (members.reduce(0.00) do |sum, member|
+      (sum + employer_contribution_for(member)).round(2)
+    end).round(2)
   end
 
   def total_employee_cost
-    members.reduce(0) do |sum, member|
-      sum + employee_cost_for(member)
-    end
+    (members.reduce(0.00) do |sum, member|
+      (sum + employee_cost_for(member)).round(2)
+    end).round(2)
   end
 end

@@ -1,10 +1,26 @@
+# frozen_string_literal: true
+
 # This file is copied to spec/ when you run 'rails generate rspec:install'
+
 ENV["RAILS_ENV"] ||= 'test'
 require 'spec_helper'
 require File.expand_path("../../config/environment", __FILE__)
 require 'rspec/rails'
 require 'shoulda/matchers'
+require 'webmock/rspec'
+require 'stimulus_reflex_testing/rspec'
+require "#{Rails.root}/lib/custom_linters/translations/view_translations_linter_helper.rb"
 
+WebMock.allow_net_connect!
+
+require 'kaminari'
+require File.expand_path('app/models/services/checkbook_services/plan_comparision')
+
+Shoulda::Matchers.configure do |config|
+  config.integrate do |with|
+    with.test_framework :rspec
+  end
+end
 # Add additional requires below this line. Rails is not loaded until this point!
 
 # Requires supporting ruby files with custom matchers and macros, etc, in
@@ -36,14 +52,12 @@ RSpec.configure do |config|
   #
   # The different available types are documented in the features, such as in
   # https://relishapp.com/rspec/rspec-rails/docs
-  config.after(:suite, :dbclean => :after_all) do
-    DatabaseCleaner.clean
-    TimeKeeper.set_date_of_record_unprotected!(Date.current)
-  end
+  load Rails.root + "db/seedfiles/english_translations_seed.rb"
+  DatabaseCleaner.strategy = :truncation, {:except => %w[translations]}
 
   config.after(:example, :dbclean => :after_each) do
     DatabaseCleaner.clean
-    TimeKeeper.set_date_of_record_unprotected!(Date.current)
+#    TimeKeeper.set_date_of_record_unprotected!(Date.current)
   end
 
   config.around(:example, :dbclean => :around_each) do |example|
@@ -54,11 +68,17 @@ RSpec.configure do |config|
   end
 
   config.include ModelMatcherHelpers, :type => :model
-  config.include Devise::TestHelpers, :type => :controller
-  config.include Devise::TestHelpers, :type => :view
+  config.include Devise::Test::ControllerHelpers, :type => :controller
+  config.include Devise::Test::ControllerHelpers, :type => :view
+  config.include Devise::Test::IntegrationHelpers, :type => :request
   config.extend ControllerMacros, :type => :controller #real logins for integration testing
   config.include ControllerHelpers, :type => :controller #stubbed logins for unit testing
-  config.include FactoryGirl::Syntax::Methods
+  config.include FactoryBot::Syntax::Methods
+  config.include FederalHolidaysHelper
+  config.include Config::AcaModelConcern
+  config.include ActionView::Helpers::TranslationHelper
+  config.include L10nHelper
+  config.include ViewTranslationsLinterHelper
 
   config.infer_spec_type_from_file_location!
 

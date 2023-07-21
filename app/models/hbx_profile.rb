@@ -1,7 +1,11 @@
 class HbxProfile
-
+  include Config::AcaModelConcern
+  include Config::SiteModelConcern
+  include Config::ContactCenterModelConcern
   include Mongoid::Document
+  include SetCurrentUser
   include Mongoid::Timestamps
+  extend Acapi::Notifiers
 
   embedded_in :organization
 
@@ -14,7 +18,7 @@ class HbxProfile
   delegate :entity_kind, :entity_kind=, to: :organization, allow_nil: true
 
   embeds_many :hbx_staff_roles
-  embeds_many :enrollment_periods
+  embeds_many :enrollment_periods # TODO: deprecated - should be removed by 2015-09-03 - Sean Carley
 
   embeds_one :benefit_sponsorship, cascade_callbacks: true
   embeds_one :inbox, as: :recipient, cascade_callbacks: true
@@ -25,6 +29,21 @@ class HbxProfile
 
   after_initialize :build_nested_models
 
+  def advance_day
+  end
+
+  def advance_month
+  end
+
+  def advance_quarter
+  end
+
+  def advance_year
+  end
+
+  def under_open_enrollment?
+    (benefit_sponsorship.present? && benefit_sponsorship.is_coverage_period_under_open_enrollment?) ?  true : false
+  end
 
   def active_employers
     EmployerProfile.active
@@ -56,19 +75,79 @@ class HbxProfile
 
   class << self
     def find(id)
-      Organization.where("hbx_profile._id" => BSON::ObjectId.from_string(id)).first.hbx_profile
+      org = Organization.where("hbx_profile._id" => BSON::ObjectId.from_string(id)).first
+      org.hbx_profile if org.present?
+    end
+
+    def find_by_cms_id(id)
+      org = Organization.where("hbx_profile.cms_id": id).first
+      org.hbx_profile if org.present?
+    end
+
+    def find_by_state_abbreviation(state)
+      org = Organization.where("hbx_profile.us_state_abbreviation": state.to_s.upcase).first
+      org.hbx_profile if org.present?
     end
 
     def all
       Organization.exists(hbx_profile: true).all.reduce([]) { |set, org| set << org.hbx_profile }
+    end
+
+    def current_hbx
+      Caches::CurrentHbx.fetch do
+        find_by_state_abbreviation(aca_state_abbreviation)
+      end
+    end
+
+    def transmit_group_xml(employer_profile_ids)
+      hbx_ids = []
+      employer_profile_ids.each do |empr_id|
+        empr = EmployerProfile.find(empr_id)
+        hbx_ids << empr.hbx_id
+        empr.update_attribute(:xml_transmitted_timestamp, Time.now.utc)
+      end
+      notify("acapi.info.events.employer.group_files_requested", { body: hbx_ids } )
+    end
+
+    def search_random(search_param)
+      if search_param.present?
+        organizations = Organization.where(legal_name: /#{search_param}/i)
+        broker_agency_profiles = []
+        organizations.each do |org|
+          broker_agency_profiles << org.broker_agency_profile if org.broker_agency_profile.present?
+        end
+      else
+        broker_agency_profiles = BrokerAgencyProfile.all
+      end
+      broker_agency_profiles
+    end
+
+    def bcp_by_oe_dates(date = TimeKeeper.date_of_record)
+      current_hbx.benefit_sponsorship.benefit_coverage_periods.detect do |bcp|
+        bcp.open_enrollment_contains?(date)
+      end
+    end
+
+    def bcp_by_effective_period(date = TimeKeeper.date_of_record)
+      current_hbx.benefit_sponsorship.benefit_coverage_periods.detect do |bcp|
+        bcp.contains?(date)
+      end
     end
   end
 
   ## Application-level caching
 
   ## HBX general settings
-  StateName = "District of Columbia"
-  StateAbbreviation = "DC"
+  StateName = aca_state_name
+  StateAbbreviation = aca_state_abbreviation
+  CallCenterName = contact_center_name
+  CallCenterPhoneNumber = contact_center_phone_number
+  ShortName = site_short_name
+
+  IndividualEnrollmentDueDayOfMonth = Settings.aca.individual_market.monthly_enrollment_due_on
+
+  #New Rule There is no 14 days rule for termination
+  # IndividualEnrollmentTerminationMinimum = 14.days
 
   ## Carriers
   # hbx_id, hbx_carrier_id, name, abbrev,
@@ -94,48 +173,58 @@ class HbxProfile
 
   # Maximum number of days an Employer may notify HBX of termination
   # may terminate an employee and effective date
-  ShopRetroactiveTerminationMaximum = 60.days
+  # ShopRetroactiveTerminationMaximum = 60.days
+  #
+  # # Length of time preceeding next effective date that an employer may renew
+  # ShopMaximumRenewalPeriodBeforeStartOn = 3.months
+  #
+  # # Length of time preceeding effective date that an employee may submit a plan enrollment
+  # ShopMaximumEnrollmentPeriodBeforeEligibilityInDays = 30
+  #
+  # # Length of time following effective date that an employee may submit a plan enrollment
+  # ShopMaximumEnrollmentPeriodAfterEligibilityInDays = 30
+  #
+  # # Minimum number of days an employee may submit a plan, following addition or correction to Employer roster
+  # ShopMinimumEnrollmentPeriodAfterRosterEntryInDays = 30
+  #
+  # # TODO - turn into struct that includes count, plus effective date range
+  # ShopApplicationAppealPeriodMaximum = 30.days
+  #
+  # # After submitting an ineligible plan year application, time period an Employer must wait
+  # #   before submitting a new application
+  # ShopApplicationIneligiblePeriodMaximum = 90.days
+  #
+  # # TODO - turn into struct that includes count, plus effective date range
+  # ShopSmallMarketFteCountMaximum = 50
+  #
+  # ## SHOP enrollment-related periods in days
+  # # Minimum number of days for SHOP open enrollment period
+  # ShopOpenEnrollmentPeriodMinimum = 5
+  # ShopOpenEnrollmentEndDueDayOfMonth = 10
+  #
+  # # Maximum number of months for SHOP open enrollment period
+  # ShopOpenEnrollmentPeriodMaximum = 2
+  #
+  # # Minumum length of time for SHOP Plan Year
+  # ShopPlanYearPeriodMinimum = 1.year - 1.day
+  #
+  # # Maximum length of time for SHOP Plan Year
+  # ShopPlanYearPeriodMaximum = 1.year - 1.day
+  #
+  # # Maximum number of months prior to coverage effective date to submit a Plan Year application
+  # ShopPlanYearPublishBeforeEffectiveDateMaximum = 3.months
+  #
+  # ShopEmployerContributionPercentMinimum = 50.0
+  # ShopEnrollmentParticipationRatioMinimum = 2 / 3.0
+  # ShopEnrollmentNonOwnerParticipationMinimum = 1
+  #
+  # ShopBinderPaymentDueDayOfMonth = 15
+  # ShopRenewalOpenEnrollmentEndDueDayOfMonth = 13
 
-  # Number of days preceeding effective date that an employee may submit a plan enrollment
-  ShopMaximumEnrollmentPeriodBeforeEligibilityInDays = 30
 
-  # Minimum number of days an employee may submit a plan, following addition or correction to Employer roster
-  ShopMinimumEnrollmentPeriodAfterRosterEntryInDays = 30
-
-  # TODO - turn into struct that includes count, plus effective date range
-  ShopApplicationAppealPeriodMaximum = 30.days
-
-  # After submitting an ineligible plan year application, time period an Employer must wait 
-  #   before submitting a new application
-  ShopApplicationIneligiblePeriodMaximum = 90.days
-
-  # TODO - turn into struct that includes count, plus effective date range
-  ShopSmallMarketFteCountMaximum = 50
-
-  ## SHOP enrollment-related periods in days
-  # Minimum number of days for SHOP open enrollment period
-  ShopOpenEnrollmentPeriodMinimum = 5
-
-  # Maximum number of months for SHOP open enrollment period
-  ShopOpenEnrollmentPeriodMaximum = 2
-
-  # Minumum length of time for SHOP Plan Year
-  ShopPlanYearPeriodMinimum = 1.year - 1.day
-
-  # Maximum length of time for SHOP Plan Year
-  ShopPlanYearPeriodMaximum = 1.year - 1.day
-
-  # Maximum number of months prior to coverage effective date to submit a Plan Year application
-  ShopPlanYearPublishBeforeEffectiveDateMaximum = 3.months
-
-  ShopEmployerContributionPercentMinimum = 50.0
-  ShopEnrollmentParticipationRatioMinimum = 2 / 3.0
-  ShopEnrollmentNonOwnerParticipationMinimum = 1
-
-  ShopBinderPaymentDueDayOfMonth = 15
-  ShopOpenEnrollmentEndDueDayOfMonth = 10
-  ShopOpenEnrollmentBeginDueDayOfMonth = ShopOpenEnrollmentEndDueDayOfMonth - ShopOpenEnrollmentPeriodMinimum
+  ShopOpenEnrollmentBeginDueDayOfMonth = Settings.aca.shop_market.open_enrollment.monthly_end_on - Settings.aca.shop_market.open_enrollment.minimum_length.days
   ShopPlanYearPublishedDueDayOfMonth = ShopOpenEnrollmentBeginDueDayOfMonth
+  ShopOpenEnrollmentAdvBeginDueDayOfMonth = Settings.aca.shop_market.open_enrollment.minimum_length.adv_days
 
 
   # ShopOpenEnrollmentStartMax
@@ -156,11 +245,9 @@ class HbxProfile
   end
 
   def save_inbox
-    welcome_subject = "Welcome to DC HealthLink"
-    welcome_body = "DC HealthLink is the District of Columbia's on-line marketplace to shop, compare, and select health insurance that meets your health needs and budgets."
+    welcome_subject = "Welcome to #{site_short_name}"
+    welcome_body = "#{site_short_name} is the #{aca_state_name}'s on-line marketplace to shop, compare, and select health insurance that meets your health needs and budgets."
     @inbox.save
     @inbox.messages.create(subject: welcome_subject, body: welcome_body)
   end
-
-
 end

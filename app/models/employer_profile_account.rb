@@ -1,5 +1,6 @@
 class EmployerProfileAccount
   include Mongoid::Document
+  include SetCurrentUser
   include Mongoid::Timestamps
   include AASM
 
@@ -7,9 +8,20 @@ class EmployerProfileAccount
 
   field :next_premium_due_on, type: Date
   field :next_premium_amount, type: Money
+
+  field :message, type: String
+  field :past_due, type: Money
+  field :previous_balance, type: Money
+  field :new_charges, type: Money
+  field :adjustments, type: Money
+  field :payments, type: Money
+  field :total_due, type: Money
+  field :current_statement_date, type: Date
+
   field :aasm_state, type: String, default: "binder_pending"
 
   embeds_many :premium_payments
+  embeds_many :current_statement_activity
   embeds_many :workflow_state_transitions, as: :transitional
 
   accepts_nested_attributes_for :premium_payments
@@ -18,6 +30,13 @@ class EmployerProfileAccount
 
   scope :active,      ->{ not_in(aasm_state: %w(canceled terminated)) }
 
+  def payments_since_last_invoice
+    current_statement_date.present? ? (self.current_statement_activity.where(:posting_date.gt => current_statement_date, :type => "Payments")).to_a : []
+  end
+
+  def adjustments_since_last_invoice
+    current_statement_date.present? ? current_statement_activity.where(:posting_date.gt => current_statement_date, :type => "Adjustments").to_a : []
+  end
 
   def last_premium_payment
     return premium_payments.first if premium_payments.size == 1
@@ -60,10 +79,18 @@ class EmployerProfileAccount
       transitions from: :binder_pending, to: :binder_paid
     end
 
+    event :invoice  do
+      transitions from: :binder_pending, to: :invoiced
+    end
+
+
+
     # A new billing period begins the first day of each month
     event :advance_billing_period, :guard => :first_day_of_month?, :after => :record_transition do
-      transitions from: :binder_pending, to: :canceled #, :after => :expire_enrollment
 
+      # Commented due initial ER plan year cancellation issues ticket 16300
+      # transitions from: :binder_pending, to: :canceled #, :after => :expire_enrollment
+      transitions from: :binder_pending, to: :binder_pending
       transitions from: :binder_paid, to: :invoiced, :after => :enroll_employer
       transitions from: :current, to: :invoiced
       transitions from: :invoiced, to: :past_due
@@ -110,12 +137,13 @@ class EmployerProfileAccount
     end
   end
 
-private
+  private
   def record_transition
     self.workflow_state_transitions << WorkflowStateTransition.new(
-      from_state: aasm.from_state,
-      to_state: aasm.to_state,
-      transition_at: Time.now.utc
+        from_state: aasm.from_state,
+        to_state: aasm.to_state,
+        event: aasm.current_event,
+        transition_at: Time.now.utc
     )
   end
 
@@ -140,7 +168,7 @@ private
   end
 
   def enroll_employer
-    employer_profile.employer_enrolled!
+    employer_profile.enroll_employer!
   end
 
   def expire_enrollment
@@ -148,7 +176,7 @@ private
   end
 
   def cancel_benefit
-    employer_profile.benefit_canceled!
+    employer_profile.benefit_canceled! if employer_profile.may_benefit_canceled?
   end
 
   def suspend_benefit

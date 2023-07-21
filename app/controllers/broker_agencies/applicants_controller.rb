@@ -13,7 +13,7 @@ class BrokerAgencies::ApplicantsController < ApplicationController
 
     if params[:page].present?
       page_no = cur_page_no(@page_alphabets.first)
-      @broker_applicants = @people.where("last_name" => /^#{page_no}/i)
+      @broker_applicants = @people.where("last_name" => /^#{Regexp.escape(page_no)}/i)
     else
       @broker_applicants = @people.to_a.first(20)
     end
@@ -26,13 +26,13 @@ class BrokerAgencies::ApplicantsController < ApplicationController
   def edit
     respond_to do |format|
       format.js
+      format.html
     end
   end
 
   def update
     role = @broker_applicant.broker_role
     role = @broker_applicant.broker_agency_staff_roles[0] unless role
-
     # if params[:person] && params[:person][:broker_role_attributes] && params[:person][:broker_role_attributes][:reason]
     #   broker_role.update_attributes(:reason => params[:person][:broker_role_attributes][:reason])
     # end
@@ -45,14 +45,6 @@ class BrokerAgencies::ApplicantsController < ApplicationController
       flash[:notice] = "Applicant terminated."
     else
       role.broker_agency_accept!
-      role.reload
-      if role.active?
-        if role.kind_of?(BrokerRole)
-          Invitation.invite_broker!(role) 
-        else
-          Invitation.invite_broker_agency_staff!(role)
-        end
-      end
       flash[:notice] = "Applicant accepted successfully."
     end
 

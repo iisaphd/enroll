@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Notify
   include Acapi::Notifiers
 
@@ -16,11 +18,10 @@ module Notify
     Rails.logger(e)
   end
 
-  # return {"status" =>"created/changed", "first_name" => ["before", "now"]}
   def payload(obj, field:)
     return nil unless obj.send(field)
 
-    if obj.send(field).respond_to?(:target)
+    if obj.relations[field].present?
       # relation
       if obj.send(field).is_a?(Array)
         # embeds_many

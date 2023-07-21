@@ -1,7 +1,6 @@
+<h1 class="">Broker Agencies</h1>
 <div>
-  <div class="row no-buffer top-pd">
-    <h4 class="title-inline">Broker Agencies</h4>
-
+  <div class="row no-buffer">
     <div class="pull-right broker_agencies_search">
 
       <div class="search-wp">
@@ -15,7 +14,7 @@
 
       <div id="advanced_options" style="display: none;">
            <div class="language_multi_select pull-right">
-             <%= select_tag(:languages_spoken, options_from_collection_for_select(LanguageList::COMMON_LANGUAGES.sort_by {|lan| lan.common_name}, "iso_639_1", "common_name"), { id: 'broker_agency_language_select', multiple: "multiple" } ) %>
+             <%= select_tag(:languages_spoken, options_for_select(language_options), { id: 'broker_agency_language_select', multiple: "multiple" } ) %>
           </div>
           <div>
             <label class="pull-right">
@@ -25,6 +24,8 @@
       </div>
     </div>
   </div>
+
+  <h4>Search for a Broker near you. When you find the Broker you want to use, choose 'Select Broker' to hire the Broker.</h4>
 
   <div class="row no-buffer" id="broker_agencies_listing">
     <%= render "broker_agencies_listing" %>

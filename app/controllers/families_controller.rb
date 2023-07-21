@@ -1,4 +1,6 @@
 class FamiliesController < ApplicationController
+  include Acapi::Notifiers
+
   before_action :set_family #, only: [:index, :show, :new, :create, :edit, :update]
   # before_action :check_hbx_staff_role, except: [:welcome]
 
@@ -10,6 +12,7 @@ class FamiliesController < ApplicationController
     # page_no = page_string.blank? ? nil : page_string.to_i
     # @families = Family.search(@q).exists(employer_profile: true).page page_no
     @families = Family.all
+
   end
 
   def show
@@ -54,8 +57,16 @@ private
   # Use callbacks to share common setup or constraints between actions.
   def set_family
     set_current_person
-    @family = @person.primary_family
-    # @family = Family.find(params[:id])
+    return unless @person.present?
+
+    if @person.primary_family.present?
+      @family = @person.primary_family
+    elsif params[:family].present?
+      @family = Family.find(params[:family])
+    else
+      redirect_path = @person.has_hbx_staff_role? ? "/exchanges/hbx_profiles" : root_path
+      redirect_to redirect_path
+    end
   end
 
   def family_params

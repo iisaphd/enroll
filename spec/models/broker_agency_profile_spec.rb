@@ -12,13 +12,43 @@ RSpec.describe BrokerAgencyProfile, dbclean: :after_each do
   it { should delegate_method(:updated_by).to :organization }
 
 
-  let(:organization) {FactoryGirl.create(:organization)}
+  let(:organization) {FactoryBot.create(:organization)}
   let(:market_kind) {"both"}
   let(:bad_market_kind) {"commodities"}
-  let(:primary_broker_role) { FactoryGirl.create(:broker_role) }
+  let(:primary_broker_role) { FactoryBot.create(:broker_role) }
 
   let(:market_kind_error_message) {"#{bad_market_kind} is not a valid market kind"}
+  let(:enabled_market_kinds) { %W[shop individual both] }
 
+  before :each do
+    stub_const("BrokerAgencyProfile::MARKET_KINDS", enabled_market_kinds)
+  end
+
+  describe "individual market can be toggled..." do
+    let(:invalid_params) do
+      {
+        organization: organization,
+        market_kind: bad_market_kind,
+        entity_kind: "s_corporation",
+        primary_broker_role: primary_broker_role
+      }
+    end
+
+    context "when it is enabled" do
+      let(:bad_market_kind) { "commodities" }
+      it "should fail validation for individual" do
+        expect(BrokerAgencyProfile.create(**invalid_params).errors[:market_kind]).to eq [market_kind_error_message]
+      end
+    end
+
+    context "when it is disabled" do
+      let(:bad_market_kind) { "individual" }
+      let(:enabled_market_kinds) { %W[shop] }
+      it "should fail validation for individual" do
+        expect(BrokerAgencyProfile.create(**invalid_params).errors[:market_kind]).to eq [market_kind_error_message]
+      end
+    end
+  end
 
   describe ".new" do
     let(:valid_params) do
@@ -92,21 +122,21 @@ RSpec.describe BrokerAgencyProfile, dbclean: :after_each do
           let(:my_client_count)       { 3 }
           let(:broker_agency_account) { BrokerAgencyAccount.new(broker_agency_profile_id: broker_agency_profile.id,
                                           start_on: TimeKeeper.date_of_record, is_active: true)}
-          let!(:my_clients)           { FactoryGirl.create_list(:employer_profile, my_client_count,
-                                          broker_agency_accounts: [broker_agency_account] )}
+          let!(:my_clients)           { FactoryBot.create_list(:employer_profile, my_client_count,
+                                          broker_agency_accounts: [broker_agency_account], sic_code: '1111' )}
 
           it "should find all my active employer clients" do
             expect(broker_agency_profile.employer_clients.to_a.size).to eq my_client_count
           end
 
           it "should return employer profile objects" do
-            expect(broker_agency_profile.employer_clients.first).to be_a EmployerProfile
+            broker_agency_profile.employer_clients.first.should be_an_instance_of EmployerProfile
           end
         end
 
         context "and additional brokers apply join the agency" do
           let(:added_broker_count)         { 5 }
-          let!(:added_broker_roles)        { FactoryGirl.create_list(:broker_role, added_broker_count,
+          let!(:added_broker_roles)        { FactoryBot.create_list(:broker_role, added_broker_count,
                                             broker_agency_profile: broker_agency_profile) }
 
           it "should find all the new broker roles as candidates" do
@@ -152,6 +182,70 @@ RSpec.describe BrokerAgencyProfile, dbclean: :after_each do
           end
         end
       end
+    end
+  end
+  describe "#phone for broker agency" do
+    before :each, :dbclean => :after_each  do
+      @ba = FactoryBot.create(:broker_agency).broker_agency_profile
+    end
+    it 'should have a phone' do
+      expect(@ba.phone).to match(@ba.organization.primary_office_location.phone.to_s)
+    end
+  end
+
+  describe "#families" do
+    let(:site)  { create(:benefit_sponsors_site, :with_benefit_market, :as_hbx_profile, :cca) }
+    let(:employer_organization)   { FactoryBot.build(:benefit_sponsors_organizations_general_organization, :with_aca_shop_cca_employer_profile, site: site) }
+    let(:employer_profile) { employer_organization.profiles.first }
+    let(:benefit_sponsorship) { FactoryBot.create(:benefit_sponsors_benefit_sponsorship, profile: employer_profile, benefit_market: site.benefit_markets.first) }
+    let!(:broker_agency_profile) { FactoryBot.create(:benefit_sponsors_organizations_broker_agency_profile, legal_name: 'Legal Name1', assigned_site: site) }
+    let(:writing_agent) { FactoryBot.create(:broker_role, aasm_state: 'active', benefit_sponsors_broker_agency_profile_id: broker_agency_profile.id) }
+    let(:broker_agency_profile2) { FactoryBot.create(:benefit_sponsors_organizations_broker_agency_profile, legal_name: 'Legal Name1', assigned_site: site) }
+    let(:writing_agent2) { FactoryBot.create(:broker_role, aasm_state: 'active', benefit_sponsors_broker_agency_profile_id: broker_agency_profile2.id) }
+    let(:person) { FactoryBot.create(:person)}
+    let(:family1) {FactoryBot.create(:family,:with_primary_family_member, e_case_id: rand(10000), person:person)}
+    let(:family2) {FactoryBot.create(:family,:with_primary_family_member, e_case_id: rand(10000))}
+
+    it "should find a consumer family" do
+      family1.hire_broker_agency(writing_agent.id)
+      family2.hire_broker_agency(writing_agent2.id)
+      expect(broker_agency_profile.families.count).to be(1)
+    end
+
+    it "should find the specific consumer family" do
+      family1.hire_broker_agency(writing_agent.id)
+      family2.hire_broker_agency(writing_agent.id)
+      expect(broker_agency_profile.families.count).to be(2)
+    end
+
+    it "should find a linked employee" do
+      allow(employer_profile).to receive(:active_benefit_sponsorship).and_return(benefit_sponsorship)
+      employer_profile.update_attributes(broker_agency_profile: broker_agency_profile)
+      employee_role = FactoryBot.create(:employee_role, person: person, employer_profile: employer_profile)
+      expect(broker_agency_profile.linked_employees.count).to eq(1)
+    end
+
+    it "should find  linked family" do
+      allow(Person).to receive(:where).and_return([person])
+      allow(person).to receive(:has_active_employee_role?).and_return(true)
+      allow(person).to receive(:primary_family).and_return(family1)
+      expect(broker_agency_profile.linked_employees.count).to eq(1)
+      expect(broker_agency_profile.families.count).to eq(1)
+    end
+
+    it "should find both consumers and employees" do
+      family2.hire_broker_agency(writing_agent.id)
+      allow(Person).to receive(:where).and_return([person])
+      allow(person).to receive(:has_active_employee_role?).and_return(true)
+      allow(person).to receive(:primary_family).and_return(family1)
+      expect(broker_agency_profile.families.count).to eq(2)
+    end
+
+    it "should find unique consumers and employees" do
+      family1.hire_broker_agency(writing_agent.id)
+      allow(Person).to receive(:where).and_return([person])
+      allow(person).to receive(:primary_family).and_return(family1)
+      expect(broker_agency_profile.families.count).to eq(1)
     end
   end
 end

@@ -1,11 +1,9 @@
-<div class="row">
-	<div class="col-md-10 col-sm-12">
-		<%= render 'people/landing_pages/personal' %>
-	</div>
-</div>
-
+<% if @resident %>
+	<%= render 'people/landing_pages/personal_coverall' %>
+<% else %>
+	<%= render 'people/landing_pages/personal' %>
+<% end %>
 <script>
-	$('input.floatlabel').floatlabel({
-	    slideInput: false
-	});
+	Freebies.floatlabels();
+	$('select').not('.no-selectric').selectric();
 </script>

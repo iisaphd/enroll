@@ -1,18 +1,30 @@
 class Document
   include Mongoid::Document
   include Mongoid::Timestamps
+  include Mongoid::Attributes::Dynamic
+  include ModelEvents::Document
+  include Config::AcaModelConcern
+  include Concerns::Observable
 
 
   ACCESS_RIGHTS = %w(public pii_restricted)
+
+  RESOURCE_LIST = %w[BenefitSponsors::Organizations::AcaShopDcEmployerProfile
+                     BenefitSponsors::Organizations::FehbEmployerProfile
+                     BenefitSponsors::Organizations::AcaShopCcaEmployerProfile
+                     BenefitSponsors::Organizations::GeneralAgencyProfile
+                     EmployeeRole Person ConsumerRole].push("BenefitSponsors::Organizations::#{EnrollRegistry[:enroll_app].setting(:site_key).item.capitalize}ShopEmployerProfile").uniq.freeze
+
+  after_save :notify_on_save
 
   # Enable polymorphic associations
   embedded_in :documentable, polymorphic: true
 
   # Dublin Core metadata elements
-  field :title, type: String
+  field :title, type: String, default: "untitled"
 
   # Entity responsible for making the resource - person, organization or service
-  field :creator, type: String, default: "dchl"
+  field :creator, type: String, default: EnrollRegistry[:enroll_app].setting(:publisher).item
 
   # Controlled vocabulary w/classification codes. Mapped to ConsumerRole::VLP_DOCUMENT_KINDS
   field :subject, type: String
@@ -21,7 +33,7 @@ class Document
   field :description, type: String
 
   # Entity responsible for making the resource available - person, organization or service
-  field :publisher, type: String, default: "dchl"
+  field :publisher, type: String, default: EnrollRegistry[:enroll_app].setting(:publisher).item
 
   # Entity responsible for making contributions to the resource - person, organization or service
   field :contributor, type: String
@@ -33,7 +45,7 @@ class Document
   field :type, type: String, default: "text"
 
   # Conforms to IANA mime types - http://www.iana.org/assignments/media-types/media-types.xhtml
-  field :format, type: String
+  field :format, type: String, default: "application/octet-stream"
 
   # An unambiguous reference to the resource - Conforms to URI
   field :identifier, type: String
@@ -55,16 +67,11 @@ class Document
 
   field :tags, type: Array, default: []
 
-  # Mapped to VLP_DOCUMENT_IDENTIFICATION_KINDS value
-  field :document_number, type:String
+  field :size, type: String
 
-  # date of expiration of the document. e.g. passport expiration date
-  field :expiration_date, type:Date
+  field :doc_identifier, type: String
 
-  # country which issued the document. e.g. passport issuing country
-  field :issuing_country, type:String
-
-  validates_presence_of :title, :creator, :publisher, :type, :format, :identifier, :source, :language
+  validates_presence_of :title, :creator, :publisher, :type, :format, :source, :language
 
   validates :rights,
     allow_blank: true,

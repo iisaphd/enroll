@@ -7,29 +7,57 @@ module Forms
 
     attr_accessor :broker_agency_profile
     attr_accessor :market_kind, :languages_spoken
-    attr_accessor :working_hours, :accept_new_clients, :home_page, :corporate_npn
+    attr_accessor :working_hours, :accept_new_clients, :home_page
     attr_accessor :broker_applicant_type, :email
+    attr_accessor :ach_record
+
     include NpnField
 
     validates :market_kind,
-      inclusion: { in: ::BrokerAgencyProfile::MARKET_KINDS, message: "%{value} is not a valid market kind" },
+      inclusion: { in: ::BrokerAgencyProfile::MARKET_KINDS, message: "%{value} is not a valid practice area" },
       allow_blank: false
 
     validates :email, :email => true, :allow_blank => false
 
+    validates_format_of :email, :with => /\A[^@\s]+@([^@\s]+\.)+[^@\s]+\z/, message: "%{value} is not valid"
+
     validate :validate_duplicate_npn
+    validate :validate_ach_record
 
     class OrganizationAlreadyMatched < StandardError; end
+
+    def initialize(attrs = {})
+      self.fein = Organization.generate_fein
+      self.is_fake_fein=true
+      self.ach_record = attrs[:ach_record] || {}
+      super(attrs)
+    end
 
     def self.model_name
       ::BrokerAgencyProfile.model_name
     end
 
     def add_broker_role
-      person.broker_role = ::BrokerRole.new({ 
-        :provider_kind => 'broker', 
-        :npn => self.npn 
+      person.broker_role = ::BrokerRole.new({
+        :provider_kind => 'broker',
+        :npn => self.npn
       })
+    end
+
+    def ach_record=(attrs)
+      @ach_record = AchRecord.new(attrs.merge(bank_name: 'Placeholder'))
+    end
+
+    def validate_ach_record
+      return false unless @ach_record
+      unless @ach_record.valid?
+        errors = @ach_record.errors
+        errors.each do |key, val|
+          unless key == :routing_number
+            self.errors.add('ach_record', val)
+          end
+        end
+      end
     end
 
     def save(current_user=nil)
@@ -48,12 +76,15 @@ module Forms
 
       person.save!
       add_broker_role
-
-      organization = create_new_organization
+      organization = create_or_find_organization
       self.broker_agency_profile = organization.broker_agency_profile
       self.broker_agency_profile.primary_broker_role = person.broker_role
+      self.broker_agency_profile.ach_routing_number = @ach_record.routing_number
+      self.broker_agency_profile.ach_account_number = @ach_record.account_number
       self.broker_agency_profile.save!
-      person.broker_role.update_attributes({ broker_agency_profile_id: broker_agency_profile.id })
+      person.broker_role.update_attributes({ broker_agency_profile_id: broker_agency_profile.id , market_kind:  market_kind })
+      UserMailer.broker_application_confirmation(person).deliver_now
+      # person.update_attributes({ broker_agency_staff_roles: [::BrokerAgencyStaffRole.new(:broker_agency_profile => broker_agency_profile)]})
       true
     end
 
@@ -79,24 +110,124 @@ module Forms
       end
 
       self.person.add_work_email(email)
+      # since we can have multiple office_locations each will have separate phone numbers
+      @office_locations.each do  |office_location|
+        self.person.phones.push(Phone.new(office_location.phone.attributes.except("_id")))
+      end
     end
 
-    def create_new_organization
-      Organization.create!(
+    def create_or_find_organization
+      existing_org = Organization.where(:fein => self.fein)
+      if existing_org.present? && !existing_org.first.broker_agency_profile.present?
+        new_broker_agency_profile = ::BrokerAgencyProfile.new({
+            :entity_kind => entity_kind,
+            :home_page => home_page,
+            :market_kind => market_kind,
+            :languages_spoken => languages_spoken,
+            :working_hours => working_hours,
+            :accept_new_clients => accept_new_clients})
+        existing_org = existing_org.first
+        existing_org.update_attributes!(broker_agency_profile: new_broker_agency_profile)
+        existing_org
+      else
+        Organization.create!(
+          :fein => fein,
+          :legal_name => legal_name,
+          :dba => dba,
+          :is_fake_fein => is_fake_fein,
+          :broker_agency_profile => ::BrokerAgencyProfile.new({
+            :entity_kind => entity_kind,
+            :home_page => home_page,
+            :market_kind => market_kind,
+            :languages_spoken => languages_spoken,
+            :working_hours => working_hours,
+            :accept_new_clients => accept_new_clients
+          }),
+          :office_locations => office_locations
+        )
+      end
+    end
+
+    def self.find(broker_agency_profile_id)
+      broker_agency_profile = ::BrokerAgencyProfile.find(broker_agency_profile_id)
+      organization = broker_agency_profile.organization
+      broker_role = broker_agency_profile.primary_broker_role
+      person = broker_role.try(:person)
+      record = self.new({
+        id: organization.id,
+        legal_name: organization.legal_name,
+        dba: organization.dba,
+        fein: organization.fein,
+        home_page: organization.home_page,
+        first_name: person.first_name,
+        last_name: person.last_name,
+        dob: person.dob.try(:strftime, '%Y-%m-%d'),
+        email: person.emails.first.address,
+        npn: broker_role.try(:npn),
+        entity_kind: broker_agency_profile.entity_kind,
+        market_kind: broker_agency_profile.market_kind,
+        languages_spoken: broker_agency_profile.languages_spoken,
+        working_hours: broker_agency_profile.working_hours,
+        accept_new_clients: broker_agency_profile.accept_new_clients,
+        ach_record: {
+          routing_number: broker_agency_profile.ach_routing_number,
+          routing_number_confirmation: broker_agency_profile.ach_routing_number,
+          account_number: broker_agency_profile.ach_account_number,
+        },
+        office_locations: organization.office_locations
+      })
+    end
+
+    def assign_attributes(atts)
+      atts.each_pair do |k, v|
+        self.send("#{k}=".to_sym, v)
+      end
+    end
+
+    def update_attributes(attr)
+      assign_attributes(attr)
+      organization = Organization.find(attr[:id])
+      organization.update_attributes(extract_organization_params(attr))
+      organization.broker_agency_profile.update_attributes(extract_broker_agency_profile_params)
+      broker_role = organization.broker_agency_profile.primary_broker_role
+      person = broker_role.try(:person)
+      if person.present?
+        person.update_attributes(extract_person_params)
+        person.emails.find_by(kind: 'work').update(address: attr[:email])
+      end
+    rescue
+      return false
+    end
+
+    def extract_person_params
+      {
+        :first_name => first_name,
+        :last_name => last_name,
+        :dob => dob
+      }
+    end
+
+    def extract_organization_params(attr)
+      {
         :fein => fein,
         :legal_name => legal_name,
         :dba => dba,
-        :broker_agency_profile => ::BrokerAgencyProfile.new({
-          :entity_kind => entity_kind,
-          :home_page => home_page,
-          :market_kind => market_kind,
-          :corporate_npn => corporate_npn,
-          :languages_spoken => languages_spoken,
-          :working_hours => working_hours,
-          :accept_new_clients => accept_new_clients
-        }),
-        :office_locations => office_locations
-      )
+        :home_page => home_page,
+        :office_locations_attributes => attr[:office_locations_attributes]
+      }
+    end
+
+    def extract_broker_agency_profile_params
+      {
+        :entity_kind => entity_kind,
+        :home_page => home_page,
+        :market_kind => market_kind,
+        :languages_spoken => languages_spoken,
+        :working_hours => working_hours,
+        :accept_new_clients => accept_new_clients,
+        :ach_routing_number => ach_record.routing_number,
+        :ach_account_number => ach_record.account_number
+      }
     end
 
     def validate_duplicate_npn
@@ -106,7 +237,8 @@ module Forms
     end
 
     def check_existing_organization
-      if Organization.where(:fein => self.fein).any?
+      existing_org = Organization.where(:fein => self.fein)
+      if existing_org.present? && existing_org.first.broker_agency_profile.present?
         raise OrganizationAlreadyMatched.new
       end
     end

@@ -1,7 +1,9 @@
 puts "*"*80
 
+ENV["ENROLL_SEEDING"] = "true"
+
 puts "::: Generating People :::"
-wk_addr = Address.new(kind: "work", address_1: "1600 Pennsylvania Ave", city: "Washington", state: "DC", zip: "20001")
+wk_addr = Address.new(kind: "work", address_1: "1600 Pennsylvania Ave NE", city: "Washington", state: "DC", zip: "20001")
 hm_addr = Address.new(kind: "home", address_1: "609 H St, NE", city: "Washington", state: "DC", zip: "20002")
 ml_addr = Address.new(kind: "mailing", address_1: "440 4th St, NW", city: "Washington", state: "DC", zip: "20001")
 
@@ -25,29 +27,47 @@ p2 = Person.create!(first_name: "Chevy", last_name: "Chase")
 p3 = Person.create!(first_name: "Jane", last_name: "Curtin", addresses: [hm_addr, ml_addr], phones: [mb_phone])
 p4 = Person.create!(first_name: "Martina", last_name: "Williams", ssn: "151482930", dob: "01/25/1990", gender: "female", phones: [wk_phone1], emails: [wk_dan_email])
 
+
+def generate_approved_broker (broker, wk_addr, wk_phone, wk_email, email)
+  broker.person.addresses << wk_addr
+  broker.person.phones << wk_phone
+  broker.person.emails << wk_email
+  broker.save!
+  broker.approve!
+  broker.broker_agency_accept!
+  broker.person.user = User.create!(email: email, oim_id: email, 'password'=>'aA1!aA1!aA1!', roles: ['broker'])
+  broker.person.save!
+end
+
+
 puts "::: Generating Broker Roles :::"
 bk0 = p0.build_broker_role(npn: npn0, provider_kind: "assister")
-bk0.person.addresses << wk_addr
-bk0.person.phones << wk_phone
-bk0.person.emails << wk_email
-bk0.save!
+generate_approved_broker(bk0, wk_addr, wk_phone, wk_email, 'bill.murray@example.com')
+#bk0.person.addresses << wk_addr
+#bk0.person.phones << wk_phone
+#bk0.person.emails << wk_email
+#bk0.save!
 
 bk1 = p3.build_broker_role(npn: npn1, provider_kind: "broker")
-bk1.person.addresses << wk_addr
-bk1.person.phones << wk_phone
-bk1.person.emails << wk_email
-bk1.save!
-
+generate_approved_broker(bk1, wk_addr, wk_phone, wk_email, 'jane.curtin@example.com')
+#bk1.person.addresses << wk_addr
+#bk1.person.phones << wk_phone
+#bk1.person.emails << wk_email
+#bk1.save!
+#bk1.approve!
+#bk1.broker_agency_accept!
+#p3.user = User.create!(email: 'jane.curtin@example.com', 'password'=>'aA1!aA1!aA1!')
+#p3.save!
 puts "::: Creating ConsumerRole Roles:::"
 c0 = ConsumerRole.new(person: p0, is_incarcerated: false, is_applicant: true, is_state_resident: true, citizen_status: "us_citizen")
 c0.gender = "male"
-c0.dob = "09/21/1950"
+c0.dob = Date.new(1950,9,21)
 c0.ssn = "444556666"
 c0.save!
 
 c1 = ConsumerRole.new(person: p1, is_incarcerated: false, is_applicant: true, is_state_resident: true, citizen_status: "us_citizen")
 c1.gender = "male"
-c1.dob = "07/01/1952"
+c1.dob = Date.new(1952,7,01)
 c1.ssn = "444556665"
 c1.save!
 

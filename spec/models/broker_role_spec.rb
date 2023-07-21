@@ -1,26 +1,26 @@
 require 'rails_helper'
 
-describe BrokerRole, dbclean: :after_each do
+describe BrokerRole, dbclean: :around_each do
 
-  let(:address) {FactoryGirl.build(:address)}
-  let(:saved_person) {FactoryGirl.create(:person, addresses: [address])}
-  let(:person0) {FactoryGirl.create(:person)}
-  let(:person1) {FactoryGirl.create(:person)}
+  let(:address) {FactoryBot.build(:address)}
+  let(:saved_person) {FactoryBot.create(:person, addresses: [address])}
+  let(:person0) {FactoryBot.create(:person)}
+  let(:person1) {FactoryBot.create(:person)}
   let(:npn0) {"7775566"}
   let(:npn1) {"48484848"}
   let(:provider_kind)  {"broker"}
 
   # before :all do
-  #   @broker_agency_profile = FactoryGirl.create(:broker_agency_profile)
+  #   @broker_agency_profile = FactoryBot.create(:broker_agency_profile)
   # end
 
 
   describe ".new" do
     let(:valid_params) do
       {
-        person: saved_person,
-        npn: npn0,
-        provider_kind: provider_kind
+          person: saved_person,
+          npn: npn0,
+          provider_kind: provider_kind
       }
     end
 
@@ -74,19 +74,80 @@ describe BrokerRole, dbclean: :after_each do
       end
     end
 
-    context "with duplicate npn number" do
-      let(:params) {valid_params}
+    context "assign to employer" do
+      let(:broker_role) { FactoryBot.create(:broker_role, aasm_state: "active") }
+      let(:broker_agency_profile) { FactoryBot.create(:broker_agency_profile, aasm_state: "is_approved", primary_broker_role: broker_role)}
+      let(:general_agency_profile) { FactoryBot.create(:general_agency_profile) }
+      let(:employer_profile) { FactoryBot.create(:employer_profile, aasm_state: "registered") }
+      let!(:organization) { employer_profile.organization }
+      let(:person) { FactoryBot.create(:person)}
+      let(:family) { FactoryBot.create(:family, :with_primary_family_member,person: person) }
 
-      it "should raise" do
-        expect(BrokerRole.with(safe: true).create(**params)).to be_truthy
+      before :each do
+        employer_profile.broker_agency_accounts.create(broker_agency_profile: broker_agency_profile, writing_agent_id: broker_role.id, start_on: TimeKeeper.date_of_record)
+        employer_profile.hire_general_agency(general_agency_profile, broker_role.id, start_on = TimeKeeper.datetime_of_record)
+        employer_profile.save!
+        family.hire_broker_agency(broker_role.id)
+      end
 
-        ## TODO: Change this to proper Error when Mongoid is coerced into raising it
-        # expect{BrokerRole.with(safe: true).create(**params)}.to raise_error(Mongoid::Errors::NoParent)
+      it "should have employer" do
+        expect(employer_profile.active_broker.id).to eq broker_role.person.id
+      end
+
+      it "should remove broker from GA, Employer, and families when decertified" do
+        expect(employer_profile.active_broker.id).to eq broker_role.person.id
+        expect(employer_profile.active_general_agency_account.aasm_state).to eq "active"
+        # Spec Uses Old model broker_agency_profile_id on broker factory data, which we are currently not using.
+        # New broker hire operation requires new modal attribute benefit_sponsors_broker_agency_profile_id
+        # expect(family.current_broker_agency).to be_truthy
+        broker_role.decertify!
+        expect(EmployerProfile.find(employer_profile.id).active_broker).to eq nil
+        expect(EmployerProfile.find(employer_profile.id).active_general_agency_account).to eq nil
+        expect(Family.find(family.id).current_broker_agency).to eq nil
+      end
+    end
+
+    context "validate uniqueness of npn" do
+      let!(:broker_person) { FactoryBot.create(:person)}
+      let!(:broker_role) {FactoryBot.build(:broker_role, npn: "7775588", person: broker_person, provider_kind: provider_kind)}
+
+      it { should validate_uniqueness_of(:npn) }
+
+      it "validate uniqueness of npn" do
+        expect(broker_role.valid?).to be_truthy
+      end
+    end
+
+    context 'allow_alphanumeric_npn' do
+      let(:person) { FactoryBot.create(:person)}
+      let(:broker_role) { FactoryBot.create(:broker_role, npn: "7775588", person: person, provider_kind: provider_kind) }
+      let(:new_npn) { 'abc1234567' }
+
+      context 'allow_alphanumeric_npn enabled' do
+        before do
+          EnrollRegistry[:allow_alphanumeric_npn].feature.stub(:is_enabled).and_return(true)
+        end
+
+        it 'saves allow_alphanumeric' do
+          expect(broker_role.update_attributes(npn: new_npn)).to eq true
+          expect(broker_role.reload.npn).to eq new_npn
+        end
+      end
+
+      context 'allow_alphanumeric_npn disabled' do
+        before do
+          EnrollRegistry[:allow_alphanumeric_npn].feature.stub(:is_enabled).and_return(false)
+        end
+
+        it 'saves allow_alphanumeric' do
+          expect(broker_role.update_attributes(npn: new_npn)).to eq false
+          expect(broker_role.reload.npn).not_to eq new_npn
+        end
       end
     end
 
     context "a broker registers" do
-      let(:person)  { FactoryGirl.build(:person) }
+      let(:person)  { FactoryBot.build(:person) }
       let(:registered_broker_role) { BrokerRole.new(person: person, npn: "2323334", provider_kind: "broker") }
 
       it "should initialize to applicant state" do
@@ -121,7 +182,7 @@ describe BrokerRole, dbclean: :after_each do
             registered_broker_role.decertify
           end
 
-          it "should transition to active status" do
+          it "should transition to decertified status" do
             expect(registered_broker_role.aasm_state).to eq "decertified"
           end
 
@@ -130,48 +191,108 @@ describe BrokerRole, dbclean: :after_each do
             expect(registered_broker_role.workflow_state_transitions.last.from_state).to eq "active"
             expect(registered_broker_role.workflow_state_transitions.last.to_state).to eq "decertified"
           end
+
+          context "should be able to recertify" do
+            before do
+              registered_broker_role.recertify
+            end
+
+            it "should transition to active status" do
+              expect(registered_broker_role.aasm_state).to eq "active"
+            end
+
+            it "should record the transition" do
+              expect(registered_broker_role.workflow_state_transitions.size).to eq 4
+              expect(registered_broker_role.workflow_state_transitions.last.from_state).to eq "decertified"
+              expect(registered_broker_role.workflow_state_transitions.last.to_state).to eq "active"
+            end
+          end
         end
       end
 
       context "and is denied by the HBX" do
-        before do
+
+        it "should transition to denied status" do
           registered_broker_role.deny
+          expect(registered_broker_role.aasm_state).to eq "denied"
         end
 
-        it "should transition to active status" do
-          expect(registered_broker_role.aasm_state).to eq "denied"
+        it "should record the transition" do
+          registered_broker_role.deny
+          expect(registered_broker_role.workflow_state_transitions.size).to eq 2
+          expect(registered_broker_role.workflow_state_transitions.last.from_state).to eq "applicant"
+          expect(registered_broker_role.workflow_state_transitions.last.to_state).to eq "denied"
+        end
+
+        it 'should transition from application_extended to denied' do
+          registered_broker_role.update_attributes(aasm_state: 'application_extended')
+          registered_broker_role.deny
+        end
+      end
+
+      context 'extend broker application' do
+
+        it 'should transition denied broker to application_extended' do
+          registered_broker_role.deny!
+          registered_broker_role.extend_application!
+          expect(registered_broker_role.aasm_state).to eq 'application_extended'
+        end
+
+        it 'should transition pending broker to application_extended' do
+          allow(registered_broker_role).to receive(:is_primary_broker?).and_return(true)
+          registered_broker_role.pending!
+          registered_broker_role.extend_application!
+          expect(registered_broker_role.aasm_state).to eq 'application_extended'
+        end
+
+        it 'should transition application_extended broker to application_extended' do
+          allow(registered_broker_role).to receive(:is_primary_broker?).and_return(true)
+          registered_broker_role.pending!
+          registered_broker_role.extend_application!
+          registered_broker_role.extend_application!
+          expect(registered_broker_role.aasm_state).to eq 'application_extended'
+        end
+      end
+
+      context 'broker agency accept' do
+        before :each do
+          allow(registered_broker_role).to receive(:is_primary_broker?).and_return(true)
+        end
+
+        it "should transition from broker_agency_pending to active status" do
+          registered_broker_role.pending!
+          registered_broker_role.broker_agency_accept!
+          expect(registered_broker_role.aasm_state).to eq "active"
+        end
+
+        it "should transition from application_extended to active status" do
+          registered_broker_role.pending!
+          registered_broker_role.extend_application!
+          registered_broker_role.broker_agency_accept!
+          expect(registered_broker_role.aasm_state).to eq "active"
+        end
+      end
+
+      context "broker agency pending" do
+        before do
+          allow(registered_broker_role).to receive(:is_primary_broker?).and_return(true)
+          registered_broker_role.pending
+        end
+
+        it "should transition to pending status" do
+          expect(registered_broker_role.aasm_state).to eq "broker_agency_pending"
         end
 
         it "should record the transition" do
           expect(registered_broker_role.workflow_state_transitions.size).to eq 2
           expect(registered_broker_role.workflow_state_transitions.last.from_state).to eq "applicant"
-          expect(registered_broker_role.workflow_state_transitions.last.to_state).to eq "denied"
+          expect(registered_broker_role.workflow_state_transitions.last.to_state).to eq "broker_agency_pending"
         end
       end
     end
   end
 
-  describe BrokerRole, '.find', :dbclean => :after_each do
-    it 'returns Broker instance for the specified ID' do
-      b0 = BrokerRole.create(person: person0, npn: npn0, provider_kind: provider_kind)
-
-      expect(BrokerRole.find(b0._id)).to be_an_instance_of BrokerRole
-      expect(BrokerRole.find(b0._id).npn).to eq b0.npn
-    end
-  end
-
-  describe BrokerRole, '.all', :dbclean => :after_each do
-    it 'returns all Broker instances' do
-      b0 = BrokerRole.create(person: person0, npn: npn0, provider_kind: provider_kind)
-      b1 = BrokerRole.create(person: person1, npn: npn1, provider_kind: provider_kind)
-
-      # expect(BrokerRole.all).to be_an_instance_of Mongoid::Criteria
-      expect(BrokerRole.all.last).to be_an_instance_of BrokerRole
-      expect(BrokerRole.all.size).to eq 2
-    end
-  end
-
-  describe BrokerRole, '.find_by_npn', :dbclean => :after_each do
+  describe BrokerRole, '.find_by_npn', :dbclean => :around_each do
     it 'returns Broker instance for the specified National Producer Number' do
       b0 = BrokerRole.create(person: person0, npn: npn0, provider_kind: provider_kind)
       b1 = BrokerRole.create(person: person1, npn: npn1, provider_kind: provider_kind)
@@ -180,9 +301,9 @@ describe BrokerRole, dbclean: :after_each do
     end
   end
 
-  describe BrokerRole, '.find_by_broker_agency_profile', :dbclean => :after_each do
-    before :each do 
-      @ba = FactoryGirl.create(:broker_agency).broker_agency_profile
+  describe BrokerRole, '.find_by_broker_agency_profile', :dbclean => :around_each do
+    before :each do
+      @ba = FactoryBot.create(:broker_agency).broker_agency_profile
     end
 
     it 'returns Broker instance for the specified National Producer Number' do
@@ -194,21 +315,10 @@ describe BrokerRole, dbclean: :after_each do
     end
   end
 
-  describe BrokerRole, '.all', :dbclean => :after_each do
-    it 'returns all Broker instances' do
-      b0 = BrokerRole.create(person: person0, npn: npn0, provider_kind: provider_kind)
-      b1 = BrokerRole.create(person: person1, npn: npn1, provider_kind: provider_kind)
-
-      # expect(BrokerRole.all).to be_an_instance_of Mongoid::Criteria
-      expect(BrokerRole.all.last).to be_an_instance_of BrokerRole
-      expect(BrokerRole.all.size).to eq 2
-    end
-  end
-
   # Instance methods
-  describe BrokerRole, :dbclean => :after_each do
-    before :all do 
-      @ba = FactoryGirl.create(:broker_agency).broker_agency_profile
+  describe BrokerRole, :dbclean => :around_each do
+    before :all do
+      @ba = FactoryBot.create(:broker_agency).broker_agency_profile
     end
 
     it '#broker_agency_profile sets agency' do
@@ -222,11 +332,49 @@ describe BrokerRole, dbclean: :after_each do
 
     # TODO
     it '#address= and #address sets & gets work address on parent person instance' do
-      # address = FactoryGirl.build(:address)
+      # address = FactoryBot.build(:address)
       # address.kind = "work"
 
       # expect(person0.build_broker_role(address: address).address._id).to eq address._id
       # expect(person0.build_broker_role(npn: npn0, provider_kind: provider_kind, address: address).save).to eq true
+    end
+    context '#email returns work email' do
+      person0= FactoryBot.create(:person)
+      provider_kind = 'broker'
+
+      b1 = BrokerRole.create(person: person0, npn: 10000000+rand(10000), provider_kind: provider_kind, broker_agency_profile: @ba)
+      it "#email returns nil if no work email" do
+        expect(b1.email).to be_nil
+      end
+      it '#email returns an instance of email with kind==work' do
+        person0.emails[1].update_attributes(kind: 'work')
+        expect(b1.email).to be_an_instance_of(Email)
+        expect(b1.email.kind).to eq('work')
+      end
+    end
+    context '#phone returns broker office phone or agency office phone or work phone' do
+      # broker will not be able to add any work phone.
+      person0= FactoryBot.create(:person)
+      provider_kind = 'broker'
+
+      it 'should return broker agency profile phone' do
+        b1 = BrokerRole.create(person: person0, npn: 10000000+rand(10000), provider_kind: provider_kind, broker_agency_profile: @ba)
+        expect(b1.phone.to_s).to eq b1.broker_agency_profile.phone
+      end
+      it 'should return work phone' do
+        b1 = BrokerRole.create(person: person0, npn: 10000000+rand(10000), provider_kind: provider_kind, broker_agency_profile: @ba)
+        person0.phones[1].update_attributes!(kind: 'work')
+        expect(b1.phone.to_s).not_to eq b1.broker_agency_profile.phone
+        expect(b1.phone.to_s).to eq person0.phones.where(kind: "work").first.to_s
+      end
+
+      it 'should return work phone if office phone & broker agency profile phone not present' do
+        b1 = BrokerRole.create(person: person0, npn: 10000000+rand(10000), provider_kind: provider_kind, broker_agency_profile: @ba)
+        allow(b1.broker_agency_profile).to receive(:phone).and_return nil
+        person0.phones[1].update_attributes!(kind: 'work')
+        expect(b1.phone.to_s).not_to eq b1.broker_agency_profile.phone
+        expect(b1.phone.to_s).to eq person0.phones.where(kind: "work").first.to_s
+      end
     end
   end
 end

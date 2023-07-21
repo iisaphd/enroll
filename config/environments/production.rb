@@ -1,9 +1,19 @@
+# frozen_string_literal: true
+
 Rails.application.configure do
+  # Verifies that versions and hashed value of the package contents in the project's package.json
+  config.webpacker.check_yarn_integrity = false
+
   # Settings specified here will take precedence over those in config/application.rb.
 
   # Code is not reloaded between requests.
   config.cache_classes = true
-  config.cache_store = :memory_store
+  config.cache_store = :redis_cache_store, { driver: :hiredis, url: "redis://localhost:6379/1" }
+  config.session_store :cache_store,
+                       key: "_session",
+                       compress: true,
+                       pool_size: 5,
+                       expire_after: 1.year
 
   # Eager load code on boot. This eager loads most of Rails and
   # your application in memory, allowing both threaded web servers
@@ -12,8 +22,12 @@ Rails.application.configure do
   config.eager_load = true
 
   # Full error reports are disabled and caching is turned on.
-  config.consider_all_requests_local       = false
+  config.consider_all_requests_local = ENV['ENROLL_REVIEW_ENVIRONMENT'] == 'true'
   config.action_controller.perform_caching = true
+
+  config.action_cable.mount_path = '/cable'
+  config.action_cable.allowed_request_origins = [%r{http://*},
+                                                 %r{https://*}]
 
   # Enable Rack::Cache to put a simple HTTP cache in front of your application
   # Add `rack-cache` to your Gemfile before enabling this.
@@ -26,7 +40,8 @@ Rails.application.configure do
   config.serve_static_files = false
 
   # Compress JavaScripts and CSS.
-  config.assets.js_compressor = :uglifier
+  # config.assets.js_compressor = :uglifier
+  config.assets.js_compressor = Uglifier.new(harmony: true)
   # config.assets.css_compressor = :sass
 
   # Do not fallback to assets pipeline if a precompiled asset is missed.
@@ -81,9 +96,19 @@ Rails.application.configure do
 
   # Use default logging formatter so that PID and timestamp are not suppressed.
   config.log_formatter = Logger::SimpleJsonFormatter.new
-  
+
   # Do not dump schema after migrations.
 #  config.active_record.dump_schema_after_migration = false
   config.acapi.publish_amqp_events = true
   config.acapi.app_id = "enroll"
+  config.ga_tracking_id = ENV['GA_TRACKING_ID'] || "dummy"
+  config.ga_tagmanager_id = ENV['GA_TAGMANAGER_ID'] || "dummy"
+
+  #Queue adapter
+  config.active_job.queue_adapter = :resque
+
+  Mongoid.logger.level = Logger::ERROR
+  Mongo::Logger.logger.level = Logger::ERROR
+
+  # Full exceptions in non-prod environments
 end

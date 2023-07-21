@@ -1,14 +1,54 @@
 class TimeKeeper
+  include Config::AcaModelConcern
   include Mongoid::Document
   include Singleton
   include Acapi::Notifiers
   extend Acapi::Notifiers
+  include EventSource::Command
 
   CACHE_KEY = "timekeeper/date_of_record"
 
   # time zone management
 
   def initialize
+  end
+
+  def self.local_time(a_time)
+    a_time.in_time_zone("Eastern Time (US & Canada)")
+  end
+
+  def self.format_date(a_time)
+    local_time(a_time).strftime('%m/%d/%Y')
+  end
+
+  def self.format_date_time(a_time)
+    local_time(a_time).strftime('%m/%d/%Y %I:%M%p')
+  end
+
+  def self.exchange_zone
+    "Eastern Time (US & Canada)"
+  end
+
+  def self.datetime_local
+    DateTime.parse "{date_of_record.strftime('%Y-%m-%d')} #{Time.now.in_time_zone(exchange_zone).strftime('%H:%M:%S %z')}"
+  end
+
+  def self.start_of_exchange_day_from_utc(date)
+    start_of_day = date.beginning_of_day
+    Time.use_zone(exchange_zone) do
+      Time.zone.local(start_of_day.year, start_of_day.month, start_of_day.day, 0,0,0)
+    end.utc
+  end
+
+  def self.end_of_exchange_day_from_utc(date)
+    start_of_next_day = (date + 1.day).beginning_of_day
+    Time.use_zone(exchange_zone) do
+      Time.zone.local(start_of_next_day.year, start_of_next_day.month, start_of_next_day.day, 0,0,0)
+    end.utc
+  end
+
+  def self.date_according_to_exchange_at(a_time)
+    a_time.in_time_zone(exchange_zone).to_date
   end
 
   def self.set_date_of_record(new_date)
@@ -22,6 +62,7 @@ class TimeKeeper
         number_of_days.times do
           instance.set_date_of_record(instance.date_of_record + 1.day)
           instance.push_date_of_record
+          instance.push_date_change_event
         end
       end
     end
@@ -44,7 +85,7 @@ class TimeKeeper
 
   def self.datetime_of_record
     instant = Time.current
-    date_of_record.to_datetime.utc + instant.hour.hours + instant.min.minutes + instant.sec.seconds
+    instance.date_of_record.to_datetime + instant.hour.hours + instant.min.minutes + instant.sec.seconds
   end
 
   def set_date_of_record(new_date)
@@ -54,16 +95,47 @@ class TimeKeeper
   def date_of_record
     tl_value = thread_local_date_of_record
     return tl_value unless tl_value.blank?
-    found_data = Rails.cache.fetch(CACHE_KEY) do
+    found_value = Rails.cache.fetch(CACHE_KEY) do
       log("date_of_record not available for TimeKeeper - using Date.current")
       Date.current.strftime("%Y-%m-%d")
     end
-    Date.strptime(found_data, "%Y-%m-%d")
+    Date.strptime(found_value, "%Y-%m-%d")
   end
 
   def push_date_of_record
-    EmployerProfile.advance_day(self.date_of_record)
-    Family.advance_day(self.date_of_record)
+    notify_logger("TimeKeeper advance day started at #{Time.now.in_time_zone('Eastern Time (US & Canada)').strftime('%m-%d-%Y %H:%M:%S')}")
+
+    FinancialAssistance::Application.advance_day(self.date_of_record)
+    BenefitSponsorship.advance_day(self.date_of_record)
+    BenefitSponsors::ScheduledEvents::AcaShopScheduledEvents.advance_day(self.date_of_record)
+    # EmployerProfile.advance_day(self.date_of_record)
+    Family.advance_day(self.date_of_record) if individual_market_is_enabled?
+    send_date_advanced_event
+    HbxEnrollment.advance_day(self.date_of_record)
+    CensusEmployee.advance_day(self.date_of_record)
+    ConsumerRole.advance_day(self.date_of_record)
+    QualifyingLifeEventKind.advance_day(self.date_of_record)
+    notify_logger("TimeKeeper advance day ended at #{Time.now.in_time_zone('Eastern Time (US & Canada)').strftime('%m-%d-%Y %H:%M:%S')}")
+  end
+
+  def push_date_change_event
+    begin
+      BenefitSponsors::BenefitApplications::BenefitApplication.date_change_event(self.date_of_record)
+    rescue Exception => e
+      Rails.logger.error { "Couldn't trigger benefit application date change events due to #{e.inspect}" }
+    end
+  end
+
+  def notify_logger(message)
+    Rails.logger.info(message)
+    log(message)
+  end
+
+  def send_date_advanced_event
+    event = event('events.enterprise.date_advanced', attributes: {date_of_record: TimeKeeper.date_of_record})
+    event.success.publish if event.success?
+  rescue StandardError => e
+    Rails.logger.error { "Couldn't trigger enterprise date advanced event due to #{e.backtrace}" }
   end
 
   def self.with_cache

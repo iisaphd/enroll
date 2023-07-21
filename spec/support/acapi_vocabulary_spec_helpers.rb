@@ -17,6 +17,7 @@ policy.xsd
 premium.xsd
 verification_services.xsd
 vocabulary.xsd
+verification_services.xsd
   )
 
   def download_vocabularies
@@ -32,7 +33,7 @@ vocabulary.xsd
   def download_schema_file(file, s_dir)
     f_name = File.join(s_dir, file)
     unless File.exist?(f_name)
-      uri = "https://raw.githubusercontent.com/dchbx/cv/development/#{file}"
+      uri = "https://raw.githubusercontent.com/dchbx/cv/master/#{file}"
       download = open(uri)
       IO.copy_stream(download, f_name)
     end

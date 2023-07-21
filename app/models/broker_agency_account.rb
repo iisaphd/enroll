@@ -1,15 +1,16 @@
 class BrokerAgencyAccount
   include Mongoid::Document
+  include SetCurrentUser
   include Mongoid::Timestamps
 
   embedded_in :employer_profile
   embedded_in :family
 
   # Begin date of relationship
-  field :start_on, type: Date
-  
+  field :start_on, type: DateTime
+
   # End date of relationship
-  field :end_on, type: Date
+  field :end_on, type: DateTime
   field :updated_by, type: String
 
   # Broker agency representing ER
@@ -26,6 +27,7 @@ class BrokerAgencyAccount
 
   # belongs_to broker_agency_profile
   def broker_agency_profile=(new_broker_agency_profile)
+    pp new_broker_agency_profile if !new_broker_agency_profile.is_a?(BrokerAgencyProfile)
     raise ArgumentError.new("expected BrokerAgencyProfile") unless new_broker_agency_profile.is_a?(BrokerAgencyProfile)
     self.broker_agency_profile_id = new_broker_agency_profile._id
     @broker_agency_profile = new_broker_agency_profile
@@ -35,6 +37,18 @@ class BrokerAgencyAccount
     return @broker_agency_profile if defined? @broker_agency_profile
     @broker_agency_profile = BrokerAgencyProfile.find(self.broker_agency_profile_id) unless self.broker_agency_profile_id.blank?
   end
+
+  def ba_name
+    Rails.cache.fetch("broker-agency-name-#{self.broker_agency_profile_id}", expires_in: 12.hour) do
+      legal_name
+    end
+  end
+
+
+  def legal_name
+    broker_agency_profile.present? ? broker_agency_profile.legal_name : ""
+  end
+
 
   # belongs_to writing agent (broker)
   def writing_agent=(new_writing_agent)

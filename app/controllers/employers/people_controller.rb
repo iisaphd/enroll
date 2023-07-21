@@ -1,4 +1,5 @@
 class Employers::PeopleController < ApplicationController
+  include ResourceConfigurator
 
   before_action :check_person_present, only: [:search]
 
@@ -11,7 +12,7 @@ class Employers::PeopleController < ApplicationController
   end
 
   def match
-    @employee_candidate = Forms::EmployeeCandidate.new(params.require(:person).merge({user_id: current_user.id}))
+    @employee_candidate = Forms::EmployeeCandidate.new(person_params.merge({user_id: current_user.id}))
     if @employee_candidate.valid?
       found_person = @employee_candidate.match_person
       unless params["create_person"].present? # when search button is clicked
@@ -30,9 +31,8 @@ class Employers::PeopleController < ApplicationController
           end
         end
       else # when create person button clicked
-        params.permit!
         @person = current_user.instantiate_person
-        @person.attributes = params[:person]
+        @person.attributes = params.permit(person_params)
         @person.save
         build_nested_models
         respond_to do |format|
@@ -64,7 +64,7 @@ class Employers::PeopleController < ApplicationController
     make_new_person_params @person
 
     @employer_profile = @person.employer_contact.present? ? @person.employer_contact : @person.build_employer_contact
-    @person.updated_by = current_user.email if current_user.present?
+    @person.updated_by = current_user.oim_id if current_user.present?
 
     respond_to do |format|
       if @person.update_attributes(params[:person])
@@ -80,6 +80,9 @@ class Employers::PeopleController < ApplicationController
 
   private
 
+  def person_params
+    params.require(:person).permit(:first_name, :user_id)
+  end
   def build_nested_models
     ["home","mobile","work","fax"].each do |kind|
       @person.phones.build(kind: kind) if @person.phones.select{|phone| phone.kind == kind}.blank?
@@ -141,7 +144,43 @@ class Employers::PeopleController < ApplicationController
   end
 
   def person_params
-    params.require(:person).permit!
+    params.require(:person).permit(*person_parameters_list)
+  end
+
+  def person_parameters_list
+    [
+      { :addresses_attributes => [:kind, :address_1, :address_2, :city, :state, :zip, :id, :_destroy] },
+      { :phones_attributes => [:kind, :full_phone_number, :id, :_destroy] },
+      { :emails_attributes => [:kind, :address, :id, :_destroy] },
+      { :consumer_role_attributes => [:contact_method, :language_preference, :id]},
+      { :employee_roles_attributes => [:id, :contact_method, :language_preference]},
+
+      :first_name,
+      :middle_name,
+      :last_name,
+      :name_sfx,
+      :gender,
+      :us_citizen,
+      :is_incarcerated,
+      :language_code,
+      :is_disabled,
+      :race,
+      :is_consumer_role,
+      :is_resident_role,
+      :naturalized_citizen,
+      :eligible_immigration_status,
+      :indian_tribe_member,
+      {:ethnicity => []},
+      :tribal_id,
+      :tribal_state,
+      :tribal_name,
+      :no_dc_address,
+      :is_homeless,
+      :is_temporarily_out_of_state,
+      :id,
+      :consumer_role,
+      :is_applying_coverage
+    ]
   end
 
   def check_person_present

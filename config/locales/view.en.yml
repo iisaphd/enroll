@@ -22,7 +22,13 @@ en:
   insured:
     interactive_identity_verifications:
         service_unavailable:
-          try_again_later: "The Identity Proofing service is currently unavailable, please try again later."
+          try_again_later: "We’re sorry. Experian - the third-party service we use to confirm your identity - is unavailable. Please try again later."
         failed_validation:
-          contact_information: "You have not passed identity validation.  To proceed please contact the exchange at #XXX-XXX-XXXX, and provide them with reference number #%{ref_number}."
-          override: "Please click here once you have contacted the exchange and been told to proceed."
+          contact_information: "You have not passed identity validation.  To proceed please contact Experian at 1-866-578-5409, and provide them with reference number #%{ref_number}."
+          override: "Continue Application"
+  shop:
+    composite_tiers:
+        employee_only: "Employee Only"
+        employee_and_spouse: "Employee and Spouse"
+        employee_and_one_or_more_dependents: "Employee and Child(ren)"
+        family: "Family"

@@ -14,12 +14,35 @@
 # users commonly want.
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
+if ENV["COVERAGE"]
+  require 'simplecov'
+  SimpleCov.command_name "specs_#{Process.pid.to_s}_#{ENV['TEST_ENV_NUMBER'] || '1'}"
+  SimpleCov.start 'rails'
+end
+
 require File.join(File.dirname(__FILE__), "factories", "wrapping_sequence")
+require 'factory_bot_rails'
+require 'test_prof'
+require 'test_prof/recipes/rspec/factory_default'
+require 'ivl_helper'
+require 'aca_test_helper'
+require 'rails-controller-testing'
+
+if ENV['TEST_ENV_NUMBER'].nil?
+  log = File.open('order.log', 'w')
+else
+  log = File.open("order-#{ENV['TEST_ENV_NUMBER']}.log", 'w')
+end
 
 RSpec.configure do |config|
+  if (ENV['TEST_ENV_NUMBER'].nil?) && (config.instance_variable_get("@files_or_directories_to_run") == ["spec"])
+    config.pattern = "spec/**/*_spec.rb,components/benefit_markets/spec/**/*_spec.rb,components/benefit_sponsors/spec/**/*_spec.rb,components/notifier/spec/**/*_spec.rb,components/sponsored_benefits/spec/**/*_spec.rb,components/transport_gateway/spec/**/*_spec.rb,components/transport_profiles/spec/**/*_spec.rb"
+  end
   # rspec-expectations config goes here. You can use an alternate
   # assertion/expectation library such as wrong or the stdlib/minitest
   # assertions if you prefer.
+  config.include AcaTestHelper
+  config.include IvlHelper
   config.expect_with :rspec do |expectations|
     # This option will default to `true` in RSpec 4. It makes the `description`
     # and `failure_message` of custom matchers include text for helper methods
@@ -40,8 +63,12 @@ RSpec.configure do |config|
     mocks.verify_partial_doubles = true
   end
 
-# The settings below are suggested to provide a good initial experience
-# with RSpec, but feel free to customize to your heart's content.
+  config.before :each, type: :controller do
+    request.env['HTTP_ACCEPT_LANGUAGE'] = "en"
+  end
+
+  # The settings below are suggested to provide a good initial experience
+  # with RSpec, but feel free to customize to your heart's content.
 =begin
   # These two settings work together to allow you to limit a spec run
   # to individual examples or groups you care about by tagging them with
@@ -84,4 +111,15 @@ RSpec.configure do |config|
   # as the one that triggered the failure.
   Kernel.srand config.seed
 =end
+  config.around(:example) do |example|
+    log << example.location + "\n"
+    example.run
+  end
+
+  RSpec.configure do |config|
+    config.include FactoryBot::Syntax::Methods
+  end
 end
+require 'pundit/rspec'
+
+
