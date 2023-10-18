@@ -1,6 +1,9 @@
 require 'rails_helper'
 
 RSpec.describe "shared/_signup_progress.html.haml" do
+  before :each do
+      allow(view).to receive(:policy_helper).and_return(double("Policy", updateable?: true))
+  end
   context "step 1" do
     before :each do
       render "shared/signup_progress"
@@ -59,18 +62,22 @@ RSpec.describe "shared/_signup_progress.html.haml" do
   context "step 6" do
     let(:hbx_enrollment) { instance_double("HbxEnrollment", id: "hbx enrollment id", employee_role: double) }
     let(:plan) { instance_double("Plan", id: "plan id") }
+    let(:family) { instance_double("Family", id: "family id") }
     before :each do
       assign(:enrollment, hbx_enrollment)
       assign(:enrollable, true)
       assign(:plan, plan)
+      assign(:family, family)
     end
 
     it "should display the waive button" do
+      allow(hbx_enrollment).to receive(:can_select_coverage?).and_return(true)
       render "shared/signup_progress", step: 6
       expect(rendered).to have_selector('a', text: /Waive/)
     end
 
     it "should not display the waive button" do
+      allow(hbx_enrollment).to receive(:can_select_coverage?).and_return(true)
       allow(hbx_enrollment).to receive(:employee_role).and_return(nil)
       render "shared/signup_progress", step: 6
       expect(rendered).not_to have_selector('a', text: /Waive/)
@@ -83,7 +90,7 @@ RSpec.describe "shared/_signup_progress.html.haml" do
 
       it "should disable the purchase button" do
         render "shared/signup_progress", step: 6
-        expect(rendered).to match /<a[^>]*disabled="disabled"[^>]*>Purchase/
+        expect(rendered).to match /<a[^>]*disabled="disabled"[^>]*>Confirm/
       end
     end
   end

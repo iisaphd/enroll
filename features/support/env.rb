@@ -3,9 +3,19 @@
 # newer version of cucumber-rails. Consider adding your own code to a new file
 # instead of editing this one. Cucumber will automatically load all features/**/*.rb
 # files.
+require_relative '../../spec/ivl_helper'
 
+require 'selenium-webdriver'
 require 'cucumber/rails'
 require 'email_spec/cucumber'
+require 'rspec/expectations'
+require 'capybara/cucumber'
+require 'capybara-screenshot/cucumber'
+require 'cucumber/rspec/doubles'
+
+Dir[File.expand_path(Rails.root.to_s + "/lib/test/**/*.rb")].each { |f| load f }
+require File.expand_path(File.dirname(__FILE__) + '/../../config/environment')
+require "rspec/rails"
 
 # Capybara defaults to CSS3 selectors rather than XPath.
 # If you'd prefer to use XPath, just uncomment this line and adjust any
@@ -32,7 +42,8 @@ ActionController::Base.allow_rescue = false
 # Remove/comment out the lines below if your app doesn't have a database.
 # For some databases (like MongoDB and CouchDB) you may need to use :truncation instead.
 begin
-  DatabaseCleaner.strategy = :truncation
+  load Rails.root + "db/seedfiles/english_translations_seed.rb"
+  DatabaseCleaner.strategy = :truncation, {:except => %w[translations]}
 rescue NameError
   raise "You need to add database_cleaner to your Gemfile (in the :test group) if you wish to use it."
 end
@@ -56,3 +67,36 @@ end
 # The :transaction strategy is faster, but might give you threading problems.
 # See https://github.com/cucumber/cucumber-rails/blob/master/features/choose_javascript_database_strategy.feature
 Cucumber::Rails::Database.javascript_strategy = :truncation
+
+Capybara::Screenshot.webkit_options = { width: 2280, height: 1800 }
+Capybara::Screenshot.prune_strategy = :keep_last_run
+Webdrivers.cache_time = 86_400
+
+Capybara::Screenshot.register_driver(:selenium_chrome_custom) do |driver, path|
+  driver.browser.save_screenshot(path)
+end
+
+Capybara.register_driver :selenium_chrome_custom do |app|
+  options = Selenium::WebDriver::Chrome::Options.new
+  options.headless!
+  options.add_argument("no-sandbox")
+  options.add_argument("--window-size=1024,768")
+
+  if RUBY_PLATFORM =~ /darwin/
+    options.add_argument("--enable-features=NetworkService,NetworkServiceInProcess")
+  end
+
+  client = Selenium::WebDriver::Remote::Http::Default.new
+  client.open_timeout = 120 # instead of the default 60
+  client.read_timeout = 120 # instead of the default 60
+
+  Capybara::Selenium::Driver.new(app,
+    browser: :chrome,
+    options: options,
+    http_client: client
+  )
+end
+
+Capybara.default_driver = :selenium_chrome_custom
+Capybara.use_default_driver
+Capybara.current_driver = :selenium_chrome_custom

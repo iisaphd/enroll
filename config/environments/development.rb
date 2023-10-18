@@ -1,5 +1,7 @@
-require "acapi/subscribers/edi"
 Rails.application.configure do
+  # Verifies that versions and hashed value of the package contents in the project's package.json
+  config.webpacker.check_yarn_integrity = true
+
   # Settings specified here will take precedence over those in config/application.rb.
 
   # In the development environment your application's code is reloaded on
@@ -20,6 +22,7 @@ Rails.application.configure do
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
+  config.webpacker.check_yarn_integrity = false
 
   # Raise an error on page load if there are pending migrations.
   # config.active_record.migration_error = :page_load
@@ -40,9 +43,34 @@ Rails.application.configure do
 
   config.acapi.publish_amqp_events = :log
   config.acapi.app_id = "enroll"
-  config.acapi.add_subscription("Events::EmployersController")
   # Raises error for missing translations
   # config.action_view.raise_on_missing_translations = true
 
+  config.action_mailer.default_url_options = {
+    :host => "127.0.0.1",
+    :port => 3000
+  }
+
+  #Environment URL stub
+  config.checkbook_services_base_url = Settings.checkbook_services.base_url
+
+  # for Employer Auto Pay
+  config.wells_fargo_api_url = 'https://demo.e-billexpress.com:443/PayIQ/Api/SSO'
+  config.wells_fargo_api_key = 'e2dab122-114a-43a3-aaf5-78caafbbec02'
+  config.wells_fargo_biller_key = '3741'
+  config.wells_fargo_api_secret = 'dchbx 2017'
+  config.wells_fargo_api_version = '3000'
+  config.wells_fargo_private_key_location = '/wfpk.pem'
+  config.wells_fargo_api_date_format = '%Y-%m-%dT%H:%M:%S.0000000%z'
+
+  #Queue adapter
+  config.active_job.queue_adapter = :resque
+
   HbxIdGenerator.slug!
+  config.ga_tracking_id = ENV['GA_TRACKING_ID'] || "dummy"
+  config.ga_tagmanager_id = ENV['GA_TAGMANAGER_ID'] || "dummy"
+
+
+  Mongoid.logger.level = Logger::ERROR
+  Mongo::Logger.logger.level = Logger::ERROR
 end

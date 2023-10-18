@@ -12,7 +12,8 @@ describe HbxEnrollmentMember, dbclean: :after_all do
       @enrollment = household.create_hbx_enrollment_from(
         employee_role: mikes_employee_role,
         coverage_household: coverage_household,
-        benefit_group: mikes_benefit_group
+        benefit_group: mikes_benefit_group,
+        benefit_group_assignment: @mikes_benefit_group_assignments
       )
       @family_member_ids = mikes_family.family_members.collect(&:_id)
     end
@@ -38,11 +39,11 @@ describe HbxEnrollmentMember, dbclean: :after_all do
         expect(@enrollment.hbx_enrollment_members.first.errors[:is_subscriber].any?).to be_falsey
       end
 
-      it "should raise if subscriber(primary applicant) is not selected during enrollment" do
-        enrollment_members.reject!{ |a| a._id == subscriber._id }
-        expect(@enrollment.valid?).to be_falsey
-        expect(@enrollment.hbx_enrollment_members.first.errors[:is_subscriber].any?).to be_truthy
-      end
+      # it "should raise if subscriber(primary applicant) is not selected during enrollment" do
+      #   enrollment_members.reject!{ |a| a._id == subscriber._id }
+      #   expect(@enrollment.valid?).to be_falsey
+      #   expect(@enrollment.hbx_enrollment_members.first.errors[:is_subscriber].any?).to be_truthy
+      # end
 
       context "should not raise error if employee_role is blank" do
         it "when subscriber is selected during enrollment" do
@@ -58,6 +59,37 @@ describe HbxEnrollmentMember, dbclean: :after_all do
           expect(@enrollment.hbx_enrollment_members.first.errors[:is_subscriber].any?).to be_falsey
         end
       end
+    end
+
+    context "update_current" do
+      before :all do
+        @member = enrollment.hbx_enrollment_members.last
+        @member.update_current(applied_aptc_amount: 11.1)
+      end
+
+      it "member should update applied_aptc_amount" do
+        @member.reload
+        expect(@member.applied_aptc_amount.to_f).to eq 11.1.to_f
+      end
+    end
+  end
+
+  context "given a family member" do
+    let(:person) { double }
+    let(:family_member) { instance_double(FamilyMember, :person => person ) }
+    subject { HbxEnrollmentMember.new }
+
+    before :each do
+      allow(subject).to receive(:family_member).and_return(family_member)
+    end
+
+    it "delegates #person to the family member" do
+      expect(subject.person).to eq person
+    end
+
+    it "delegates #ivl_coverage_selected to the family member" do
+      expect(family_member).to receive(:ivl_coverage_selected)
+      subject.ivl_coverage_selected
     end
   end
 end

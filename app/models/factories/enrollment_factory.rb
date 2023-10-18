@@ -1,5 +1,7 @@
 module Factories
   class EnrollmentFactory
+    extend Acapi::Notifiers
+
     def self.add_consumer_role(person:, new_ssn: nil, new_dob: nil, new_gender: nil, new_is_incarcerated:, new_is_applicant:,
                                new_is_state_resident:, new_citizen_status:)
 
@@ -29,26 +31,82 @@ module Factories
       else
         consumer_role.errors.add(:person, "unable to update person")
       end
-
      return consumer_role
+    end
 
+    def self.add_resident_role(person:, new_ssn: nil, new_dob: nil, new_gender: nil, new_is_incarcerated:, new_is_applicant:,
+                               new_is_state_resident:, new_citizen_status:)
+
+      [:new_is_incarcerated, :new_is_applicant, :new_is_state_resident, :new_citizen_status].each do |value|
+        name = value.id2name
+        raise ArgumentError.new("missing value: #{name}, expected as keyword ") if eval(name).blank?
+      end
+
+      ssn = new_ssn
+      dob = new_dob
+      gender = new_gender
+      is_incarcerated = new_is_incarcerated
+      is_applicant = new_is_applicant
+      is_state_resident = new_is_state_resident
+      citizen_status = new_citizen_status
+
+      # Assign consumer-specifc attributes
+      resident_role = person.build_resident_role(ssn: ssn,
+                                                 dob: dob,
+                                                 gender: gender,
+                                                 is_incarcerated: is_incarcerated,
+                                                 is_applicant: is_applicant,
+                                                 is_state_resident: is_state_resident,
+                                                 citizen_status: citizen_status)
+     if person.save
+        resident_role.save
+      else
+        resident_role.errors.add(:person, "unable to update person")
+      end
+     return resident_role
     end
 
     def self.construct_consumer_role(person_params, user)
       person_params = person_params[:person]
       person, person_new = initialize_person(
-        user, person_params["name_pfx"], person_params["first_name"],
-        person_params["middle_name"] , person_params["last_name"],
-        person_params["name_fx"], person_params["ssn"].gsub("-",""),
-        person_params["dob"], person_params["gender"], "consumer"
-        )
-      return nil, nil if person.blank? and person_new.blank?
+        user,
+        person_params["name_pfx"],
+        person_params["first_name"],
+        person_params["middle_name"],
+        person_params["last_name"],
+        person_params["name_sfx"],
+        person_params["ssn"].gsub("-",""),
+        person_params["dob"],
+        person_params["gender"],
+        "consumer",
+        person_params["no_ssn"],
+        person_params["is_applying_coverage"]
+      )
+      if person.blank? && person_new.blank?
+        begin
+          raise
+        rescue => e
+          error_message = {
+            :error => {
+              :message => "unable to construct consumer role",
+              :person_params => person_params.inspect,
+              :user => user.inspect,
+              :backtrace => e.backtrace.join("\n")
+            }
+          }
+          log(JSON.dump(error_message), {:severity => 'error'})
+        end
+        return nil
+      end
       role = build_consumer_role(person, person_new)
+      role.update_attribute(:is_applying_coverage, (person_params["is_applying_coverage"].nil? ?  true : person_params["is_applying_coverage"]))
+      role
     end
 
     def self.build_consumer_role(person, person_new)
       role = find_or_build_consumer_role(person)
       family, primary_applicant =  initialize_family(person,[])
+      family.family_members.map(&:__association_reload_on_person)
       saved = save_all_or_delete_new(family, primary_applicant, role)
       if saved
         role
@@ -113,7 +171,7 @@ module Factories
         person_details.name_sfx, census_employee.ssn,
         census_employee.dob, person_details.gender, "employee"
         )
-      return nil, nil if person.blank? and person_new.blank?
+      return nil, nil if person.blank? && person_new.blank?
       self.build_employee_role(
         person, person_new, census_employee.employer_profile,
         census_employee, census_employee.hired_on
@@ -140,100 +198,176 @@ module Factories
     def self.link_census_employee(census_employee, employee_role, employer_profile)
       census_employee.employer_profile = employer_profile
       employee_role.employer_profile = employer_profile
+      census_employee.benefit_group_assignments.each do |bga|
+        next unless bga.hbx_enrollment.present?
+
+        if bga.hbx_enrollment.coverage_selected? && bga.hbx_enrollment.present? && !bga.hbx_enrollment.inactive?
+          bga.hbx_enrollment.employee_role_id = employee_role.id
+          bga.hbx_enrollment.save
+        end
+      end
       census_employee.employee_role = employee_role
       employee_role.new_census_employee = census_employee
       employee_role.hired_on = census_employee.hired_on
       employee_role.terminated_on = census_employee.employment_terminated_on
-      employee_role.benefit_group_id = census_employee.active_benefit_group_assignment.benefit_group_id #TODO
     end
 
-    private
+    def self.migrate_census_employee_contact_to_person(census_employee, person)
+      if census_employee
+        if census_employee.address
+          person.addresses.create!(census_employee.address.attributes) if person.addresses.blank?
+        end
+        if census_employee.email
+          person.emails.create!(census_employee.email.attributes) if person.emails.blank?
+          person.emails.create!(kind: 'work', address: census_employee.email_address) if person.work_email.blank? && census_employee.email_address.present?
+        end
+      end
+    end
 
     def self.build_employee_role(person, person_new, employer_profile, census_employee, hired_on)
       role = find_or_build_employee_role(person, employer_profile, census_employee, hired_on)
       self.link_census_employee(census_employee, role, employer_profile)
+      validate_and_update_person(person, census_employee, employer_profile)
       family, primary_applicant = self.initialize_family(person, census_employee.census_dependents)
+      family.family_members.map(&:__association_reload_on_person)
+      family.save_relevant_coverage_households
       saved = save_all_or_delete_new(family, primary_applicant, role)
       if saved
         census_employee.save
+        migrate_census_employee_contact_to_person(census_employee, person)
       elsif person_new
         person.delete
       end
+
       return role, family
     end
 
-    def self.initialize_person(user, name_pfx, first_name, middle_name,
-                               last_name, name_sfx, ssn, dob, gender, role_type)
-      people = Person.match_by_id_info(ssn: ssn, dob: dob, last_name: last_name)
-      person, is_new = nil, nil
-      case people.count
-      when 1
-        person = people.first
-        person.user = user if user
-        if person.ssn.nil?
-          #matched on last_name and dob
-          person.ssn = ssn
-          person.gender = gender
-        end
-        person.save
-        person, is_new = person, false
-      when 0
-        if user.try(:person).try(:present?)
-          if user.person.first_name == first_name and user.person.last_name = last_name
-            person = user.person
-            person.update(name_sfx: name_sfx,
-                          middle_name: middle_name,
-                          name_pfx: name_pfx,
-                          ssn: ssn,
-                          dob: dob,
-                          gender: gender)
-            is_new = false
-          else
-            return nil, nil
-          end
-        else
-          person, is_new = Person.create(
-            user: user,
-            name_pfx: name_pfx,
-            first_name: first_name,
-            middle_name: middle_name,
-            last_name: last_name,
-            name_sfx: name_sfx,
-            ssn: ssn,
-            dob: dob,
-            gender: gender,
-          ), true
-        end
+    def self.build_family(person, dependents)
+      #only build family if there is no primary family, otherwise return primary family
+      if person.primary_family.nil?
+        family, primary_applicant = self.initialize_family(person, dependents)
+        family.family_members.map(&:__association_reload_on_person)
+        saved = save_all_or_delete_new(family, primary_applicant)
       else
-        # what am I doing here?  More than one person had the same SSN?
-        return nil, nil
+        family = person.primary_family
       end
-      if user.present?
-        user.roles << role_type unless user.roles.include?(role_type)
-        user.save
-        unless person.emails.count > 0
-          person.emails.build(kind: "home", address: user.email)
-          person.save
+      return family
+    end
+
+    def self.initialize_dependent(family, primary, dependent)
+      person, new_person = initialize_person(nil, nil, dependent.first_name,
+                                 dependent.middle_name, dependent.last_name,
+                                 dependent.name_sfx, dependent.ssn,
+                                 dependent.dob, dependent.gender, "employee")
+
+      if person.present? && person.persisted?
+        relationship = person_relationship_for(dependent.employee_relationship)
+        primary.ensure_relationship_with(person, relationship)
+        primary.save!
+        family.primary_applicant.person = primary
+        family.add_family_member(person) unless family.find_family_member_by_person(person)
+      end
+      person
+    end
+
+    def self.construct_resident_role(person_params, user)
+      person_params = person_params[:person]
+      person, person_new = initialize_person(
+        user, person_params["name_pfx"], person_params["first_name"],
+        person_params["middle_name"] , person_params["last_name"],
+        person_params["name_sfx"], person_params["ssn"],
+        person_params["dob"], person_params["gender"], "resident", true
+        )
+      if person.blank? && person_new.blank?
+        begin
+          raise
+        rescue => e
+          error_message = {
+            :error => {
+              :message => "unable to construct resident role",
+              :person_params => person_params.inspect,
+              :user => user.inspect,
+              :backtrace => e.backtrace.join("\n")
+            }
+          }
+          log(JSON.dump(error_message), {:severity => 'error'})
         end
+        return nil
       end
-      return person, is_new
+      role = build_resident_role(person, person_new)
+    end
+
+    def self.build_resident_role(person, person_new)
+      role = find_or_build_resident_role(person)
+      family, primary_applicant =  initialize_family(person,[])
+      family.family_members.map(&:__association_reload_on_person)
+      saved = save_all_or_delete_new(family, primary_applicant, role)
+      if saved
+        role
+      elsif person_new
+        person.delete
+      end
+      return role
+    end
+
+    def self.find_or_build_resident_role(person)
+      return person.resident_role if person.resident_role.present?
+      person.build_resident_role(is_applicant: true)
+    end
+
+    def self.validate_and_update_person(person, census_employee, employer_profile)
+      return unless person.employer_staff_roles
+      return unless person.employer_staff_roles.map(&:benefit_sponsor_employer_profile_id).include?(employer_profile.id)
+      return unless person.ssn.blank? || person.gender.blank?
+
+      person.update_attributes(ssn: census_employee.ssn, gender: census_employee.gender)
+    end
+
+    private
+
+    def self.initialize_person(user, name_pfx, first_name, middle_name,
+                               last_name, name_sfx, ssn, dob, gender, role_type, no_ssn=nil, is_applying_coverage=true)
+        person_attrs = {
+          user: user,
+          name_pfx: name_pfx,
+          first_name: first_name,
+          middle_name: middle_name,
+          last_name: last_name,
+          name_sfx: name_sfx,
+          ssn: ssn,
+          dob: dob,
+          gender: gender,
+          no_ssn: no_ssn,
+          role_type: role_type,
+          is_applying_coverage: is_applying_coverage
+        }
+        result = FindOrCreateInsuredPerson.call(person_attrs)
+        return result.person, result.is_new
     end
 
     def self.find_or_build_employee_role(person, employer_profile, census_employee, hired_on)
+      if person.active_employee_roles.any?
+        person.active_employee_roles.each do |role|
+          role.update_attributes(benefit_sponsors_employer_profile_id: employer_profile.id, census_employee_id: census_employee.id, hired_on: census_employee.hired_on) if role.employer_profile.fein == employer_profile.fein
+        end
+      end
+
       roles = person.employee_roles.where(
-          "employer_profile_id" => employer_profile.id.to_s,
+          "benefit_sponsors_employer_profile_id" => employer_profile.id.to_s,
           "hired_on" => census_employee.hired_on
         )
 
       role = case roles.count
       when 0
         # Assign employee-specifc attributes
-        person.employee_roles.build(employer_profile: employer_profile, hired_on: hired_on)
-      when 1
-        roles.first
+        person.employee_roles.build(employer_profile: employer_profile, hired_on: hired_on, benefit_sponsors_employer_profile_id: employer_profile.id )
+        # when 1
+        #   roles.first
+        # else
+        #   # What am I doing here?
+        #   nil
       else
-        # What am I doing here?
-        nil
+        roles.first
       end
     end
 
@@ -255,16 +389,6 @@ module Factories
       family.add_family_member(person, is_primary_applicant: true) unless family.find_family_member_by_person(person)
     end
 
-    def self.initialize_dependent(family, primary, dependent)
-      person, new_person = initialize_person(nil, nil, dependent.first_name,
-                                 dependent.middle_name, dependent.last_name,
-                                 dependent.name_sfx, dependent.ssn,
-                                 dependent.dob, dependent.gender, "employee")
-      relationship = person_relationship_for(dependent.employee_relationship)
-      primary.ensure_relationship_with(person, relationship)
-      family.add_family_member(person) unless family.find_family_member_by_person(person)
-    end
-
     def self.person_relationship_for(census_relationship)
       case census_relationship
       when "spouse"
@@ -278,7 +402,30 @@ module Factories
 
     def self.save_all_or_delete_new(*list)
       objects_to_save = list.reject {|o| !o.changed?}
-      num_saved = objects_to_save.count { |o| o.save }
+      num_saved = objects_to_save.count do |o|
+        begin
+          o.save.tap do |save_result|
+            unless save_result
+              error_message = {
+                :message => "Unable to save object:\n#{o.errors.to_hash.inspect}",
+                :object_kind => o.class.to_s,
+                :object_id => o.id.to_s
+              }
+              log(JSON.dump(error_message), {:severity => "error"})
+            end
+          end
+        rescue => e
+          error_message = {
+            :error => {
+              :message => "unable to save object in enrollment factory",
+              :object_kind => o.class.to_s,
+              :object_id => o.id.to_s
+            }
+          }
+          log(JSON.dump(error_message), {:severity => 'critical'})
+          raise e
+        end
+      end
       if num_saved < objects_to_save.count
         objects_to_save.each {|o| o.delete}
         false

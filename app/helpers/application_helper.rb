@@ -1,7 +1,81 @@
 module ApplicationHelper
-  
+
+  def can_employee_shop?(date)
+    return false if date.blank?
+    date = Date.strptime(date.to_s,"%m/%d/%Y")
+    Plan.has_rates_for_all_carriers?(date) == false
+  end
+
+  def rates_available?(employer, date=nil)
+    employer.applicant? && !Plan.has_rates_for_all_carriers?(date) ? "blocking" : ""
+  end
+
+  def product_rates_available?(benefit_sponsorship, date=nil)
+    date = Date.strptime(date.to_s, '%m/%d/%Y') if date.present?
+    return false if benefit_sponsorship.present? && benefit_sponsorship.active_benefit_application.present?
+    date = date || BenefitSponsors::BenefitApplications::BenefitApplicationSchedular.new.calculate_start_on_dates[0]
+    benefit_sponsorship.applicant? && BenefitMarkets::Forms::ProductForm.for_new(date).fetch_results.is_late_rate
+  end
+
+  def deductible_display(hbx_enrollment, plan)
+    if hbx_enrollment.hbx_enrollment_members.size > 1
+      plan.family_deductible.split("|").last.squish
+    else
+      plan.deductible
+    end
+  end
+
+  def draft_plan_year?(plan_year)
+    if plan_year.aasm_state == "draft" && plan_year.try(:benefit_groups).empty?
+      plan_year
+    end
+  end
+
+  def get_portals_text(insured, employer, broker)
+    my_portals = []
+    if insured == true
+      my_portals << "<strong>Insured</strong>"
+    end
+    if employer == true
+      my_portals << "<strong>Employer</strong>"
+    end
+    if broker == true
+      my_portals << "<strong>Broker</strong>"
+    end
+    my_portals.to_sentence
+  end
+
+  def copyright_notice
+    if TimeKeeper.date_of_record.year.to_s == Settings.site.copyright_period_start.to_s
+      copyright_attribution = "#{Settings.site.copyright_period_start} #{Settings.site.long_name}"
+    else
+      copyright_attribution = "#{Settings.site.copyright_period_start}-#{TimeKeeper.date_of_record.year} #{Settings.site.long_name}"
+    end
+    raw("<span class='copyright'><i class='far fa-copyright fa-lg' aria-hidden='true'></i> #{copyright_attribution}. All Rights Reserved. </span>")
+  end
+
   def menu_tab_class(a_tab, current_tab)
     (a_tab == current_tab) ? raw(" class=\"active\"") : ""
+  end
+
+  def current_cost(plan_cost, ehb=0, hbx_enrollment=nil, source=nil, can_use_aptc=true)
+    # source is account or shopping
+    if source == 'account' && hbx_enrollment.present? && hbx_enrollment.try(:applied_aptc_amount).to_f > 0
+      if hbx_enrollment.coverage_kind == 'health'
+        return (hbx_enrollment.total_premium - hbx_enrollment.applied_aptc_amount.to_f)
+      else
+        return hbx_enrollment.total_premium
+      end
+    end
+
+    if session['elected_aptc'].present? && session['max_aptc'].present? && can_use_aptc
+      aptc_amount = session['elected_aptc'].to_f
+      ehb_premium = plan_cost * ehb
+      cost = plan_cost - [ehb_premium, aptc_amount].min
+      cost > 0 ? cost : 0
+    else
+      plan_cost
+    end
   end
 
   def datepicker_control(f, field_name, options = {}, value = "")
@@ -22,7 +96,7 @@ module ApplicationHelper
     generated_target_id ||= "#{sanitized_object_name}_jq_datepicker_plain_field"
     capture do
       concat f.text_field(field_name, opts.merge(:class => html_class_list, :id => generated_target_id, :value=> obj_val.try(:to_s, :db)))
-      concat text_field_tag(generated_field_name, current_value, opts.merge(:class => jq_tag_classes, :style => "display: none;", "data-submission-field" => "##{generated_target_id}"))
+      concat text_field_tag(generated_field_name, current_value, opts.merge(:class => jq_tag_classes, :start_date => "07/01/2016", :style => "display: none;", "data-submission-field" => "##{generated_target_id}"))
     end
   end
 
@@ -53,6 +127,18 @@ module ApplicationHelper
 
   def format_date(date_value)
     date_value.strftime("%m/%d/%Y") if date_value.respond_to?(:strftime)
+  end
+
+  def format_datetime(date_value)
+    date_value.to_time.strftime("%m/%d/%Y %H:%M %Z %:z") if date_value.respond_to?(:strftime)
+  end
+
+  def group_xml_transmitted_message(employer)
+    employer.xml_transmitted_timestamp.present? ? "The group xml for employer #{employer.legal_name} was transmitted on #{format_time_display(employer.xml_transmitted_timestamp)}. Are you sure you want to transmit again?" : "Are you sure you want to transmit the group xml for employer #{employer.legal_name}?"
+  end
+
+  def format_time_display(timestamp)
+    timestamp.present? ? timestamp.in_time_zone('Eastern Time (US & Canada)') : ""
   end
 
   # Builds a Dropdown button
@@ -104,7 +190,12 @@ module ApplicationHelper
 
   # Uses a boolean value to return an HTML checked/unchecked glyph
   def boolean_to_glyph(test)
-    test ? content_tag(:span, "", class: "fui-checkbox-checked") : content_tag(:span, "", class: "fui-checkbox-unchecked")
+    test ? content_tag(:span, "", class: "far fa-check-square aria-hidden='true'") : content_tag(:span, "", class: "far fa-square aria-hidden='true'")
+  end
+
+  # Uses a boolean value to return an HTML checked/unchecked glyph with hover text
+  def prepend_glyph_to_text(test)
+    test.event_name ? "<i class='fa fa-link' data-toggle='tooltip' title='#{test.event_name}'></i>&nbsp;&nbsp;&nbsp;&nbsp;#{link_to test.notice_number, notifier.preview_notice_kind_path(test), target: '_blank'}".html_safe : "<i class='fa fa-link' data-toggle='tooltip' style='color: silver'></i>&nbsp;&nbsp;&nbsp;&nbsp;#{link_to test.notice_number, notifier.preview_notice_kind_path(test), target: '_blank'}".html_safe
   end
 
   # Formats a number into a 9-digit US Social Security Number string (nnn-nn-nnnn)
@@ -179,6 +270,13 @@ module ApplicationHelper
       new_object.build_phone
     end
 
+    if f.object.send(association).klass == BenefitGroup
+      new_object.build_relationship_benefits
+      new_object.build_composite_tier_contributions
+      new_object.build_dental_relationship_benefits
+    end
+
+
     fields = f.fields_for(association, new_object, fieldset: false, child_index: id) do |builder|
       render("shared/" + association.to_s.singularize + "_fields", f: builder)
     end
@@ -243,15 +341,6 @@ module ApplicationHelper
     return members_list
   end
 
-  def generate_relationship_benefits(obj)
-    return nil unless obj.class == BenefitGroup
-    if obj.relationship_benefits.present?
-      obj.relationship_benefits
-    else
-      obj.simple_benefit_list(nil, nil, nil)
-    end
-  end
-
   def add_progress_class(element_number, step)
     if element_number < step
       'complete'
@@ -262,11 +351,18 @@ module ApplicationHelper
 
   def user_full_name
     if signed_in?
-      current_user.person.try(:full_name) ? current_user.person.full_name : current_user.email
+      current_user.person.try(:full_name) ? current_user.person.full_name : current_user.oim_id
+    end
+  end
+
+  def user_first_name_last_name_and_suffix
+    if signed_in?
+      current_user.person.try(:first_name_last_name_and_suffix) ? current_user.person.first_name_last_name_and_suffix : (current_user.oim_id).downcase
     end
   end
 
   def retrieve_show_path(provider, message)
+    return broker_agencies_inbox_path(provider, message_id: message.id) if provider.try(:broker_role)
     case(provider.model_name.name)
     when "Person"
       insured_inbox_path(provider, message_id: message.id)
@@ -276,12 +372,15 @@ module ApplicationHelper
       broker_agencies_inbox_path(provider, message_id: message.id)
     when "HbxProfile"
       exchanges_inbox_path(provider, message_id: message.id)
+    when "GeneralAgencyProfile"
+      general_agencies_inbox_path(provider, message_id: message.id)
     end
   end
 
   def retrieve_inbox_path(provider, folder: 'inbox')
+    broker_agency_mailbox =  broker_agencies_profile_inbox_path(profile_id: provider.id, folder: folder)
+    return broker_agency_mailbox if provider.try(:broker_role)
     case(provider.model_name.name)
-
     when "EmployerProfile"
       inbox_employers_employer_profiles_path(id: provider.id, folder: folder)
     when "HbxProfile"
@@ -289,8 +388,14 @@ module ApplicationHelper
     when "BrokerAgencyProfile"
       broker_agencies_profile_inbox_path(profile_id: provider.id, folder: folder)
     when "Person"
-      inbox_consumer_profiles_path(profile_id: provider.id, folder: folder)
+      inbox_insured_families_path(profile_id: provider.id, folder: folder)
+    when "GeneralAgencyProfile"
+      inbox_general_agencies_profiles_path(profile_id: provider.id, folder: folder)
     end
+  end
+
+  def get_header_text(controller_name)
+      portal_display_name(controller_name)
   end
 
   def can_register_new_account
@@ -299,35 +404,6 @@ module ApplicationHelper
     true
   end
 
-  def portal_display_name(controller)
-    if current_user.nil?
-      "Welcome to the District's Health Insurance Marketplace"
-    elsif current_user.try(:has_hbx_staff_role?)
-      "#{image_tag 'icons/icon-exchange-admin.png'} &nbsp; I'm HBX Staff".html_safe
-    elsif current_user.try(:has_broker_agency_staff_role?) && current_user.person.broker_role
-      link_to "#{image_tag 'icons/icon-expert.png'} &nbsp; I'm a Broker".html_safe,
-      broker_agencies_profile_path(id: current_user.person.broker_role.broker_agency_profile_id)
-    elsif current_user.try(:person).try(:csr_role) && current_user.person.csr_role.cac
-      link_to "#{image_tag 'icons/icon-expert.png'} &nbsp; I'm a Certified Applicant Counselor".html_safe,
-      home_exchanges_agents_path
-    elsif current_user.try(:person).try(:csr_role) && !current_user.person.csr_role.cac
-      link_to "#{image_tag 'icons/icon-expert.png'} &nbsp; I'm a Customer Service Representative".html_safe,
-      home_exchanges_agents_path
-    elsif current_user.try(:person).try(:assister_role)
-      link_to "#{image_tag 'icons/icon-expert.png'} &nbsp; I'm an In Person Assister".html_safe,
-      home_exchanges_agents_path
-    elsif current_user.try(:has_broker_agency_staff_role?)
-      "#{image_tag 'icons/icon-expert.png'} &nbsp; I'm a Broker".html_safe
-    elsif current_user.try(:has_employer_staff_role?)
-      "#{image_tag 'icons/icon-business-owner.png'} &nbsp; I'm an Employer".html_safe
-    elsif controller == 'employee_roles' || controller == "consumer_roles"
-      "#{image_tag 'icons/icon-individual.png'} &nbsp; I'm an Insured".html_safe
-    elsif controller == 'consumer_profiles'
-      "#{image_tag 'icons/icon-individual.png'} &nbsp; I'm an Insured".html_safe
-    else
-      "Welcome to the District's Health Insurance Marketplace"
-    end
-  end
   def override_backlink
     link=''
     if current_user.try(:has_hbx_staff_role?)
@@ -338,10 +414,43 @@ module ApplicationHelper
     return link
   end
 
-  def display_carrier_logo(carrier_name, options = {:width => 50})
-    if carrier_name.present?
-      image_tag("logo/carrier/#{carrier_name.parameterize.underscore}.jpg", width: options[:width]) # Displays carrier logo (Delta Dental => delta_dental.jpg)
+  def carrier_logo(plan)
+    if plan.extract_value.class.to_s == "Plan"
+      return "" if !plan.carrier_profile.legal_name.extract_value.present?
+      issuer_hios_id = plan.hios_id[0..4].extract_value
+      Settings.aca.carrier_hios_logo_variant[issuer_hios_id] || plan.carrier_profile.legal_name.extract_value
+    else
+      return "" if !plan.issuer_profile.legal_name.extract_value.present?
+      issuer_hios_id = plan.hios_id[0..4].extract_value
+      Settings.aca.carrier_hios_logo_variant[issuer_hios_id] || plan.issuer_profile.legal_name.extract_value
     end
+  end
+
+  def display_carrier_logo(plan, options = {:width => 50})
+    carrier_name = carrier_logo(plan)
+    image_tag("logo/carrier/#{carrier_name.parameterize.underscore}.jpg", width: options[:width]) # Displays carrier logo (Delta Dental => delta_dental.jpg)
+  end
+
+  def digest_logos
+    carrier_logo_hash = Hash.new(carriers:{})
+    carriers = ::BenefitSponsors::Organizations::Organization.issuer_profiles
+    carriers.each do |car|
+      if Rails.env == "production"
+        image = "logo/carrier/#{car.legal_name.parameterize.underscore}.jpg"
+        digest_image = "/assets/#{Rails.application.assets.find_asset(image)&.digest_path}"
+        Rails.logger.warn("Unable to find carrier logo asset for #{car.legal_name}.") if Rails.application.assets.find_asset(image)&.digest_path.nil?
+        carrier_logo_hash[car.legal_name] = digest_image
+      else
+        image = "/assets/logo/carrier/#{car.legal_name.parameterize.underscore}.jpg"
+        carrier_logo_hash[car.legal_name] = image
+      end
+    end
+    carrier_logo_hash
+  end
+
+  def display_carrier_pdf_logo(plan, options = {:width => 50})
+    carrier_name = carrier_logo(plan)
+    image_tag(wicked_pdf_asset_base64("logo/carrier/#{carrier_name.parameterize.underscore}.jpg"), width: options[:width]) # Displays carrier logo (Delta Dental => delta_dental.jpg)
   end
 
   def dob_in_words(age, dob)
@@ -362,6 +471,8 @@ module ApplicationHelper
       end
     else
       case @status
+      when 'applicant'
+        'Submitted Date'
       when 'certified'
         'Certified Date'
       when 'decertified'
@@ -373,28 +484,36 @@ module ApplicationHelper
     end
   end
 
+  def relationship_options(dependent, referer)
+    relationships = referer.include?("consumer_role_id") || @person.try(:has_active_consumer_role?) ?
+      BenefitEligibilityElementGroup::Relationships_UI - ["self"] :
+      PersonRelationship::Relationships_UI
+    options_for_select(relationships.map{|r| [r.to_s.humanize, r.to_s] }, selected: dependent.try(:relationship))
+  end
+
   def enrollment_progress_bar(plan_year, p_min, options = {:minimum => true})
     progress_bar_width = 0
     progress_bar_class = ''
     return if plan_year.nil?
+    return if plan_year.employer_profile.census_employees.active.count > 200
 
     eligible = plan_year.eligible_to_enroll_count
     enrolled = plan_year.total_enrolled_count
-    non_owner = plan_year.non_business_owner_enrollment_count
-    covered = plan_year.covered_count
+    non_owner = plan_year.progressbar_enrolled_non_business_owner_members.count
+    covered = plan_year.progressbar_covered_count
     waived = plan_year.waived_count
     p_min = 0 if p_min.nil?
 
     unless eligible.zero?
-      condition = (eligible <= 2) ? ((enrolled > (eligible - 1)) && (non_owner > 0)) : ((enrolled >= p_min) && (non_owner > 0))
+      condition = enrolled >= p_min && non_owner > 0
       condition = false if covered == 0 && waived > 0
       progress_bar_class = condition ? 'progress-bar-success' : 'progress-bar-danger'
       progress_bar_width = (enrolled * 100)/eligible
     end
 
-    content_tag(:div, class: 'progress-wrapper') do
+    content_tag(:div, class: 'progress-wrapper employer-dummy') do
       content_tag(:div, class: 'progress') do
-        concat(content_tag(:div, class: "progress-bar #{progress_bar_class}", style: "width: #{progress_bar_width}%;", role: 'progressbar', aria: {valuenow: "#{enrolled}", valuemin: "0", valuemax: "#{eligible}"}, data: {value: "#{enrolled}"}) do
+        concat(content_tag(:div, class: "progress-bar #{progress_bar_class} progress-bar-striped", style: "width: #{progress_bar_width}%;", role: 'progressbar', aria: {valuenow: "#{enrolled}", valuemin: "0", valuemax: "#{eligible}"}, data: {value: "#{enrolled}"}) do
           concat content_tag(:span, '', class: 'sr-only')
         end)
 
@@ -402,9 +521,9 @@ module ApplicationHelper
           concat content_tag(:small, enrolled, class: 'progress-current', style: "left: #{progress_bar_width - 2}%;")
         end
 
-        if eligible > 2
-          eligible_text = (options[:minimum] == false) ? "#{p_min}<br>(Minimum)" : "&nbsp;#{p_min}&nbsp;"
-          concat content_tag(:p, eligible_text.html_safe, class: 'divider-progress', data: {value: "#{p_min}"})
+        if eligible >= 2 && plan_year.employee_participation_ratio_minimum != 0
+          eligible_text = options[:minimum] == false ? "#{p_min}<br>(Minimum)" : "<i class='fa fa-circle manual' data-toggle='tooltip' title='Minimum Requirement' aria-hidden='true'></i>".html_safe
+          concat content_tag(:p, eligible_text.html_safe, class: 'divider-progress', data: {value: p_min.to_s})
         end
 
         concat(content_tag(:div, class: 'progress-val') do
@@ -417,35 +536,266 @@ module ApplicationHelper
 
   def is_readonly(object)
     return false if current_user.roles.include?("hbx_staff") # can edit, employer census roster
-    return true if object.try(:employee_role_linked?)  # cannot edit, employer census roster
+    return true if object.try(:linked?)  # cannot edit, employer census roster
     return !(object.new_record? or object.try(:eligible?)) # employer census roster
+  end
+
+  def may_update_census_employee?(census_employee)
+    if current_user.roles.include?("hbx_staff") || census_employee.new_record? || census_employee.is_eligible?
+      true
+    else
+      false
+    end
   end
 
   def calculate_participation_minimum
     if @current_plan_year.present?
-      return 0 if @current_plan_year.eligible_to_enroll_count == 0
-      return ((@current_plan_year.eligible_to_enroll_count * 2 / 3) + 0.999).to_i
+      if @current_plan_year.eligible_to_enroll_count == 0
+        0
+      else
+        (@current_plan_year.eligible_to_enroll_count * @current_plan_year.employee_participation_ratio_minimum).ceil
+      end
     end
   end
 
-  def ethnicity_collection
-    [
-      ["White", "Black or African American", "Asian Indian" ],
-      ["Chinese", "Filipino", "Japanese", "Korean"], 
-      ["Vietnamese", "Other Asian", "Native Hawaiian", "Samon" ],
-      ["Guamanion or Chamorro", "Other pacific islander"]
-    ].inject([]){ |sets, ethnicities|
-      sets << ethnicities.map{|e| OpenStruct.new({name: e, value: e})}
-    }
+  def notice_eligible_enrolles(notice)
+    notice.enrollments.inject([]) do |enrollees, enrollment|
+      enrollees += enrollment.enrollees
+    end.uniq
   end
 
-  def latino_collection
-    [
-      ["Mexican", "Mexican American"],
-      ["Chicano/a", "Puerto Rican"],
-      ["Cuban"]
-    ].inject([]){ |sets, ethnicities|
-      sets << ethnicities.map{|e| OpenStruct.new({name: e, value: e})}
+  def show_oop_pdf_link(aasm_state)
+    (PlanYear::PUBLISHED + PlanYear::RENEWING_PUBLISHED_STATE).include?(aasm_state)
+  end
+
+  def calculate_age_by_dob(dob)
+    now = TimeKeeper.date_of_record
+    now.year - dob.year - ((now.month > dob.month || (now.month == dob.month && now.day >= dob.day)) ? 0 : 1)
+  end
+
+  def is_under_open_enrollment?
+    HbxProfile.current_hbx.present? ? HbxProfile.current_hbx.under_open_enrollment? : nil
+  end
+
+  def ivl_enrollment_effective_date
+    HbxProfile.current_hbx.try(:benefit_sponsorship).try(:earliest_effective_date)
+  end
+
+  def parse_ethnicity(value)
+    return "" unless value.present?
+    value = value.select{|a| a.present? }  if value.present?
+    value.present? ? value.join(", ") : ""
+  end
+
+  def incarceration_cannot_purchase(family_member)
+    pronoun = family_member.try(:gender)=='male' ? ' he ':' she '
+    name=family_member.try(:first_name) || ''
+    "Since " + name + " is currently incarcerated," + pronoun + "is not eligible to purchase a plan on #{Settings.site.short_name}.<br/> Other family members may still be eligible to enroll."
+  end
+
+  def purchase_or_confirm
+    'Confirm'
+  end
+
+  def qualify_qle_notice
+    content_tag(:span) do
+      concat "In order to purchase benefit coverage, you must be in either an Open Enrollment or Special Enrollment period. "
+      concat link_to("Click here", find_sep_insured_families_path)
+      concat " to see if you qualify for a Special Enrollment period"
+    end
+  end
+
+  def trigger_notice_observer(recipient, event_object, notice_event, params={})
+    observer = Observers::NoticeObserver.new
+    observer.deliver(recipient: recipient, event_object: event_object, notice_event: notice_event, notice_params: params)
+  end
+
+  def disable_purchase?(disabled, hbx_enrollment, options = {})
+    disabled || !hbx_enrollment.can_select_coverage?(qle: options[:qle])
+  end
+
+  def get_key_and_bucket(uri)
+    splits = uri.split('#')
+    key = splits.last
+    bucket =splits.first.split(':').last
+    [key, bucket]
+  end
+
+  def env_bucket_name(bucket_name)
+    aws_env = ENV['AWS_ENV'] || "qa"
+    "#{Settings.site.s3_prefix}-enroll-#{bucket_name}-#{aws_env}"
+  end
+
+  def display_dental_metal_level(plan)
+    if (plan.class == Plan || (plan.is_a?(Maybe) && plan.extract_value.class.to_s == "Plan"))
+      return plan.metal_level.to_s.titleize if plan.coverage_kind.to_s == "health"
+      (plan.active_year == 2015 ? plan.metal_level : plan.dental_level).try(:to_s).try(:titleize) || ""
+    else
+      return plan.metal_level_kind.to_s.titleize if plan.kind.to_s == "health"
+      # TODO Update this for dental plans
+      (plan.active_year == 2015 ? plan.metal_level_kind : plan.dental_level).try(:to_s).try(:titleize) || ""
+    end
+  end
+
+  def make_binder_checkbox_disabled(employer)
+    eligibility_criteria(employer)
+    (@participation_count == 0 && @non_owner_participation_rule == true) ? false : true
+  end
+
+  def favorite_class(broker_role, general_agency_profile)
+    return "" if broker_role.blank?
+
+    if broker_role.included_in_favorite_general_agencies?(general_agency_profile.id)
+      "glyphicon-star"
+    else
+      "glyphicon-star-empty"
+    end
+  end
+
+  def show_default_ga?(general_agency_profile, broker_agency_profile)
+    return false if general_agency_profile.blank? || broker_agency_profile.blank?
+    broker_agency_profile.default_general_agency_profile == general_agency_profile
+  end
+
+  def asset_data_base64(path)
+    asset = Rails.application.assets.find_asset(path)
+    throw "Could not find asset '#{path}'" if asset.nil?
+    base64 = Base64.encode64(asset.to_s).gsub(/\s+/, "")
+    "data:#{asset.content_type};base64,#{Rack::Utils.escape(base64)}"
+  end
+
+  def find_plan_name(hbx_id)
+    HbxEnrollment.find(hbx_id).try(:plan).try(:name)
+  end
+
+  def has_new_hire_enrollment_period?(census_employee)
+    census_employee.new_hire_enrollment_period.present?
+  end
+
+  def eligibility_criteria(employer)
+    return unless employer.respond_to?(:show_plan_year)
+
+    if employer.show_plan_year.present?
+      participation_rule_text = participation_rule(employer)
+      non_owner_participation_rule_text = non_owner_participation_rule(employer)
+      text = (@participation_count == 0 && @non_owner_participation_rule == true ? "Yes" : "No")
+      eligibility_text = ("Criteria Met : #{text}" + "<br>" + participation_rule_text + "<br>" + non_owner_participation_rule_text).html_safe
+      if text == "Yes"
+        "Eligible"
+      else
+        "Ineligible"
+        #{}"<i class='fa fa-info-circle' data-html='true' data-placement='top' aria-hidden='true' data-toggle='tooltip' title='#{eligibility_text}'></i>".html_safe
+      end
+    else
+      "Ineligible"
+    end
+  end
+
+  def eligibility_criteria_for_export(employer)
+    if employer.show_plan_year.present?
+      @participation_count == 0 && @non_owner_participation_rule == true ? "Eligible" : "Ineligible"
+    else
+      "Ineligible"
+    end
+  end
+
+  def participation_rule(employer)
+    benefit_application = employer.show_plan_year
+    start_date = benefit_application.effective_period.min
+    @participation_count = employer.show_plan_year.additional_required_participants_count
+
+    if start_date.day == 1 && start_date.month == 1
+      @participation_count = 0
+      '1. 2/3 Rule Met? : Yes'
+    elsif @participation_count == 0
+      "1. 2/3 Rule Met? : Yes"
+    else
+      "1. 2/3 Rule Met? : No (#{@participation_count} more required)"
+    end
+  end
+
+  def non_owner_participation_rule(employer)
+    # fix me compare with total enrollments
+    # fix me once new model enrollment and benefit group assignments got fixed
+    @non_owner_participation_rule = employer.show_plan_year.assigned_census_employees_without_owner.present?
+    if @non_owner_participation_rule == true
+      "2. Non-Owner exists on the roster for the employer"
+    else
+      "2. You have 0 non-owner employees on your roster"
+    end
+  end
+
+  def is_new_paper_application?(current_user, app_type)
+    current_user.has_hbx_staff_role? && app_type == "paper"
+  end
+
+  def load_captcha_widget?
+    !Rails.env.test?
+  end
+
+  def previous_year
+    TimeKeeper.date_of_record.prev_year.year
+  end
+
+  def convert_to_bool(val)
+    return true if val == true || val == 1  || val =~ (/^(true|t|yes|y|1)$/i)
+    return false if val == false || val == 0 || val =~ (/^(false|f|no|n|0)$/i)
+    raise(ArgumentError, "invalid value for Boolean: \"#{val}\"")
+  end
+
+  def plan_match_dc
+    Settings.checkbook_services.plan_match == "DC"
+  end
+
+  def exchange_icon_path(icon)
+    site_key = Settings.site.key
+      "icons/#{site_key}-#{icon}"
+  end
+
+  def benefit_application_summarized_state(benefit_application)
+    return if benefit_application.nil?
+    aasm_map = {
+      :draft => :draft,
+      :enrollment_open => :enrolling,
+      :enrollment_eligible => :enrolled,
+      :binder_paid => :enrolled,
+      :approved => :published,
+      :pending => :publish_pending
     }
+
+    renewing = benefit_application.predecessor_id.present? && benefit_application.aasm_state != :active ? "Renewing" : ""
+    summary_text = aasm_map[benefit_application.aasm_state] || benefit_application.aasm_state
+    summary_text = "#{renewing} #{summary_text.to_s.humanize.titleize}"
+    return summary_text.strip
+  end
+
+  def json_for_plan_shopping_member_groups(member_groups)
+    member_groups.map do |member_group|
+      member_group_hash = JSON.parse(member_group.group_enrollment.to_json)
+      member_group_hash['product'].merge!(
+        "issuer_name" => member_group.group_enrollment.product.issuer_profile.legal_name
+      )
+      member_group_hash
+    end.to_json
+  end
+
+  def add_external_links_enabled?
+    EnrollRegistry[:add_external_links].feature.is_enabled
+  end
+
+  def employee_external_link_enabled?
+    add_external_links_enabled? && EnrollRegistry[:add_external_links].setting(:employee_display).item
+  end
+
+  def employer_external_link_enabled?
+    add_external_links_enabled? && EnrollRegistry[:add_external_links].setting(:employer_display).item
+  end
+
+  def plan_shopping_enabled?
+    add_external_links_enabled? && EnrollRegistry[:add_external_links].setting(:plan_shopping_display).item
+  end
+
+  def benefit_application_external_link_enabled?
+    add_external_links_enabled? && EnrollRegistry[:add_external_links].setting(:benefit_application_display).item
   end
 end

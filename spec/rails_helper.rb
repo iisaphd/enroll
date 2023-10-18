@@ -4,7 +4,18 @@ require 'spec_helper'
 require File.expand_path("../../config/environment", __FILE__)
 require 'rspec/rails'
 require 'shoulda/matchers'
+require 'webmock/rspec'
 
+WebMock.allow_net_connect!
+
+require 'kaminari'
+require File.expand_path('app/models/services/checkbook_services')
+
+Shoulda::Matchers.configure do |config|
+  config.integrate do |with|
+    with.test_framework :rspec
+  end
+end
 # Add additional requires below this line. Rails is not loaded until this point!
 
 # Requires supporting ruby files with custom matchers and macros, etc, in
@@ -36,14 +47,12 @@ RSpec.configure do |config|
   #
   # The different available types are documented in the features, such as in
   # https://relishapp.com/rspec/rspec-rails/docs
-  config.after(:suite, :dbclean => :after_all) do
-    DatabaseCleaner.clean
-    TimeKeeper.set_date_of_record_unprotected!(Date.current)
-  end
+  load Rails.root + "db/seedfiles/english_translations_seed.rb"
+  DatabaseCleaner.strategy = :truncation, {:except => %w[translations]}
 
   config.after(:example, :dbclean => :after_each) do
     DatabaseCleaner.clean
-    TimeKeeper.set_date_of_record_unprotected!(Date.current)
+#    TimeKeeper.set_date_of_record_unprotected!(Date.current)
   end
 
   config.around(:example, :dbclean => :around_each) do |example|
@@ -54,14 +63,34 @@ RSpec.configure do |config|
   end
 
   config.include ModelMatcherHelpers, :type => :model
-  config.include Devise::TestHelpers, :type => :controller
-  config.include Devise::TestHelpers, :type => :view
+  config.include Devise::Test::ControllerHelpers, :type => :controller
+  config.include Devise::Test::ControllerHelpers, :type => :view
+  config.include Devise::Test::IntegrationHelpers, type: :feature
   config.extend ControllerMacros, :type => :controller #real logins for integration testing
   config.include ControllerHelpers, :type => :controller #stubbed logins for unit testing
   config.include FactoryGirl::Syntax::Methods
+  config.include FederalHolidaysHelper
+  config.include Config::AcaModelConcern
 
   config.infer_spec_type_from_file_location!
 
   config.include Capybara::DSL
 
+end
+
+# error: ThreadError: already initialized
+# solution found here https://github.com/rails/rails/issues/34790#issuecomment-450502805
+if RUBY_VERSION>='2.6.0'
+  if Rails.version < '5'
+    class ActionController::TestResponse < ActionDispatch::TestResponse
+      def recycle!
+        # hack to avoid MonitorMixin double-initialize error:
+        @mon_mutex_owner_object_id = nil
+        @mon_mutex = nil
+        initialize
+      end
+    end
+  else
+    puts "Monkeypatch for ActionController::TestResponse no longer needed"
+  end
 end

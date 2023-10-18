@@ -1,282 +1,339 @@
 When(/^.+ visits the HBX Broker Registration form$/) do
-  @browser.goto("http://localhost:3000/")
-  @browser.element(class: /interaction-click-control-broker-registration/).wait_until_present
-  @browser.element(class: /interaction-click-control-broker-registration/).click
-end
-
- When(/^Primary Broker clicks on New Broker Agency Tab$/) do 
-  @browser.radio(class: /interaction-choice-control-value-new-broker-agency/).wait_until_present
-  @browser.radio(class: /interaction-choice-control-value-new-broker-agency/).fire_event("onclick")
+  visit '/'
+  find(".interaction-click-control-broker-registration", wait: 10).click
 end
 
 When(/^Primary Broker should see the New Broker Agency form$/) do
-  @browser.element(id: "broker_agency_form").wait_until_present
-  expect(@browser.element(id: "broker_agency_form").visible?).to be_truthy
+  find('#broker_registration_form')
+  expect(page).to have_css("#broker_registration_form")
+  # Agency fields are part of the broker registration form
+  expect(page).to have_content("Broker Agency Information")
+
 end
 
 When(/^.+ enters personal information$/) do
-  @browser.text_field(class: /interaction-field-control-person-first-name/).set("Ricky")
-  @browser.text_field(class: /interaction-field-control-person-last-name/).set("Martin")
-  @browser.text_field(class: /interaction-field-control-person-dob/).set("10/10/1984")
-  @browser.text_field(class: /interaction-field-control-person-email/).click
-  @browser.text_field(class: /interaction-field-control-person-email/).set("ricky.martin@example.com")
-  @browser.text_field(class: /interaction-field-control-person-npn/).set("109109109")
+  visit "/broker_registration"
+  fill_in 'agency[staff_roles_attributes][0][first_name]', with: 'Ricky'
+  fill_in 'agency[staff_roles_attributes][0][last_name]', with: 'Martin'
+  fill_in 'inputDOB', with: '10/10/1984'
+  fill_in 'inputEmail', with: 'ricky.martin@example.com'
+  fill_in 'agency[staff_roles_attributes][0][npn]', with: '109109109'
 end
 
-And(/^.+ enters broker agency information$/) do
-  @browser.text_field(class: /interaction-field-control-organization-legal-name/).set("Logistics Inc")
-  @browser.text_field(class: /interaction-field-control-organization-dba/).set("Logistics Inc")
-  @browser.text_field(class: /interaction-field-control-organization-fein/).set("890890891")
-  
-  entity_kind = @browser.div(class: /interaction-choice-control-organization-entity-kind/)
-  entity_kind.click
-  entity_kind.li(text: /S Corporation/).click
 
-  @browser.text_field(class: /interaction-field-control-broker-corporate-npn/).set("890890892")
-  @browser.text_field(class: /interaction-field-control-broker-home-page/).set("www.logistics.example.com")
+And(/^.+ enters broker agency information for individual markets$/) do
+  fill_in 'organization[legal_name]', with: "Logistics Inc"
+  fill_in 'organization[dba]', with: "Logistics Inc"
+  # Auto-Generates FEIN
+  # fill_in 'organization[fein]', with: "890890891"
 
-  practice_area = @browser.div(class: /selectric-interaction-choice-control-broker-agency-practice-area/)
-  practice_area.click
-  practice_area.li(text: /Small Business Marketplace ONLY/).click
+  # this field was hidden 4/13/2016
+  # find(:xpath, "//p[@class='label'][contains(., 'Select Entity Kind')]").click
+  # find(:xpath, "//li[contains(., 'C Corporation')]").click
 
-  language_multi_select = @browser.element(class: "language_multi_select").element(class: "multiselect")
-  language_multi_select.wait_until_present
-  language_multi_select.click
-  @browser.checkbox(:value => 'bn').set
-  @browser.checkbox(:value => 'fr').set
-  
-  @browser.checkbox(:name => "organization[working_hours]").set
-  @browser.checkbox(:name => "organization[accept_new_clients]").set
+  find(:xpath, "//p[@class='label'][contains(., 'Select Practice Area')]").click
+  find(:xpath, "//li[contains(., 'Both - Individual & Family AND Small Business Marketplaces')]").click
+
+  find('button.multiselect').click
+  find(:xpath, '//label[input[@value="bn"]]').click
+  find(:xpath, '//label[input[@value="fr"]]').click
+
+  find(:xpath, "//label[input[@name='organization[accept_new_clients]']]").click
+  find(:xpath, "//label[input[@name='organization[working_hours]']]").click
 end
 
-And(/^(.+) enters? office locations information$/) do |named_person|
-  enter_office_location(default_office_location)
+And(/^Current broker agency is fake fein$/) do
+  broker_agency.is_fake_fein = true
+  broker_agency.save
 end
+
+And(/^.+ enters broker agency information for SHOP markets$/) do
+  fill_in 'agency[organization][legal_name]', with: "Logistics Inc"
+  fill_in 'agency[organization][dba]', with: "Logistics Inc"
+  # fill_in 'agency[organization][fein]', with: "890890891"
+  # Auto-Generates FEIN
+  # fill_in 'organization[fein]', with: "890890891"
+
+  # this field was hidden 4/13/2016
+  # find(:xpath, "//p[@class='label'][contains(., 'Select Entity Kind')]").click
+  # find(:xpath, "//li[contains(., 'C Corporation')]").click
+
+  # find(:xpath, "//p[@class='label'][contains(., 'Select Practice Area')]").click
+  # find(:xpath, "//li[contains(., 'Small Business Marketplace ONLY')]").click
+  # Languages
+  find("option[value='tr']").click
+  find("#agency_organization_profile_attributes_accept_new_clients").click
+
+  fill_in 'agency_organization_profile_attributes_ach_routing_number', with: '123456789'
+  fill_in 'agency_organization_profile_attributes_ach_routing_number_confirmation', with: '123456789'
+  fill_in 'agency_organization_profile_attributes_ach_account_number', with: '9999999999999999'
+  # Using this as a seperate step was deleting the rest of the form
+  role = "Primary Broker"
+  location = 'default_office_location'
+  location = eval(location) if location.class == String
+  RatingArea.where(zip_code: "01001").first || FactoryGirl.create(:rating_area, zip_code: "01001", county_name: "Hampden", rating_area: Settings.aca.rating_areas.first)
+  fill_in 'agency[organization][profile_attributes][office_locations_attributes][0][address_attributes][address_1]', :with => location[:address1]
+  fill_in 'agency[organization][profile_attributes][office_locations_attributes][0][address_attributes][address_2]', :with => location[:address2]
+  fill_in 'agency[organization][profile_attributes][office_locations_attributes][0][address_attributes][city]', :with => location[:city]
+
+  # find(:xpath, "//div[contains(@class, 'selectric')][p[contains(text(), 'SELECT STATE')]]").click
+  select "MA", from: "inputState"
+  # agency[organization][profile_attributes][office_locations_attributes][0][address_attributes][state]
+  # find(:xpath, "//div[contains(@class, 'selectric-scroll')]/ul/li[contains(text(), '#{location[:state]}')]").click
+
+  fill_in 'agency[organization][profile_attributes][office_locations_attributes][0][address_attributes][zip]', :with => location[:zip]
+  if role.include? 'Employer'
+    wait_for_ajax
+    select "#{location[:county]}", :from => "agency[organization][profile_attributes][office_locations_attributes][0][address_attributes][county]"
+  end
+  fill_in 'agency[organization][profile_attributes][office_locations_attributes][0][phone_attributes][area_code]', :with => location[:phone_area_code]
+  fill_in 'agency[organization][profile_attributes][office_locations_attributes][0][phone_attributes][number]', :with => location[:phone_number]
+  #fill_in 'agency[organization][profile_attributes][office_locations_attributes][0][phone_attributes][extension]', :with => location[:phone_extension]
+  sleep 5
+  # Clicking the 'Create Broker Agency' button 
+  find("#broker-btn").click
+end
+
 
 And(/^.+ clicks? on Create Broker Agency$/) do
-  @browser.element(class: /interaction-click-control-create-broker-agency/).wait_until_present
-  scroll_then_click(@browser.button(class: /interaction-click-control-create-broker-agency/))
+  wait_for_ajax
+  page.find('h1', text: 'Broker Registration').click
+  wait_for_ajax
+  # Clicking the 'Create Broker Agency' button 
+  find("#broker-btn").click
 end
 
-
 Then(/^.+ should see broker registration successful message$/) do
-  @browser.element(text: /Your registration has been submitted. A response will be sent to the email address you provided once your application is reviewed./).wait_until_present
-  expect(@browser.element(text: /Your registration has been submitted. A response will be sent to the email address you provided once your application is reviewed./).visible?).to be_truthy
+  find_all('.alert', wait: 10)
+  expect(page).to have_content('Your registration has been submitted. A response will be sent to the email address you provided once your application is reviewed.')
 end
 
 And(/^.+ should see the list of broker applicants$/) do
 end
 
-Then(/^.+ clicks? on the current broker applicant show button$/) do
-  @browser.element(class: /interaction-click-control-broker-show/).wait_until_present
-  scroll_then_click(@browser.element(class: /interaction-click-control-broker-show/))
+
+Then(/^.+ click the current broker applicant show button$/) do
+  find('.interaction-click-control-broker-show').click
 end
 
-And(/^.+ should see the broker application$/) do
+And(/^.+ should see the broker application with carrier appointments$/) do
+  if (Settings.aca.broker_carrier_appointments_enabled)
+    find_all("[id^=person_broker_role_attributes_carrier_appointments_]").each do |checkbox| 
+      checkbox.should be_checked 
+    end
+    expect(page).to have_content("Carrier appointments for broker are not necessary for participation in #{Settings.site.long_name}")
+  end
 end
 
-And(/^.+ clicks? on approve broker button$/) do
-  @browser.element(class: /interaction-click-control-broker-approve/).wait_until_present
-  scroll_then_click(@browser.element(class: /interaction-click-control-broker-approve/))
+And(/^.+ click approve broker button$/) do
+  find('.interaction-click-control-broker-approve').click
 end
 
 Then(/^.+ should see the broker successfully approved message$/) do
-  @browser.element(text: /Broker applicant approved successfully./).wait_until_present
-  expect(@browser.element(text: /Broker applicant approved successfully./).visible?).to be_truthy
+  expect(page).to have_content('Broker applicant approved successfully.')
 end
 
 And(/^.+ should receive an invitation email$/) do
-  open_email("ricky.martin@example.com")
+  open_email(
+    "ricky.martin@example.com",
+    :with_subject => "Important information for accessing your new broker account through the #{Settings.site.short_name}"
+  )
   expect(current_email.to).to eq(["ricky.martin@example.com"])
-  current_email.should have_subject('DCHealthLink Invitation ')
 end
 
 When(/^.+ visits? invitation url in email$/) do
   invitation_link = links_in_email(current_email).first
-  invitation_link.sub!(/https\:\/\/enroll1\.dchealthlink\.com/, 'http://localhost:3000')
-  @browser.goto(invitation_link)
+  invitation_link.sub!(/http\:\/\/127\.0\.0\.1\:3000/, '')
+  visit(invitation_link)
 end
 
 Then(/^.+ should see the login page$/) do
-  @browser.element(class: /interaction-click-control-sign-in/).wait_until_present
+  find('.interaction-click-control-sign-in')
+end
+
+Then(/^.+ should see the create account page$/) do
+  find('.interaction-click-control-create-account')
 end
 
 When(/^.+ clicks? on Create Account$/) do
-  @browser.a(text: /Create account/).wait_until_present
-  @browser.a(text: /Create account/).click
+  click_link 'Create account'
 end
 
 When(/^.+ registers? with valid information$/) do
-  @browser.text_field(name: "user[password_confirmation]").wait_until_present
-  @browser.text_field(name: "user[email]").set("ricky.martin@example.com")
-  @browser.text_field(name: "user[password]").set("12345678")
-  @browser.text_field(name: "user[password_confirmation]").set("12345678")
-  @browser.input(value: /Create account/).click
+  fill_in "user[oim_id]", with: "ricky.martin@example.com"
+  fill_in "user[password]", with: "aA1!aA1!aA1!"
+  fill_in "user[password_confirmation]", with: "aA1!aA1!aA1!"
+  click_button 'Create account'
+end
+
+Then(/^.+ should see bank information$/) do
+  expect(page).to have_content('Big Bank')
 end
 
 Then(/^.+ should see successful message with broker agency home page$/) do
-  @browser.element(text: /Welcome! Your account has been created./).wait_until_present
-  expect(@browser.element(text: /Welcome! Your account has been created./).visible?).to be_truthy
+  expect(page).to have_content("Welcome to #{Settings.site.short_name}. Your account has been created.")
 
-  @browser.h3(text: /Broker Agency \: Logistics Inc/).wait_until_present
-  expect(@browser.h3(text: /Broker Agency \: Logistics Inc/).visible?).to be_truthy
+  expect(page).to have_content('Broker Agency : Logistics Inc')
 end
 
 Then(/^.+ should see no active broker$/) do
-  @browser.element(text: /No Active Broker/).wait_until_present
-  expect(@browser.element(text: /No Active Broker/).visible?).to be_truthy
+  expect(page).to have_content('You have no active Broker')
 end
 
 When(/^.+ clicks? on Browse Brokers button$/) do
-  @browser.a(text: /Browse Brokers/).wait_until_present
-  @browser.a(text: /Browse Brokers/).click
+  find('.interaction-click-control-browse-brokers').click
 end
 
 Then(/^.+ should see broker agencies index view$/) do
-  @browser.h4(text: /Broker Agencies/).wait_until_present
-  expect(@browser.h4(text: /Broker Agencies/).visible?).to be_truthy
+  #TODO add AJAX handling
+  wait_for_ajax(3)
+  expect(page).to have_content('Broker Agencies', :wait => 5)
 end
 
 When(/^.+ searches broker agency by name$/) do
-  search_div = @browser.div(class: "broker_agencies_search")
-  search_div.wait_until_present
+  find('.broker_agencies_search')
 
-  search_div.text_field(name: "q").wait_until_present
-  search_div.text_field(name: "q").set("Logistics")
+  fill_in 'q', with: 'Logistics'
 
-  search_div.button(class: /btn/).wait_until_present
-  search_div.button(class: /btn/).click
+  find('.search-wp .btn').click
 end
 
 Then(/^.+ should see broker agency$/) do
-  @browser.a(text: /Logistics Inc/).wait_until_present
-  expect(@browser.a(text: /Logistics Inc/).visible?).to be_truthy
+  expect(page).to have_content('Logistics Inc')
 end
 
 Then(/^.+ clicks? select broker button$/) do
-  @browser.a(text: /Select Broker/).wait_until_present
-  @browser.a(text: /Select Broker/).click
+  click_link 'Select Broker'
 end
 
 Then(/^.+ should see confirm modal dialog box$/) do
-  @browser.element(class: /modal-dialog/).wait_until_present
-  expect(@browser.div(class: /modal-body/).p(text: /Click Confirm to hire the selected broker\. Warning\: if you have an existing broker\,/).visible?).to be_truthy
-  expect(@browser.div(class: /modal-body/).p(text: /they will be terminated effective immediately\./).visible?).to be_truthy
+  expect(page).to have_content('Broker Selection Confirmation')
 end
 
 Then(/^.+ confirms? broker selection$/) do
-  modal = @browser.div(class: 'modal-dialog')
-  modal.input(value: /Confirm/).wait_until_present
-  modal.input(value: /Confirm/).click
+  within '.modal-dialog' do
+    find('input.btn-primary').click
+  end
 end
 
 Then(/^.+ should see broker selected successful message$/) do
-  @browser.element(text: /Successfully associated broker with your account./).wait_until_present
-  expect(@browser.element(text: /Successfully associated broker with your account./).visible?).to be_truthy
+  wait_for_ajax(1,0.5)
+  expect(page).to have_content("Your broker has been notified of your selection and should contact you shortly. You can always call or email them directly. If this is not the broker you want to use, select 'Change Broker'.")
 end
 
 And (/^.+ should see broker active for the employer$/) do
-  expect(@browser.element(text: /Logistics Inc/).visible?).to be_truthy
-  expect(@browser.element(text: /Ricky Martin/).visible?).to be_truthy
+  expect(page).to have_content('Logistics Inc')
+  expect(page).to have_content(/RICKY MARTIN/i)
 end
 
 When(/^.+ terminates broker$/) do
-  @browser.a(text: /Terminate/).wait_until_present
-  @browser.a(text: /Terminate/).click
-
-  @browser.text_field(class: "date-picker").wait_until_present
-  @browser.text_field(class: "date-picker").set("07/23/2015")
-
-  2.times { @browser.a(text: /Terminate/).click } # To collapse calender
-
-  @browser.a(text: /Submit/).wait_until_present
-  @browser.a(text: /Submit/).click
+  find('.interaction-click-control-change-broker').click
+  wait_for_ajax(2,2)
+  within '.modal-dialog' do
+    click_link 'Terminate Broker'
+  end
 end
 
 Then(/^.+ should see broker terminated message$/) do
-  @browser.element(text: /Broker terminated successfully./).wait_until_present
-  expect(@browser.element(text: /Broker terminated successfully./).visible?).to be_truthy
+  expect(page).to have_content('Broker terminated successfully.')
 end
 
 Then(/^.+ should see Employer and click on legal name$/) do
-  @browser.a(text: /Legal LLC/).wait_until_present
-  @browser.a(text: /Legal LLC/).click
+  click_link 'Legal LLC'
 end
 
 Then(/^.+ should see the Employer Profile page as Broker$/) do
-  wait_and_confirm_text(/Premium Billing Report/)
-  expect(@browser.element(text: /I'm a Broker/).visible?).to be_truthy
+  expect(page).to have_content("I'm a Broker")
 end
 
-Then(/^Primary Broker creates and publishes a plan year$/) do
-  click_when_present(@browser.element(class: /interaction-click-control-benefits/))
-  click_when_present(@browser.element(class: /interaction-click-control-add-plan-year/))
-  start_on = @browser.element(class: /selectric-interaction-choice-control-plan-year-start-on/)
-  click_when_present(start_on)
-  click_when_present(start_on.lis()[1])
-  id="plan_year_benefit_groups_attributes_0_relationship_benefits_attributes_0_premium_pct"
-  @browser.text_field(id: id).set(50)
+Then(/^.* creates and publishes a plan year$/) do
+  find('.interaction-click-control-benefits').click
+  find('.interaction-click-control-add-plan-year').click
 
-  select_plan_class ="selectric-interaction-choice-control-plan-year-benefit-groups-attributes-0-plan-option-kind"
-  select_plan = @browser.element(class: select_plan_class)
-  click_when_present(select_plan)
-  click_when_present(select_plan.lis()[3])
+  find(:xpath, '//p[@class="label"][contains(., "SELECT START ON")]').click
+  find(:xpath, '//div[div/p[contains(., "SELECT START ON")]]//li[@data-index="1"]').click
 
-  f=@browser.element(class: 'form-inputs')
-  benefit_form = @browser.element(class: 'form-inputs')
-  select_carrier = benefit_form.element(text: 'SELECT CARRIER').parent.parent.parent
-  scroll_then_click(select_carrier)
-  click_when_present(select_carrier.lis()[1])
-  
-  sleep 3
-  benefit_form.element(text: 'SELECT REFERENCE PLAN').parent.parent.parent.wait_until_present
-  select_reference = benefit_form.element(text: 'SELECT REFERENCE PLAN').parent.parent.parent
-  scroll_then_click(select_reference)
-  benefit_form.element(text: 'SELECT REFERENCE PLAN').parent.parent.parent.lis()[1].wait_until_present
-  click_when_present(select_reference.lis()[1])
-  benefit_form.click
-  scroll_then_click(@browser.button(class: /interaction-click-control-create-plan-year/))
-  @browser.element(class: /alert-notice/, text: /Plan Year successfully created./).wait_until_present
-  click_when_present(@browser.element(class: /interaction-click-control-benefits/))
-  click_when_present(@browser.element(class: /interaction-click-control-publish-plan-year/))
+  fill_in 'plan_year[fte_count]', with: '3'
+  find('.interaction-click-control-continue').click
+
+  fill_in "plan_year[benefit_groups_attributes][0][title]", with: "Silver PPO Group"
+
+  find(:xpath, '//li/label[@for="plan_year_benefit_groups_attributes_0_plan_option_kind_single_carrier"]').click
+  wait_for_ajax(10)
+  find('.carriers-tab a').click
+  wait_for_ajax(10,2)
+  find('.reference-plan label').click
+  wait_for_ajax(10)
+  fill_in "plan_year[benefit_groups_attributes][0][relationship_benefits_attributes][0][premium_pct]", with: 50
+  fill_in "plan_year[benefit_groups_attributes][0][relationship_benefits_attributes][1][premium_pct]", with: 50
+  fill_in "plan_year[benefit_groups_attributes][0][relationship_benefits_attributes][2][premium_pct]", with: 50
+  fill_in "plan_year[benefit_groups_attributes][0][relationship_benefits_attributes][3][premium_pct]", with: 50
+
+  find('.interaction-click-control-create-plan-year').click
+  find('.alert-notice')
+
+  if (Settings.aca.enforce_employer_attestation.to_s == "true")
+    find('.interaction-click-control-documents').click
+    wait_for_ajax
+    find('.interaction-click-control-upload').click
+    wait_for_ajax
+    find('#subject_Employee_Attestation').click
+    # There is no way to actually trigger the click and upload functionality
+    # with a JS driver.
+    # So we commit 2 sins:
+    #   1) We make the file input visible so we can set it.
+    #   2) We make the submit button visible so we can click it.
+    execute_script(<<-JSCODE)
+     $('#modal-wrapper div.employee-upload input[type=file]').attr("style", "display: block;");
+    JSCODE
+    wait_for_ajax
+    attach_file("file", "#{Rails.root}/test/JavaScript.pdf")
+    execute_script(<<-JSCODE)
+     $('#modal-wrapper div.employee-upload input[type=submit]').css({"visibility": "visible", "display": "inline-block"});
+    JSCODE
+    find("input[type=submit][value=Upload]").click
+    wait_for_ajax
+  end
+
+  find('.interaction-click-control-benefits').click
+  find('.interaction-click-control-publish-plan-year').click
+  wait_for_ajax
 end
 
 Then(/^.+ sees employer census family created$/) do
-  wait_and_confirm_text(/successfully created/)
+  expect(page).to have_content('successfully created')
 end
 
-Then(/^.+ should see the matched employee record form$/) do
-  @browser.dd(text: /Legal LLC/).wait_until_present
+Then(/^(?:(?!Employee).)+ should see the matched employee record form$/) do
   screenshot("broker_employer_search_results")
-  expect(@browser.dd(text: /Legal LLC/).visible?).to be_truthy
+  expect(page).to have_content('Legal LLC')
 end
 
 Then(/^Broker Assisted is a family$/) do
-  wait_and_confirm_text(/Broker Assisted/)
+  find(:xpath, "//li[contains(., 'Families')]/a").click
+  expect(page).to have_content('Broker Assisted')
 end
 
 Then(/^.+ goes to the Consumer page$/) do
-  broker_assist_row = @browser.td(text: /Broker Assisted/).parent
-  broker_assist_row.a(text: /Consumer/).click
-  wait_and_confirm_text(/My DC Health Link/)
+  click_link 'Broker Assisted'
+  expect(page).to have_content("My #{Settings.site.short_name}")
 end
 
 # Then(/^.+ is on the consumer home page$/) do
-#   binding.pry
 #   @browser.a(class: 'interaction-click-control-shop-for-plans').wait_until_present
 # end
 
 Then(/^.+ shops for plans$/) do
-  @browser.a(class: 'interaction-click-control-shop-for-plans').click 
+  @browser.a(class: 'interaction-click-control-shop-for-plans').click
 end
 
 Then(/^.+ sees covered family members$/) do
-  wait_and_confirm_text(/Covered Family Members/)
+  wait_and_confirm_text(/Choose Benefits: Covered Family Members/)
   @browser.element(id: 'btn-continue').click
 end
 
 Then(/^.+ choses a healthcare plan$/) do
-  wait_and_confirm_text(/Choose a healthcare plan/)
+  wait_and_confirm_text(/Choose Plan/i)
   wait_and_confirm_text(/Apply/)
   plan = @browser.a(class: 'interaction-click-control-select-plan')
   plan.click
@@ -285,4 +342,33 @@ end
 Then(/^.+ continues to the consumer home page$/) do
   wait_and_confirm_text(/Continue/)
   @browser.a(text: /Continue/).click
+end
+
+Given(/^zip code for county exists as rate reference$/) do
+  FactoryGirl.create(:rating_area, zip_code: '01010', county_name: 'Worcester', rating_area: Settings.aca.rating_areas.first,
+    zip_code_in_multiple_counties: true)
+end
+
+Given(/^a valid ach record exists$/) do
+  FactoryGirl.create(:ach_record, routing_number: '123456789', bank_name: 'Big Bank')
+end
+
+#
+Given(/^enters the existing zip code$/) do
+  fill_in 'organization[office_locations_attributes][0][address_attributes][zip]', with: '01010'
+end
+
+Then(/^the county should be autopopulated appropriately$/) do
+  wait_for_ajax
+  select 'Test County', :from => "organization[office_locations_attributes][0][address_attributes][county]"
+  expect(page).to have_select("organization[office_locations_attributes][0][address_attributes][county]", :selected => 'Test County')
+end
+
+Given(/^enters a non existing zip code$/) do
+  fill_in 'organization[office_locations_attributes][0][address_attributes][zip]', with: '11011'
+end
+
+Then(/^the county should not be autopopulated appropriately$/) do
+  wait_for_ajax
+  expect(page).not_to have_select("organization[office_locations_attributes][0][address_attributes][county]", :options => ['Test County'])
 end

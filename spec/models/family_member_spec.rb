@@ -19,6 +19,28 @@ describe FamilyMember do
 
 end
 
+describe FamilyMember, "given a person" do
+  let(:person) { Person.new }
+  subject { FamilyMember.new(:person => person) }
+
+  it "delegates #ivl_coverage_selected to person" do
+    expect(person).to receive(:ivl_coverage_selected)
+    subject.ivl_coverage_selected
+  end
+end
+
+
+describe FamilyMember, "given a person" do
+  let(:person) { create :person ,:with_family }
+
+  it "should error when trying to save duplicate family member" do
+    family_member = FamilyMember.new(:person => person) 
+    person.families.first.family_members << family_member
+    person.families.first.family_members << family_member
+    expect(family_member.errors.full_messages.join(",")).to match(/Family members Duplicate family_members for person/)
+  end
+end
+
 describe FamilyMember, dbclean: :after_each do
   context "a family with members exists" do
     include_context "BradyBunchAfterAll"
@@ -71,7 +93,7 @@ describe FamilyMember, dbclean: :after_each do
 
     it "should raise error with nil family" do
       family_member = FamilyMember.new(**family_member_params)
-      expect{family_member.parent}.to raise_error
+      expect{family_member.parent}.to raise_error(RuntimeError, "undefined parent family")
     end
   end
 
@@ -163,20 +185,18 @@ describe FamilyMember, "which is inactive" do
 end
 
 describe FamilyMember, "given a relationship to update" do
-  let(:family) { Family.new }
-  let(:primary_applicant_person) { double }
+  let(:family) { FactoryGirl.create(:family, :with_primary_family_member)}
   let(:relationship) { "spouse" }
-  let(:person) { double(:id => "12345")  }
-  subject { FamilyMember.new(:family => family, :person => person) }
-
-  before(:each) do 
-    allow(family).to receive(:primary_applicant_person).and_return(primary_applicant_person)
-    allow(primary_applicant_person).to receive(:find_relationship_with).with(person).and_return(relationship)
-  end
+  let(:person) { FactoryGirl.build(:person) }
+  subject { FactoryGirl.build(:family_member, person: person, family: family) }
 
   it "should do nothing if the relationship is the same" do
-    subject.update_relationship(relationship)
+    subject.update_relationship(subject.primary_relationship)
   end
 
-  it "should update the relationship if different"
+  it "should update the relationship if different" do
+    expect(subject.primary_relationship).not_to eq relationship
+    subject.update_relationship(relationship)
+    expect(subject.primary_relationship).to eq relationship
+  end
 end

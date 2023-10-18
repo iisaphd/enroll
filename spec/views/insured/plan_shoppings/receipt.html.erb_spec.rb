@@ -18,7 +18,11 @@ RSpec.describe "insured/plan_shoppings/receipt.html.erb" do
       hbx_enrollment_members: members,
       effective_on: TimeKeeper.date_of_record.beginning_of_month,
       plan: new_plan,
-      employee_role: double("EmployeeRole")
+      is_cobra_status?: false,
+      coverage_kind: 'health',
+      is_shop?: true,
+      employee_role: double("EmployeeRole"),
+      composite_rated?: true
     )
   end
 
@@ -34,37 +38,49 @@ RSpec.describe "insured/plan_shoppings/receipt.html.erb" do
   def new_plan
     double(
       "Plan",
-      name: "My Silly Plan"
+      title: "My Silly Plan",
+      name: "plan name"
     )
   end
 
   def plan_cost_decorator
     double(
       "PlanCostDecorator",
-      name: new_plan.name,
+      title: new_plan.title,
       premium_for: double("premium_for"),
       employer_contribution_for: double("employer_contribution_for"),
       employee_cost_for: double("employee_cost_for"),
       total_premium: double("total_premium"),
       total_employer_contribution: double("total_employer_contribution"),
       total_employee_cost: double("total_employee_cost"),
-      carrier_profile: double(legal_name: "carefirst"),
-      metal_level: "Silver"
+      issuer_profile: double(legal_name: "carefirst"),
+      metal_level: "Silver",
+      coverage_kind: "health",
+      kind: "health",
+      name: new_plan.name,
+      metal_level_kind: ''
     )
   end
 
   let(:members) { [new_member, new_member] }
 
+  let(:member_enrollment) {BenefitSponsors::Enrollments::MemberEnrollment.new(member_id:'',product_price:BigDecimal(100),sponsor_contribution:BigDecimal(100))}
+  let(:group_enrollment) {double(member_enrollments:[member_enrollment], product_cost_total:0.0,sponsor_contribution_total:0.0, employee_cost_total:0.0)}
+  let(:member_group) {double(group_enrollment:group_enrollment)}
+
   before :each do
     assign :enrollment, enrollment
+    assign :member_group, member_group
     @plan = plan_cost_decorator
-    render file: "insured/plan_shoppings/receipt.html.erb"
+    allow(@plan).to receive(:sole_source?).and_return(true)
+    allow(view).to receive(:policy_helper).and_return(double('FamilyPolicy', updateable?: true)) 
+    render file: "insured/plan_shoppings/receipt.en.html.erb"
   end
 
   it "should match the data on the confirmation receipt" do
-    expect(rendered).to have_selector('p', text: "Your purchase of #{@plan.name} was completed on #{enrollment.updated_at}")
-    expect(rendered).to have_selector('p', text: "Please print this page for your records.")
-    expect(rendered).to have_selector('p', text: "A copy of this confirmation has also been emailed to you.")
+    #expect(rendered).to have_selector('p', text: "Your enrollment has been submitted as of #{enrollment.updated_at}.")
+    expect(rendered).to have_selector('p', text: /Your enrollment has been submitted as/)
+    expect(rendered).to have_selector('p', text: /Please print this page for your records. A copy of this confirmation/)
   end
 
   it "should match the enrollment memebers" do
@@ -81,4 +97,17 @@ RSpec.describe "insured/plan_shoppings/receipt.html.erb" do
     end
   end
 
+  it "should have print area" do
+    expect(rendered).to have_selector('#printArea')
+    expect(rendered).to have_selector('a#btnPrint')
+  end
+
+  it "should have market" do
+    expect(rendered).to match('Market')
+    expect(rendered).to match('Employer Sponsored')
+  end
+
+  it "should not have cobra msg" do
+    expect(rendered).not_to match("Your employer may charge an additional administration fee for your COBRA/Continuation coverage. If you have any questions, please direct them to the Employer")
+  end
 end

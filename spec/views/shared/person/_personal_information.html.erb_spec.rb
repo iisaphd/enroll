@@ -12,7 +12,7 @@ describe "shared/person/_personal_information.html.erb" do
   end
 
   it "should have a hidden input field" do
-    expect(rendered).to have_selector('input[type="hidden"]')
+    expect(rendered).to have_selector('input[type="hidden"]', visible: false)
   end
 
   it "should have a required input field" do
@@ -22,7 +22,7 @@ describe "shared/person/_personal_information.html.erb" do
   it "should have required input fields with asterisk" do
     expect(rendered).to have_selector('input[placeholder="FIRST NAME *"]')
     expect(rendered).to have_selector('input[placeholder="LAST NAME *"]')
-    expect(rendered).to have_selector('input[placeholder="BIRTHDATE *"]')
+    expect(rendered).to have_selector('input[placeholder="DATE OF BIRTH *"]')
     expect(rendered).to have_selector('input[placeholder="SOCIAL SECURITY *"]')
   end
 end

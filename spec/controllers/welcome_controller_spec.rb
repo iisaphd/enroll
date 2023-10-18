@@ -29,5 +29,32 @@ RSpec.describe WelcomeController, :type => :controller do
 
       include_examples "welcome"
     end
+
+    it "should return to a http status success" do
+      get :index
+      expect( response ).to have_http_status(:success)
+    end
+  end
+
+  describe "POST show_hints" do
+    let(:user) { FactoryGirl.build(:user) }
+    it "should return to a http status success" do
+      sign_in user
+      xhr :post, "show_hints", :format => "js"
+      expect( response ).to have_http_status(:success)
+    end
+  end
+
+end
+
+describe WelcomeController, "visiting #index:
+  - as a non-logged in user
+  - using a non-english preferred language (ko)
+", :type => :controller do
+
+  it "returns http success" do
+    @request.headers["HTTP_ACCEPT_LANGUAGE"] = "ko"
+    get :index
+    expect(response).to have_http_status(:success)
   end
 end

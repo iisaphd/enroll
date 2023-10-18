@@ -45,6 +45,10 @@ module HbxImport
               ce.add_benefit_group_assignment(benefit_group, plan_year.start_on)
               begin
               ce.save!
+              if !ce.employment_terminated_on.blank?
+                ce.aasm_state = "employment_terminated"
+                ce.save!
+              end
               benefit_group.census_employees << ce._id
 
               census_employees_to_save << ce

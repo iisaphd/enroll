@@ -177,7 +177,7 @@ describe '#clean_fields' do
   end
 end
 
-describe '#matches?' do
+describe '#matches_addresses?' do
   let(:address) {
      Address.new(
        address_1: "An address line 1",
@@ -187,17 +187,17 @@ describe '#matches?' do
        zip: "21222"
      )
   }
-
+  
   context 'addresses are the same' do
     let(:second_address) { address.clone }
     it 'returns true' do
-      expect(address.matches?(second_address)).to be_truthy
+      expect(address.matches_addresses?(second_address)).to be_truthy
     end
 
     context 'mismatched case' do
       before { second_address.address_1.upcase! }
       it 'returns true' do
-        expect(address.matches?(second_address)).to be_truthy
+        expect(address.matches_addresses?(second_address)).to be_truthy
       end
     end
   end
@@ -209,7 +209,58 @@ describe '#matches?' do
       a
     end
     it 'returns false' do
-      expect(address.matches?(second_address)).to be_falsey
+      expect(address.matches_addresses?(second_address)).to be_falsey
+    end
+  end
+end
+
+describe "#kind" do
+  let(:office_location) {FactoryGirl.build(:office_location, :primary)}
+  let(:address) {FactoryGirl.build(:address)}
+
+  context "write kind" do
+    it "kind should be work with primary office_location when primary" do
+      allow(address).to receive(:office_location).and_return office_location
+      address.kind = 'primary'
+      expect(address.read_attribute(:kind)).to eq 'work'
+    end
+
+    it "kind should not be itself with normal office_location" do
+      allow(office_location).to receive(:is_primary).and_return false
+      allow(address).to receive(:office_location).and_return office_location
+      address.kind = 'primary'
+      expect(address.read_attribute(:kind)).to eq 'primary'
+    end
+
+    it "kind should be itself without office_location" do
+      address.kind = 'primary'
+      expect(address.read_attribute(:kind)).to eq 'primary'
+    end
+  end
+
+  context "read kind" do
+    it "should return primary when kind is work and has primary office_location" do
+      allow(address).to receive(:office_location).and_return office_location
+      address.write_attribute(:kind, 'work')
+      expect(address.kind).to eq 'primary'
+    end
+
+    it "should return primary when kind is home and has primary office_location" do
+      allow(address).to receive(:office_location).and_return office_location
+      address.write_attribute(:kind, 'home')
+      expect(address.kind).to eq 'home'
+    end
+
+    it "should return itself when kind is work but has normal office_location" do
+      allow(office_location).to receive(:is_primary).and_return false
+      allow(address).to receive(:office_location).and_return office_location
+      address.write_attribute(:kind, 'work')
+      expect(address.kind).to eq 'work'
+    end
+
+    it "should return itself" do
+      address.write_attribute(:kind, 'work')
+      expect(address.kind).to eq 'work'
     end
   end
 end

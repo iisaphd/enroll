@@ -1,40 +1,48 @@
 class BrokerAgencyProfile
   include Mongoid::Document
+  include SetCurrentUser
   include Mongoid::Timestamps
   include AASM
+  include Config::AcaModelConcern
 
   embedded_in :organization
 
-  MARKET_KINDS = %W[individual shop both]
-
-  MARKET_KINDS_OPTIONS = {
+  MARKET_KINDS = individual_market_is_enabled? ? %W[individual shop both] : %W[shop]
+  ALL_MARKET_KINDS_OPTIONS = {
     "Individual & Family Marketplace ONLY" => "individual",
     "Small Business Marketplace ONLY" => "shop",
-    "Both – Individual & Family AND Small Business Marketplaces" => "both"
+    "Both - Individual & Family AND Small Business Marketplaces" => "both"
   }
-
+  MARKET_KINDS_OPTIONS = ALL_MARKET_KINDS_OPTIONS.select { |k,v| MARKET_KINDS.include? v }
 
   field :entity_kind, type: String
   field :market_kind, type: String
   field :corporate_npn, type: String
   field :primary_broker_role_id, type: BSON::ObjectId
+  field :default_general_agency_profile_id, type: BSON::ObjectId
 
-  field :languages_spoken, type: Array, default: [] # TODO
+  field :languages_spoken, type: Array, default: ["en"] # TODO
   field :working_hours, type: Boolean, default: false
   field :accept_new_clients, type: Boolean
 
   field :aasm_state, type: String
   field :aasm_state_set_on, type: Date
 
+  field :ach_routing_number, type: String
+  field :ach_account_number, type: String
+
   delegate :hbx_id, to: :organization, allow_nil: true
   delegate :legal_name, :legal_name=, to: :organization, allow_nil: false
   delegate :dba, :dba=, to: :organization, allow_nil: true
   delegate :home_page, :home_page=, to: :organization, allow_nil: true
   delegate :fein, :fein=, to: :organization, allow_nil: false
+  delegate :is_fake_fein, :is_fake_fein=, to: :organization, allow_nil: false
   delegate :is_active, :is_active=, to: :organization, allow_nil: false
   delegate :updated_by, :updated_by=, to: :organization, allow_nil: false
 
   embeds_one  :inbox, as: :recipient, cascade_callbacks: true
+  embeds_many :documents, as: :documentable
+
   accepts_nested_attributes_for :inbox
 
   has_many :broker_agency_contacts, class_name: "Person", inverse_of: :broker_agency_contact
@@ -42,14 +50,14 @@ class BrokerAgencyProfile
 
   validates_presence_of :market_kind, :entity_kind #, :primary_broker_role_id
 
-  validates :corporate_npn, 
+  validates :corporate_npn,
     numericality: {only_integer: true},
-    length: { minimum: 1, maximum: 10 },    
+    length: { minimum: 1, maximum: 10 },
     uniqueness: true,
     allow_blank: true
 
   validates :market_kind,
-    inclusion: { in: MARKET_KINDS, message: "%{value} is not a valid market kind" },
+    inclusion: { in: -> (val) { MARKET_KINDS }, message: "%{value} is not a valid market kind" },
     allow_blank: false
 
   validates :entity_kind,
@@ -60,7 +68,6 @@ class BrokerAgencyProfile
 
   scope :active,      ->{ any_in(aasm_state: ["is_applicant", "is_approved"]) }
   scope :inactive,    ->{ any_in(aasm_state: ["is_rejected", "is_suspended", "is_closed"]) }
-
 
   # has_many employers
   def employer_clients
@@ -73,7 +80,7 @@ class BrokerAgencyProfile
   def family_clients
     return unless (MARKET_KINDS - ["shop"]).include?(market_kind)
     return @family_clients if defined? @family_clients
-    @family_clients = Family.find_by_broker_agency_profile(self.id)
+    @family_clients = Family.by_broker_agency_profile_id(self.id)
   end
 
   # has_one primary_broker_role
@@ -124,6 +131,11 @@ class BrokerAgencyProfile
     organization.legal_name
   end
 
+  def phone
+    office = organization.primary_office_location
+    office && office.phone.to_s
+  end
+
   def market_kind=(new_market_kind)
     write_attribute(:market_kind, new_market_kind.to_s.downcase)
   end
@@ -134,8 +146,37 @@ class BrokerAgencyProfile
 
   def languages
     if languages_spoken.any?
-      return languages_spoken.map {|lan| LanguageList::LanguageInfo.find(lan).name}.join(",")
+      return languages_spoken.map {|lan| LanguageList::LanguageInfo.find(lan).name if LanguageList::LanguageInfo.find(lan)}.compact.join(",")
     end
+  end
+
+  def linked_employees
+    employer_profiles = EmployerProfile.find_by_broker_agency_profile(self)
+    emp_ids = employer_profiles.map(&:id)
+    linked_employees = Person.where(:'employee_roles.employer_profile_id'.in => emp_ids)
+  end
+
+  def families
+    linked_active_employees = linked_employees.select{ |person| person.has_active_employee_role? }
+    employee_families = linked_active_employees.map(&:primary_family).to_a
+    consumer_families = Family.by_broker_agency_profile_id(self.id).to_a
+    families = (consumer_families + employee_families).uniq
+    families.sort_by{|f| f.primary_applicant.person.last_name}
+  end
+
+  def default_general_agency_profile=(new_default_general_agency_profile = nil)
+    if new_default_general_agency_profile.present?
+      raise ArgumentError.new("expected GeneralAgencyProfile class") unless new_default_general_agency_profile.is_a? GeneralAgencyProfile
+      self.default_general_agency_profile_id = new_default_general_agency_profile.id
+    else
+      unset("default_general_agency_profile_id")
+    end
+    @default_general_agency_profile = new_default_general_agency_profile
+  end
+
+  def default_general_agency_profile
+    return @default_general_agency_profile if defined? @default_general_agency_profile
+    @default_general_agency_profile = GeneralAgencyProfile.find(self.default_general_agency_profile_id) if default_general_agency_profile_id.present?
   end
 
   ## Class methods
@@ -160,6 +201,11 @@ class BrokerAgencyProfile
     def find(id)
       organizations = Organization.where("broker_agency_profile._id" => BSON::ObjectId.from_string(id)).to_a
       organizations.size > 0 ? organizations.first.broker_agency_profile : nil
+    end
+
+    def get_organization_from_broker_profile_id(id)
+      organizations = Organization.where("broker_agency_profile._id" => id).to_a
+      organizations.size > 0 ? organizations.first : nil
     end
   end
 

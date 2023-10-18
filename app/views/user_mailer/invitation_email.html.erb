@@ -1,8 +1,8 @@
 <html>
 <body>
-Congratulations <%= person_name %>,
+<%= person_name %>,
 <br />
-<div>You have been invited to join DC Healthlink.</div>
-<div>Please visit <%= link_to "DC Healthlink", claim_invitation_url(invitation, host: "https://enroll1.dchealthlink.com") %> to get started.</div>
+<div>Your employer has created a Health Benefits Program through <%= site_short_name %>.</div>
+<div>Please visit <%= link_to "#{site_short_name}", claim_invitation_url(invitation) %> to learn more about your benefits and sign up for insurance during open enrollment.</div>
 </body>
 </html>

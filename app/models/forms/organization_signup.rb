@@ -4,10 +4,12 @@ module Forms
     attr_accessor :id
     attr_accessor :person_id
     attr_accessor :person
-    attr_accessor :first_name, :last_name
-    attr_accessor :legal_name, :dba, :entity_kind, :fein
+    attr_accessor :legal_name, :dba, :entity_kind, :fein, :is_fake_fein, :sic_code
     attr_reader :dob
     attr_accessor :office_locations
+    attr_accessor :contact_method
+
+    include FnameLname
 
     validates :fein,
       length: { is: 9, message: "%{value} is not a valid FEIN" },
@@ -48,11 +50,20 @@ module Forms
         :last_name => last_name,
         :dob => dob
       })
-      matched_people = Person.where(
-        first_name: regex_for(first_name),
-        last_name: regex_for(last_name),
-        dob: new_person.dob
-      )
+      if  self.class.to_s == 'Forms::EmployerProfile'
+        matched_people = Person.where(
+          first_name: regex_for(first_name),
+          last_name: regex_for(last_name),
+          dob: new_person.dob
+          )
+      else
+        matched_people = Person.where(
+          first_name: regex_for(first_name),
+          last_name: regex_for(last_name),
+          # TODO
+          # dob: new_person.dob
+        )
+      end
       if matched_people.count > 1
         raise TooManyMatchingPeople.new
       end
@@ -117,6 +128,7 @@ module Forms
     def office_locations_attributes=(attrs)
       @office_locations = []
       attrs.each_pair do |k, att_set|
+        att_set.delete('phone_attributes') if att_set["phone_attributes"].present? && att_set["phone_attributes"]["number"].blank?
         @office_locations << OfficeLocation.new(att_set)
       end
       @office_locations
@@ -125,14 +137,16 @@ module Forms
     def dob=(val)
       @dob = Date.strptime(val,"%Y-%m-%d") rescue nil
     end
-    
+
     # Strip non-numeric characters
     def fein=(new_fein)
       @fein =  new_fein.to_s.gsub(/\D/, '') rescue nil
     end
 
     def regex_for(str)
-      Regexp.compile(Regexp.escape(str.to_s))
+      #::Regexp.compile(::Regexp.escape(str.to_s))
+      clean_string = ::Regexp.escape(str.strip)
+      /^#{clean_string}$/i
     end
   end
 end

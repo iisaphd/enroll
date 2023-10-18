@@ -16,7 +16,7 @@ module TkNotifyWrapper
     def instrument(event, payload)
       if (event == @event && payload == @payload)
         raise ExpectedLogCallInvoked.new
-      else 
+      else
         super(event,payload)
       end
     end
@@ -45,7 +45,7 @@ RSpec.describe TimeKeeper, type: :model do
     end
   end
 
-  context "a message is received with a new date_of_record" do
+  context "a message is received with a new date_of_record", dbclean: :after_each do
     let(:base_date)   { Date.current }
     let(:past_date)   { Date.current - 5.days }
     let(:next_day)    { Date.current + 1.day  }
@@ -74,7 +74,7 @@ RSpec.describe TimeKeeper, type: :model do
     end
 
     context "and new date is one day later than current date_of_record" do
-
+      let!(:hbx_profile) { FactoryGirl.create(:hbx_profile) }
       it "should advance the date" do
         expect(TimeKeeper.set_date_of_record(next_day)).to eq next_day
       end
@@ -86,7 +86,7 @@ RSpec.describe TimeKeeper, type: :model do
     end
 
     context "and new date is more than one day later than curent date_of_record" do
-      it "should send the new date_of_record to registered models for each day" 
+      it "should send the new date_of_record to registered models for each day"
       it "should persist in the local data storage the new date_of_record for each successful advance"
       it "should send a syslog info message to the enterprise logger for each successful advance"
     end

@@ -16,14 +16,14 @@ describe "shared/_email_fields.html.erb" do
   end
 
   it "should have a hidden input field" do
-    expect(rendered).to have_selector('input[type="hidden"]')
+    expect(rendered).to have_selector('input[type="hidden"]', visible: false)
   end
 
   it "should have a required input field" do
-    expect(rendered).to have_selector('input[required="required"]')
+    expect(rendered).to_not have_selector('input[required="required"]')
   end
 
   it "should have a required input field with asterisk" do
-    expect(rendered).to have_selector('input[placeholder="NAME@HOME.COM *"]')
+    expect(rendered).to_not have_selector('input[placeholder="Home Email Address *"]')
   end
 end

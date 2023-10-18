@@ -1,6 +1,11 @@
 require "rails_helper"
 
+if ExchangeTestingConfigurationHelper.individual_market_is_enabled?
 describe Insured::InteractiveIdentityVerificationsController do
+
+  after do
+    allow(TimeKeeper).to receive(:date_of_record).and_call_original
+  end
 
   describe "GET #new" do
     let(:mock_person) { double }
@@ -59,8 +64,9 @@ describe Insured::InteractiveIdentityVerificationsController do
   end
 
   describe "POST #create" do
+    let(:mock_person_user) { instance_double("User") }
     let(:mock_consumer_role) { instance_double("ConsumerRole", id: "test") }
-    let(:mock_person) { double(:consumer_role => mock_consumer_role) }
+    let(:mock_person) { double(:consumer_role => mock_consumer_role, :user => mock_person_user) }
     let(:mock_user) { double(:person => mock_person) }
     let(:mock_service) { instance_double("::IdentityVerification::InteractiveVerificationService") }
     let(:mock_response_description_text) { double }
@@ -139,13 +145,13 @@ describe Insured::InteractiveIdentityVerificationsController do
       describe "when verification is successful" do
         let(:service_succeeded) { true }
         it "should redirect the user" do
-          allow(Date).to receive(:today).and_return(mock_today)
-          expect(mock_consumer_role).to receive(:identity_final_decision_code=).with(ConsumerRole::INTERACTIVE_IDENTITY_VERIFICATION_SUCCESS_CODE)
-          expect(mock_consumer_role).to receive(:identity_response_code=).with(ConsumerRole::INTERACTIVE_IDENTITY_VERIFICATION_SUCCESS_CODE)
-          expect(mock_consumer_role).to receive(:identity_response_description_text=).with(mock_response_description_text)
-          expect(mock_consumer_role).to receive(:identity_final_decision_transaction_id=).with(mock_transaction_id)
-          expect(mock_consumer_role).to receive(:identity_verified_date=).with(mock_today)
-          expect(mock_consumer_role).to receive(:verify_identity!)
+          allow(TimeKeeper).to receive(:date_of_record).and_return(mock_today)
+          expect(mock_person_user).to receive(:identity_final_decision_code=).with(User::INTERACTIVE_IDENTITY_VERIFICATION_SUCCESS_CODE)
+          expect(mock_person_user).to receive(:identity_response_code=).with(User::INTERACTIVE_IDENTITY_VERIFICATION_SUCCESS_CODE)
+          expect(mock_person_user).to receive(:identity_response_description_text=).with(mock_response_description_text)
+          expect(mock_person_user).to receive(:identity_final_decision_transaction_id=).with(mock_transaction_id)
+          expect(mock_person_user).to receive(:identity_verified_date=).with(mock_today)
+          expect(mock_person_user).to receive(:save!)
           post :create, { "interactive_verification" => verification_params }
           expect(response).to be_redirect
         end
@@ -154,8 +160,9 @@ describe Insured::InteractiveIdentityVerificationsController do
   end
 
   describe "POST #update" do
+    let(:mock_person_user) { instance_double("User") }
     let(:mock_consumer_role) { instance_double("ConsumerRole", id: "test") }
-    let(:mock_person) { double(:consumer_role => mock_consumer_role) }
+    let(:mock_person) { double(:consumer_role => mock_consumer_role, :user => mock_person_user) }
     let(:mock_user) { double(:person => mock_person) }
     let(:mock_service) { instance_double("::IdentityVerification::InteractiveVerificationService") }
     let(:mock_response_description_text) { double }
@@ -201,16 +208,17 @@ describe Insured::InteractiveIdentityVerificationsController do
     describe "when verification is successful" do
       let(:service_succeeded) { true }
       it "should redirect the user" do
-        allow(Date).to receive(:today).and_return(mock_today)
-        expect(mock_consumer_role).to receive(:identity_final_decision_code=).with(ConsumerRole::INTERACTIVE_IDENTITY_VERIFICATION_SUCCESS_CODE)
-        expect(mock_consumer_role).to receive(:identity_response_code=).with(ConsumerRole::INTERACTIVE_IDENTITY_VERIFICATION_SUCCESS_CODE)
-        expect(mock_consumer_role).to receive(:identity_response_description_text=).with(mock_response_description_text)
-        expect(mock_consumer_role).to receive(:identity_final_decision_transaction_id=).with(mock_transaction_id)
-        expect(mock_consumer_role).to receive(:identity_verified_date=).with(mock_today)
-        expect(mock_consumer_role).to receive(:verify_identity!)
+        allow(TimeKeeper).to receive(:date_of_record).and_return(mock_today)
+        expect(mock_person_user).to receive(:identity_final_decision_code=).with(User::INTERACTIVE_IDENTITY_VERIFICATION_SUCCESS_CODE)
+        expect(mock_person_user).to receive(:identity_response_code=).with(User::INTERACTIVE_IDENTITY_VERIFICATION_SUCCESS_CODE)
+        expect(mock_person_user).to receive(:identity_response_description_text=).with(mock_response_description_text)
+        expect(mock_person_user).to receive(:identity_final_decision_transaction_id=).with(mock_transaction_id)
+        expect(mock_person_user).to receive(:identity_verified_date=).with(mock_today)
+        expect(mock_person_user).to receive(:save!)
         post :update, { "id" => transaction_id }
         expect(response).to be_redirect
       end
     end
   end
+end
 end

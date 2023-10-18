@@ -1,6 +1,7 @@
 class Products::Qhp
   include Mongoid::Document
   include Mongoid::Timestamps
+  include CsvOperater
 
   field :template_version, type: String
   field :issuer_id, type: String
@@ -32,6 +33,7 @@ class Products::Qhp
   field :is_specialist_referral_required, type: String
   field :health_care_specialist_referral_type, type: String, default: ""
   field :insurance_plan_benefit_exclusion_text, type: String
+  field :ehb_percent_premium, type: String
 
   field :indian_plan_variation, type: String  # amount per enrollee
 
@@ -59,8 +61,9 @@ class Products::Qhp
   field :begin_primary_care_cost_sharing_after_set_number_visits, type: String
 
   ## Plan Dates
-  field :plan_effective_date, type: String
-  field :plan_expiration_date, type: String
+  field :plan_effective_date, type: Date
+  field :plan_expiration_date, type: Date
+  field :active_year, type: Integer
 
   ## Geographic Coverage
   field :out_of_country_coverage, type: String
@@ -81,24 +84,26 @@ class Products::Qhp
                         :qhp_or_non_qhp, :emp_contribution_amount_for_hsa_or_hra, :child_only_offering,
                         :plan_effective_date, :out_of_country_coverage, :out_of_service_area_coverage, :national_network
 
+  scope :by_hios_ids_and_active_year, -> (sc_id, year) { where(:standard_component_id.in => sc_id, active_year: year ) }
+
   embeds_many :qhp_benefits,
     class_name: "Products::QhpBenefit",
     cascade_callbacks: true,
     validate: true
 
-  embeds_one :qhp_cost_share_variance,
+  embeds_many :qhp_cost_share_variances,
     class_name: "Products::QhpCostShareVariance",
     cascade_callbacks: true,
     validate: true
 
-  accepts_nested_attributes_for :qhp_benefits, :qhp_cost_share_variance
+  accepts_nested_attributes_for :qhp_benefits, :qhp_cost_share_variances
 
   index({"issuer_id" => 1})
   index({"state_postal_code" => 1})
   index({"national_network" => 1})
   index({"tin" => 1}, {sparse: true})
-
   index({"qhp_benefits.benefit_type_code" => 1})
+  index({"standard_component_id" => 1, "active_year" => 1})
 
   def plan=(new_plan)
     raise ArgumentError.new("expected Plan") unless new_plan.is_a? Plan
@@ -125,11 +130,70 @@ class Products::Qhp
     "Specialty Drugs"
   ]
 
+  DENTAL_VISIT_TYPES = [
+    "Routine Dental Services (Adult)",
+    "Dental Check-Up for Children",
+    "Basic Dental Care - Child",
+    "Orthodontia - Child",
+    "Major Dental Care - Child",
+    "Basic Dental Care - Adult",
+    "Orthodontia - Adult",
+    "Major Dental Care - Adult",
+    "Accidental Dental"
+  ]
 
-  def self.plan_hsa_status_map(plan_ids:)
+
+  def self.plan_hsa_status_map(plans)
     plan_hsa_status = {}
-    ::Products::Qhp.in(plan_id: plan_ids).map {|qhp| plan_hsa_status[qhp.plan_id.try(:to_s)] = qhp.hsa_eligibility}
+    @hios_ids = plans.map(&:hios_id)
+    @year = plans.first.present? ? plans.first.active_year : ""
+    qcsvs = get_cost_share_variances
+    qcsvs.map {|qcsv| plan_hsa_status[qcsv.plan.id.to_s] = qcsv.qhp.hsa_eligibility}
 
     plan_hsa_status
+  end
+
+  def self.get_cost_share_variances
+    Rails.cache.fetch("csvs-hios-ids-#{@hios_ids}-year-#{@year}", expires_in: 5.hour) do
+      Products::QhpCostShareVariance.find_qhp_cost_share_variances(@hios_ids, @year, "")
+    end
+  end
+
+  def self.csv_for(qhps, visit_types)
+    (output = "").tap do
+      CSV.generate(output) do |csv|
+        csv_ary = []
+        csv_ary << ["Carrier", "Plan Name", "Your Cost", "Provider NetWork", "Plan Benefits"] + visit_types
+        qhps.each do |qhp|
+          arry1 = [
+            qhp.plan.carrier_profile.organization.legal_name,
+            qhp.plan.name,
+            "$#{qhp[:total_employee_cost].round(2)} / month",
+            qhp.plan.nationwide ? "Nationwide" : qhp.plan.service_area_id,
+            "Co-Pay"
+          ]
+          arry2 = [
+            "","","","","Coinsurance"
+          ]
+          visit_types.each do |visit_type|
+            service_visit = qhp.qhp_service_visits.detect{|a| a.visit_type == visit_type}
+            if service_visit
+              arry1 << (service_visit.present? ? service_visit.copay_in_network_tier_1 : "N/A")
+              arry2 << (service_visit.present? ? service_visit.co_insurance_in_network_tier_1 : "N/A")
+            else
+              arry1 << "N/A"
+              arry2 << "N/A"
+            end
+          end
+          csv_ary << arry1
+          csv_ary << arry2
+        end
+
+        inversion = convert_csv(csv_ary)
+        inversion.each do |row|
+          csv << row
+        end
+      end
+    end
   end
 end

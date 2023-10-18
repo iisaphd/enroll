@@ -35,7 +35,8 @@ describe Forms::EmployeeCandidate, "asked to match a census employee" do
                                      :ssn => "123-45-6789",
                                      :first_name => "Tom",
                                      :last_name => "Baker",
-                                     :gender => "male"
+                                     :gender => "male",
+                                     :is_applying_coverage => false
                                  })
   }
 
@@ -88,7 +89,8 @@ describe Forms::EmployeeCandidate, "asked to match a person" do
                                      :first_name => "yo",
                                      :last_name => "guy",
                                      :gender => "m",
-                                     :user_id => 20
+                                     :user_id => 20,
+                                     :is_applying_coverage => false
                                  })
   }
 
@@ -138,9 +140,71 @@ describe Forms::EmployeeCandidate, "asked to match a person" do
 
   context "future date of birth" do
     it "gives error on dob" do
-      subject.dob = "2022-10-12"
+      subject.dob = TimeKeeper.date_of_record + 20.years
       expect(subject.valid?).to be_falsey
       expect(subject).to have_errors_on(:dob)
+    end
+  end
+end
+
+describe "match a person in db" do
+  let(:subject) {
+    Forms::EmployeeCandidate.new({
+                                     :dob => search_params.dob,
+                                     :ssn => search_params.ssn,
+                                     :first_name => search_param_name.first_name,
+                                     :last_name => search_param_name.last_name,
+                                     :gender => "m",
+                                     :user_id => 20,
+                                     :is_applying_coverage => false
+                                 })
+  }
+
+  let(:search_params) { double(dob: db_person.dob.strftime("%Y-%m-%d"), ssn: db_person.ssn, )}
+  let(:search_param_name) { double( first_name: db_person.first_name, last_name: db_person.last_name)}
+
+  after(:each) do
+    DatabaseCleaner.clean
+  end
+
+  context "with a person with a first name, last name, dob and no SSN" do
+    let(:db_person) { Person.create!(first_name: "Joe", last_name: "Kramer", dob: "1993-03-30", ssn: '')}
+
+    it 'matches the person by last_name, first name and dob if there is no ssn' do
+      expect(subject.match_person).to eq db_person
+    end
+
+    it 'matches the person ingoring case' do
+      subject.first_name.upcase!
+      subject.last_name.downcase!
+      expect(subject.match_person).to eq db_person
+    end
+
+    context "with a person who has no ssn but an employer staff role", dbclean: :after_each do
+      let!(:site)                { create(:benefit_sponsors_site, :with_benefit_market, :as_hbx_profile, :cca) }
+      let!(:benefit_sponsor)     { FactoryGirl.create(:benefit_sponsors_organizations_general_organization, :with_aca_shop_cca_employer_profile, site: site) }
+      let!(:employer_profile)    { benefit_sponsor.employer_profile }
+      let!(:employer_staff_role) { EmployerStaffRole.create(person: db_person, benefit_sponsor_employer_profile_id: employer_profile.id) }
+
+      it 'matches person by last name, first name and dob' do
+        db_person.employer_staff_roles << employer_staff_role
+        db_person.save!
+        allow(search_params).to receive(:ssn).and_return("517991234")
+        expect(subject.match_person).to eq db_person
+      end
+    end
+  end
+
+  context "with a person with a first name, last name, dob and ssn" do
+    let(:db_person) { Person.create!(first_name: "Jack",   last_name: "Weiner",   dob: "1943-05-14", ssn: "517994321")}
+
+    it 'matches the person by ssn and dob' do
+      expect(subject.match_person).to eq db_person
+    end
+
+    it 'does not find the person if payload has a different ssn from the person' do
+      subject.ssn = "888891234"
+      expect(subject.match_person).to eq nil
     end
   end
 end
