@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-ruby '2.6.5'
+ruby '2.7.8'
 
 gem "benefit_markets", path: "components/benefit_markets"
 gem "benefit_sponsors", path: "components/benefit_sponsors"
@@ -21,15 +21,15 @@ gem 'chosen-rails'
 gem 'ckeditor'
 gem 'coffee-rails', '~> 4.1.0'
 gem 'combine_pdf'
-gem 'config', '~> 1.0.0'
+# gem 'config', '~> 1.0.0'
 gem 'curl'
 gem 'devise',  '~> 4.5'
 gem 'effective_datatables', path: './project_gems/effective_datatables-2.6.14'
 gem 'haml'
 gem 'httparty'
 gem 'i18n', '0.7.0'
-gem 'interactor', '3.1.0'
-gem 'interactor-rails', '2.0.2'
+# gem 'interactor', '3.1.0'
+# gem 'interactor-rails', '2.0.2'
 gem 'jbuilder', '~> 2.0'
 gem 'jquery-datatables-rails', '3.4.0'
 gem 'jquery-rails', '4.0.5'
@@ -37,7 +37,7 @@ gem 'jquery-turbolinks'
 gem 'jquery-ui-rails'
 gem 'kaminari', '0.17.0'
 gem 'language_list', '~> 1.1.0'
-gem 'less-rails-bootstrap', '~> 3.3.1.0'
+# gem 'less-rails-bootstrap', '~> 3.3.1.0'
 gem 'mail', '2.6.3'
 gem 'maskedinput-rails'
 gem 'money-rails', '~> 1.10.0'
@@ -67,14 +67,13 @@ gem 'redis-rails'
 gem 'resque'
 gem 'roo', '~> 2.1.0'
 gem 'ruby-saml', '~> 1.3.0'
-gem 'sass-rails', '~> 5.0'
+# gem 'sass-rails', '~> 5.0'
 gem 'slim', '~> 3.0.8'
 gem 'slim-rails'
 gem 'simple_calendar', :git => 'https://github.com/harshared/simple_calendar'
 gem "sponsored_benefits", path: "components/sponsored_benefits"
 gem 'sprockets', '~> 2.12.3'
 gem 'symmetric-encryption', '~> 3.6.0'
-gem 'therubyracer', platforms: :ruby
 gem "transport_gateway",  path: "components/transport_gateway"
 gem "transport_profiles", path: "components/transport_profiles"
 gem 'turbolinks', '2.5.3'
@@ -84,6 +83,24 @@ gem 'wicked_pdf', '1.0.6'
 gem 'wkhtmltopdf-binary-edge', '~> 0.12.3.0'
 gem 'webpacker'
 gem 'rubyXL'
+# gem 'therubyracer', platforms: :ruby
+
+#m1 mac support
+gem 'ffi', '1.14.0'
+gem 'kostya-sigar', '2.0.10'
+gem 'mini_racer', '0.6.4'
+gem 'bigdecimal', '1.3.5'
+gem 'loofah', '~>2.19.1'
+gem 'dry-container', '~> 0.7.2'
+gem 'haml-rails', '~> 1.0'
+# gem 'less-rails-bootstrap', '~> 3.3.5.0'
+# gem 'less-rails', '~> 4.0.0'
+gem 'sassc',                    '~> 2.0'
+gem 'sass-rails',               '~> 5'
+gem 'config',                   '~> 2.0'
+
+gem 'interactor',               '~> 3.1'
+gem 'interactor-rails',         '~> 2.2'
 
 #######################################################
 # Removed gems
@@ -135,7 +152,7 @@ end
 
 group :test do
   gem 'action_mailer_cache_delivery', '~> 0.3.7'
-  gem 'capybara'
+  gem 'capybara', '3.32.1'
   gem 'capybara-screenshot'
   gem 'cucumber', '3.1.2'
   gem 'cucumber-rails', '1.6.0', :require => false
@@ -151,7 +168,7 @@ group :test do
   gem 'warden'
   gem 'watir'
   gem 'webdrivers', '~> 5.3.1'
-  gem 'webmock'
+  gem 'webmock', '~> 3.0.1'
 end
 
 group :production do
