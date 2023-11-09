@@ -156,7 +156,7 @@ group :test do
   gem 'capybara-screenshot'
   gem 'cucumber', '3.1.2'
   gem 'cucumber-rails', '1.6.0', :require => false
-  gem 'database_cleaner', '1.5.3'
+  gem 'database_cleaner', ' 1.5.3'
   gem 'fakeredis', :require => 'fakeredis/rspec'
   gem 'mongoid-rspec', '3.0.0'
   gem 'rspec-instafail'
