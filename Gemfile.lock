@@ -197,7 +197,7 @@ PATH
     transport_profiles (0.0.1)
       acapi
       mongoid (= 5.4.0)
-      nokogiri (= 1.9.1)
+      nokogiri (~> 1.10.8)
       rails (>= 4.2.0, < 5.0)
       rubyzip (>= 1.3.0)
       symmetric-encryption (~> 3.6.0)
@@ -614,9 +614,9 @@ GEM
     newrelic_rpm (9.6.0)
       base64
     nio4r (2.5.9)
-    nokogiri (1.9.1)
+    nokogiri (1.10.10)
       mini_portile2 (~> 2.4.0)
-    nokogiri-happymapper (0.9.0)
+    nokogiri-happymapper (0.8.1)
       nokogiri (~> 1.5)
     non-stupid-digest-assets (1.0.9)
       sprockets (>= 2.0)
@@ -771,8 +771,8 @@ GEM
     ruby-rc4 (0.1.5)
     ruby-saml (1.3.1)
       nokogiri (>= 1.5.10)
-    rubyXL (3.4.12)
-      nokogiri (>= 1.4.4)
+    rubyXL (3.4.25)
+      nokogiri (>= 1.10.8)
       rubyzip (>= 1.3.0)
     ruby_parser (3.20.3)
       sexp_processor (~> 4.16)
@@ -981,8 +981,8 @@ DEPENDENCIES
   mongoid_rails_migrations!
   mongoid_userstamp
   newrelic_rpm
-  nokogiri (= 1.9.1)
-  nokogiri-happymapper
+  nokogiri (~> 1.10.8)
+  nokogiri-happymapper (~> 0.8.0)
   non-stupid-digest-assets (~> 1.0, >= 1.0.9)
   notifier!
   openhbx_cv2!
