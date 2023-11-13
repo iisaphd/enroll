@@ -97,6 +97,8 @@ RSpec.configure do |config|
 end
 
 
+# error: ThreadError: already initialized
+# solution found here https://github.com/rails/rails/issues/34790#issuecomment-450502805
 # In case there are still poor souls on Rails 4.2 with Ruby 2.6/2.7, this is the full file working for my team, required from rails_helper.rb.
 
 # From https://github.com/rails/rails/issues/34790
@@ -106,47 +108,53 @@ end
 rb_version = Gem::Version.new(RUBY_VERSION)
 
 if rb_version >= Gem::Version.new('2.6') && Gem::Version.new(Rails.version) < Gem::Version.new('5')
-  if ! defined?(::ActionController::TestResponse)
-    raise "Needed class is not defined yet, try requiring this file later."
-  end
+  raise "Needed class is not defined yet, try requiring this file later." unless defined?(::ActionController::TestResponse)
 
   if rb_version >= Gem::Version.new('2.7')
     puts "Using #{__FILE__} for Ruby 2.7."
 
-    class ActionController::TestResponse < ActionDispatch::TestResponse
-      def recycle!
-        @mon_data = nil
-        @mon_data_owner_object_id = nil
-        initialize
+    module ActionController
+      class TestResponse < ActionDispatch::TestResponse
+        def recycle!
+          @mon_data = nil
+          @mon_data_owner_object_id = nil
+          initialize
+        end
       end
     end
 
-    class ActionController::LiveTestResponse < ActionController::Live::Response
-      def recycle!
-        @body = nil
-        @mon_data = nil
-        @mon_data_owner_object_id = nil
-        initialize
+    module ActionController
+      class LiveTestResponse < ActionController::Live::Response
+        def recycle!
+          @body = nil
+          @mon_data = nil
+          @mon_data_owner_object_id = nil
+          initialize
+        end
       end
     end
 
   else
     puts "Using #{__FILE__} for Ruby 2.6."
 
-    class ActionController::TestResponse < ActionDispatch::TestResponse
-      def recycle!
-        @mon_mutex = nil
-        @mon_mutex_owner_object_id = nil
-        initialize
+    module ActionController
+      class TestResponse < ActionDispatch::TestResponse
+        def recycle!
+          @mon_mutex = nil
+          @mon_mutex_owner_object_id = nil
+          initialize
+        end
       end
     end
 
-    class ActionController::LiveTestResponse < ActionController::Live::Response
-      def recycle!
-        @body = nil
-        @mon_mutex = nil
-        @mon_mutex_owner_object_id = nil
-        initialize
+    module ActionController
+      class LiveTestResponse < ActionController::Live::Response
+        def recycle!
+          @body = nil
+          @mon_mutex = nil
+          @mon_mutex_owner_object_id = nil
+          initialize
+        end
       end
     end
 
