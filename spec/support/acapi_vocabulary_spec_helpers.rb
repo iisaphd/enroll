@@ -1,8 +1,9 @@
-#require 'net/http'
+# frozen_string_literal: true
+
 require 'open-uri'
 
 module AcapiVocabularySpecHelpers
-  ACAPI_SCHEMA_FILE_LIST = %w(
+  ACAPI_SCHEMA_FILE_LIST = %w[
 assistance.xsd
 common.xsd
 config.xsd
@@ -21,7 +22,7 @@ premium.xsd
 verification_services.xsd
 vocabulary.xsd
 verification_services.xsd
-  )
+  ].freeze
 
   def download_vocabularies
     schema_directory = File.join(Rails.root, "spec", "vocabularies")
@@ -33,24 +34,24 @@ verification_services.xsd
 
   def download_schema_file(file, s_dir)
     f_name = File.join(s_dir, file)
-    unless File.exist?(f_name)
-      uri = URI("https://raw.githubusercontent.com/ideacrew/cv/trunk/#{file}")
-      puts "Downloading schema for testing ... #{uri}"
-      begin
-        download = URI.open(uri)
-        IO.copy_stream(download, f_name)
-      rescue Timeout::Error => e
-        puts "The request for a page at #{url} timed out...skipping."
-        puts "Error: #{e.message}"
-      rescue OpenURI::HTTPError => e
-        response = error.io
-        puts "Unable to download #{uri}"
-        puts  response.status
-        puts  response.string
-        puts e.message
-      rescue Exception => e
-        puts "Catch all Exception: #{e.message}"
-      end
+    return if File.exist?(f_name)
+
+    uri = "https://raw.githubusercontent.com/ideacrew/cv/trunk/#{file}"
+    puts "Downloading schema for testing ... #{uri}"
+    begin
+      download = URI.parse(uri).open
+      IO.copy_stream(download, f_name)
+    rescue Timeout::Error => e
+      puts "The request for a page at #{url} timed out...skipping."
+      puts "Error: #{e.message}"
+    rescue OpenURI::HTTPError => e
+      response = error.io
+      puts "Unable to download #{uri}"
+      puts  response.status
+      puts  response.string
+      puts e.message
+    rescue StandardError => e
+      puts "Catch all: #{e.message}"
     end
   end
 

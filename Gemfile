@@ -78,7 +78,7 @@ gem 'wkhtmltopdf-binary-edge', '~> 0.12.3.0'
 gem 'webpacker'
 gem 'rubyXL'
 
-#m1 mac support
+#arm64 mac support
 gem 'ffi', '1.14.0'
 gem 'kostya-sigar', '2.0.10'
 gem 'mini_racer', '0.6.4'
@@ -95,9 +95,6 @@ gem 'interactor-rails',         '~> 2.2'
 
 gem 'nokogiri',                 '~> 1.11'
 gem 'nokogiri-happymapper',     :require => 'happymapper'
-
-# gem 'nokogiri',                 '~> 1.10.8'
-# gem 'nokogiri-happymapper',     '~> 0.8.0', :require => 'happymapper'
 
 #######################################################
 # Removed gems

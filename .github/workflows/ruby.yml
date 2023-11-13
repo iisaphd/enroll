@@ -211,7 +211,6 @@ jobs:
           gem update --system
           gem install bundler -v '1.17.3'          
           bundle config path vendor/bundle
-          uname -a
           bundle install --jobs 4 --retry 3
           gem install treye-semaphore_test_boosters --version '2.5.1'
           gem install brakeman
