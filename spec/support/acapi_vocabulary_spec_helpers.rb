@@ -36,8 +36,20 @@ verification_services.xsd
     f_name = File.join(s_dir, file)
     unless File.exist?(f_name)
       uri = "https://raw.githubusercontent.com/ideacrew/cv/trunk/#{file}"
-      download = open(uri)
-      IO.copy_stream(download, f_name)
+      begin
+        download = open(uri)
+        IO.copy_stream(download, f_name)
+      rescue Timeout::Error => e
+        puts "The request for a page at #{url} timed out...skipping."
+        puts "Error: #{e.message}"
+      rescue OpenURI::Error => e
+        puts "The request for a page at #{url} returned an error. #{e.message}"
+      rescue OpenURI::HTTPError => e
+        response = error.io
+        puts "Unable to download #{uri}"
+        puts  response.status
+        puts  response.string
+        puts e.message
     end
   end
 
