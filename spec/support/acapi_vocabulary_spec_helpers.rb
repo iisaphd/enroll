@@ -1,6 +1,6 @@
-require 'open-uri'
 
 module AcapiVocabularySpecHelpers
+  require 'open-uri'
   ACAPI_SCHEMA_FILE_LIST = %w(
 assistance.xsd
 common.xsd
