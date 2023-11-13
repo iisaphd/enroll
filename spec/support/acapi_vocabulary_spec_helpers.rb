@@ -50,6 +50,7 @@ verification_services.xsd
         puts  response.status
         puts  response.string
         puts e.message
+      end
     end
   end
 
