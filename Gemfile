@@ -96,7 +96,6 @@ gem 'interactor-rails',         '~> 2.2'
 gem 'nokogiri',                 '~> 1.11'
 gem 'nokogiri-happymapper',     :require => 'happymapper'
 
-gem 'uri', '~> 0.13.0'
 # gem 'nokogiri',                 '~> 1.10.8'
 # gem 'nokogiri-happymapper',     '~> 0.8.0', :require => 'happymapper'
 
