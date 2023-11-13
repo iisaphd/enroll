@@ -169,7 +169,7 @@ jobs:
               fi
             needs_chromedriver: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -186,7 +186,6 @@ jobs:
         if: matrix.command_configs.skip_js != 'true'
         with:
           mongoDBVersion: ${{ matrix.mongodb-version }}
-      - uses: actions/checkout@v2
       - name: Set up Chromedriver
         if: matrix.command_configs.needs_chromedriver
         uses: nanasess/setup-chromedriver@master
