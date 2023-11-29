@@ -546,6 +546,7 @@ GEM
     launchy (2.5.2)
       addressable (~> 2.8)
     libv8-node (16.19.0.1)
+    libv8-node (16.19.0.1-x86_64-linux)
     loofah (2.19.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
@@ -616,6 +617,8 @@ GEM
     nio4r (2.5.9)
     nokogiri (1.12.5)
       mini_portile2 (~> 2.6.1)
+      racc (~> 1.4)
+    nokogiri (1.12.5-x86_64-linux)
       racc (~> 1.4)
     nokogiri-happymapper (0.9.0)
       nokogiri (~> 1.5)
@@ -910,6 +913,7 @@ GEM
 
 PLATFORMS
   ruby
+  x86_64-linux
 
 DEPENDENCIES
   aasm (~> 4.8.0)
@@ -1045,4 +1049,4 @@ RUBY VERSION
    ruby 2.7.8p225
 
 BUNDLED WITH
-   1.17.3
+   2.0.0.pre.3
