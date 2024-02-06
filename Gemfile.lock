@@ -501,7 +501,8 @@ GEM
     hashdiff (1.0.1)
     hashery (2.1.2)
     hike (1.2.3)
-    html2haml (2.3.0)
+    holidays (8.6.0)
+    html2haml (2.2.0)
       erubis (~> 2.7.0)
       haml (>= 4.0)
       nokogiri (>= 1.6.0)
@@ -957,7 +958,7 @@ DEPENDENCIES
   ffi (= 1.14.0)
   forgery
   haml
-  haml-rails (~> 1.0)
+  holidays (~> 8.6)
   httparty
   i18n (= 0.7.0)
   interactor (~> 3.1)

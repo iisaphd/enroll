@@ -77,6 +77,7 @@ gem 'wicked_pdf', '1.0.6'
 gem 'wkhtmltopdf-binary-edge', '~> 0.12.3.0'
 gem 'webpacker'
 gem 'rubyXL'
+gem 'holidays', '~> 8.6'
 
 #arm64 mac support
 gem 'ffi', '1.14.0'
