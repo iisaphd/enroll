@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-ruby '2.6.5'
+ruby '2.7.6'
 
 gem "benefit_markets", path: "components/benefit_markets"
 gem "benefit_sponsors", path: "components/benefit_sponsors"
@@ -25,7 +25,6 @@ gem 'chosen-rails'
 gem 'ckeditor'
 gem 'coffee-rails', '~> 4.2.2'
 gem 'combine_pdf'
-gem 'config', '~> 1.0.0'
 gem 'curl'
 gem 'devise',  '~> 4.5'
 gem 'effective_datatables', path: './project_gems/effective_datatables-2.6.14'
@@ -41,7 +40,6 @@ gem 'jquery-turbolinks'
 gem 'jquery-ui-rails'
 gem 'kaminari', '0.17.0'
 gem 'language_list', '~> 1.1.0'
-gem 'less-rails-bootstrap', '~> 3.3.1.0'
 gem 'mail', '2.6.3'
 gem 'maskedinput-rails'
 gem 'money-rails', '~> 1.10.0'
@@ -54,6 +52,7 @@ gem 'mongoid-versioning'
 gem 'mongoid_rails_migrations', '1.2.1'
 gem 'nokogiri', '1.13.10'
 gem 'nokogiri-happymapper', '~> 0.8.0', :require => 'happymapper'
+gem 'mongoid_userstamp'
 gem 'non-stupid-digest-assets', '~> 1.0', '>= 1.0.9'
 gem 'openhbx_cv2', git: 'https://github.com/ideacrew/openhbx_cv2.git', branch: 'trunk'
 gem 'resource_registry',  git:  'https://github.com/ideacrew/resource_registry.git', branch: 'trunk'
@@ -74,7 +73,6 @@ gem 'slim-rails'
 gem 'simple_calendar', :git => 'https://github.com/harshared/simple_calendar'
 gem 'sprockets', '~> 3.5', '>= 3.5.2'
 gem 'symmetric-encryption', '~> 3.6.0'
-# gem 'therubyracer', platforms: :ruby
 gem 'turbolinks', '2.5.3'
 gem 'uglifier', '>= 1.3.0', require: 'uglifier'
 gem 'virtus'
@@ -84,6 +82,35 @@ gem 'webpacker'
 gem 'rubyXL'
 gem 'holidays', '~> 8.6'
 gem 'next_rails', '~> 1.3'
+
+#arm64 mac support
+gem 'ffi', '1.14.0'
+gem 'kostya-sigar', '2.0.10'
+gem 'mini_racer', '0.6.4'
+gem 'bigdecimal', '1.3.5'
+gem 'loofah', '~>2.19.1'
+gem 'dry-container', '0.9'
+gem 'haml-rails', '~> 1.0'
+gem 'sassc',                    '~> 2.0'
+gem 'config',                   '~> 2.0'
+
+#######################################################
+# Removed gems
+#######################################################
+#
+# gem 'acapi', path: '../acapi'
+# gem 'bh'
+# gem 'devise_ldap_authenticatable', '~> 0.8.1'
+# gem 'highcharts-rails', '~> 4.1', '>= 4.1.9'
+# gem 'kaminari-mongoid' #DEPRECATION WARNING: Kaminari Mongoid support has been extracted to a separate gem, and will be removed in the next 1.0 release.
+# gem 'mongoid-encrypted-fields', '~> 1.3.3'
+# gem 'mongoid-history', '~> 5.1.0'
+# gem 'rypt', '0.2.0'
+# gem 'rocketjob_mission_control', '~> 3.0'
+# gem 'rails_semantic_logger'
+# gem 'rocketjob', '~> 3.0'
+#
+#######################################################
 
 group :doc do
   gem 'sdoc', '~> 0.4.0'
