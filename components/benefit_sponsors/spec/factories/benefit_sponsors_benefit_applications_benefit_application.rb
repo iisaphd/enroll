@@ -1,4 +1,4 @@
-FactoryGirl.define do
+FactoryBot.define do
 
   sequence(:random_count) do |n|
     @random_counts ||= (1..25).to_a.shuffle
@@ -7,9 +7,9 @@ FactoryGirl.define do
 
   factory :benefit_sponsors_benefit_application, class: 'BenefitSponsors::BenefitApplications::BenefitApplication' do
 
-    fte_count   FactoryGirl.generate(:random_count)
-    pte_count   FactoryGirl.generate(:random_count)
-    msp_count   FactoryGirl.generate(:random_count)
+    fte_count   FactoryBot.generate(:random_count)
+    pte_count   FactoryBot.generate(:random_count)
+    msp_count   FactoryBot.generate(:random_count)
 
     # design using defining module spec helpers
     effective_period do
@@ -87,7 +87,7 @@ FactoryGirl.define do
 
     trait :with_predecessor_application do
       after(:build) do |benefit_application, evaluator|
-        predecessor_application = FactoryGirl.create(:benefit_sponsors_benefit_application,
+        predecessor_application = FactoryBot.create(:benefit_sponsors_benefit_application,
           (evaluator.predecessor_application_catalog ? :with_benefit_sponsor_catalog : :without_benefit_sponsor_catalog),
           :with_benefit_package,
           benefit_sponsorship: benefit_application.benefit_sponsorship,
@@ -105,7 +105,7 @@ FactoryGirl.define do
 
     trait :with_predecessor_expired_application do
       after(:build) do |benefit_application, evaluator|
-        benefit_application.predecessor_application = FactoryGirl.create(:benefit_sponsors_benefit_application,
+        benefit_application.predecessor_application = FactoryBot.create(:benefit_sponsors_benefit_application,
           :with_benefit_package,
           benefit_sponsorship: benefit_application.benefit_sponsorship,
           effective_period: (benefit_application.effective_period.begin - 1.year)..((benefit_application.effective_period.end - 1.year).end_of_month),
@@ -118,7 +118,7 @@ FactoryGirl.define do
 
     trait :with_predecessor_imported_application do
       after(:build) do |benefit_application, evaluator|
-        predecessor_application = FactoryGirl.create(:benefit_sponsors_benefit_application,
+        predecessor_application = FactoryBot.create(:benefit_sponsors_benefit_application,
           :with_benefit_package,
           benefit_sponsorship: benefit_application.benefit_sponsorship,
           effective_period: (benefit_application.effective_period.begin - 1.year)..((benefit_application.effective_period.end - 1.year).end_of_month),
