@@ -174,6 +174,7 @@ GEM
     addressable (2.8.6)
       public_suffix (>= 2.0.2, < 6.0)
     arel (9.0.0)
+    ast (2.4.2)
     awesome_print (1.9.2)
     axiom-types (0.1.1)
       descendants_tracker (~> 0.0.4)
@@ -399,6 +400,11 @@ GEM
       sprockets (>= 2.0)
     orm_adapter (0.5.0)
     ox (2.14.17)
+    parallel (1.24.0)
+    parser (3.3.0.5)
+      ast (~> 2.4.1)
+      racc
+    prism (0.24.0)
     public_suffix (5.0.4)
     pundit (1.0.1)
       activesupport (>= 3.0.0)
@@ -436,8 +442,10 @@ GEM
       method_source
       rake (>= 0.8.7)
       thor (>= 0.19.0, < 2.0)
+    rainbow (3.1.1)
     rake (13.1.0)
     redcarpet (3.4.0)
+    regexp_parser (2.9.0)
     responders (3.1.1)
       actionpack (>= 5.2)
       railties (>= 5.2)
@@ -446,6 +454,7 @@ GEM
       http-cookie (>= 1.0.2, < 2.0)
       mime-types (>= 1.16, < 4.0)
       netrc (~> 0.8)
+    rexml (3.2.6)
     roo (2.1.1)
       nokogiri (~> 1)
       rubyzip (~> 1.1, < 2.0.0)
@@ -466,6 +475,22 @@ GEM
       rspec-mocks (~> 3.10)
       rspec-support (~> 3.10)
     rspec-support (3.13.0)
+    rubocop (0.93.1)
+      parallel (~> 1.10)
+      parser (>= 2.7.1.5)
+      rainbow (>= 2.2.2, < 4.0)
+      regexp_parser (>= 1.8)
+      rexml
+      rubocop-ast (>= 0.6.0)
+      ruby-progressbar (~> 1.7)
+      unicode-display_width (>= 1.4.0, < 2.0)
+    rubocop-ast (1.31.0)
+      parser (>= 3.3.0.4)
+      prism (>= 0.24.0)
+    rubocop-rspec (1.44.1)
+      rubocop (~> 0.87)
+      rubocop-ast (>= 0.7.1)
+    ruby-progressbar (1.13.0)
     ruby-rc4 (0.1.5)
     rubyzip (1.3.0)
     sass-rails (6.0.0)
@@ -505,6 +530,7 @@ GEM
     timeout (0.4.1)
     tzinfo (1.2.11)
       thread_safe (~> 0.1)
+    unicode-display_width (1.8.0)
     unidecoder (1.1.2)
     virtus (1.0.5)
       axiom-types (~> 0.1)
@@ -541,6 +567,7 @@ DEPENDENCIES
   rails-perftest
   resource_registry!
   rspec-rails
+  rubocop-rspec (~> 1.31)
   shoulda-matchers
   sponsored_benefits!
   test-prof (= 0.5.0)
