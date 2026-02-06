@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 describe PersonRelationship, dbclean: :after_each do
@@ -5,7 +7,7 @@ describe PersonRelationship, dbclean: :after_each do
   it { should validate_presence_of :kind }
 
   let(:kind) {"spouse"}
-  let(:person) {FactoryGirl.create(:person, gender: "male", dob: "10/10/1974", ssn: "123456789" )}
+  let(:person) {FactoryBot.create(:person, gender: "male", dob: "10/10/1974", ssn: "123456789")}
 
   describe "class methods" do
     context "shop_display_relationship_kinds" do
@@ -17,11 +19,46 @@ describe PersonRelationship, dbclean: :after_each do
     let(:valid_params) do
       { kind: kind,
         relative: person,
-        person: person
-      }
+        person: person}
     end
 
-    let(:kinds) {  [
+    let(:consumer_relationship_kinds) do
+      [
+        "self",
+        "spouse",
+        "domestic_partner",
+        "child",
+        "parent",
+        "sibling",
+        "ward",
+        "guardian",
+        "unrelated",
+        "other_tax_dependent",
+        "aunt_or_uncle",
+        "nephew_or_niece",
+        "grandchild",
+        "grandparent"
+      ]
+    end
+
+    let(:relationships_UI)  do
+      [
+      "self",
+      "spouse",
+      "domestic_partner",
+      "child",
+      "parent",
+      "sibling",
+      "unrelated",
+      "aunt_or_uncle",
+      "nephew_or_niece",
+      "grandchild",
+      "grandparent"
+    ]
+    end
+
+    let(:kinds) do
+      [
       "spouse",
       "life_partner",
       "child",
@@ -50,12 +87,29 @@ describe PersonRelationship, dbclean: :after_each do
       "trustee",
       "unrelated",
       "ward"
-    ] }
+    ]
+    end
+
+    context "consumer relationship dropdown list(family member page)" do
+      let(:params){ valid_params.deep_merge!({kind: "other_tax_dependent"}) }
+
+      it "consumer relationships should be matched" do
+        expect(BenefitEligibilityElementGroup::INDIVIDUAL_MARKET_RELATIONSHIP_CATEGORY_KINDS).to eq consumer_relationship_kinds
+      end
+
+      it "consumer relationships displayed on UI should match" do
+        expect(BenefitEligibilityElementGroup::Relationships_UI).to eq relationships_UI
+      end
+
+      it "should be valid if kind is present in person_relationship" do
+        expect(PersonRelationship.new(**params).valid?).to be_truthy
+      end
+    end
 
     it "relationships should be sorted" do
       expect(PersonRelationship::Relationships).to eq kinds
     end
-    
+
     context "with no arguments" do
       let(:params) {{}}
 

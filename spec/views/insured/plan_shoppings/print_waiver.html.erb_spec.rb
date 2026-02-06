@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "rails_helper"
 
 RSpec.describe "insured/plan_shoppings/print_waiver.html.erb" do
@@ -12,12 +14,13 @@ RSpec.describe "insured/plan_shoppings/print_waiver.html.erb" do
 
   before :each do
     assign :hbx_enrollment, hbx_enrollment
-    render file: "insured/plan_shoppings/print_waiver.html.erb"
+    allow(view).to receive(:policy_helper).and_return(double('Family', updateable?: true))
+    render template: "insured/plan_shoppings/print_waiver"
   end
 
   it "should show waiver confirmation page" do
-    expect(rendered).to have_selector('h3', text: /waiver confirmation/i)
-    expect(rendered).to have_selector('p', text: /You have successfully waived the coverage at #{hbx_enrollment.updated_at}./)
+    expect(rendered).to have_selector('h3', text: /Waiver confirmation/)
+    expect(rendered).to have_selector('p', text: /You have successfully waived the coverage at #{Regexp.escape(format_datetime(hbx_enrollment.updated_at))}\./)
     expect(rendered).to have_selector('p', text: /Waiver Reason : #{hbx_enrollment.waiver_reason}./)
     expect(rendered).to have_selector('p', text: /Please print this page for your records./)
   end

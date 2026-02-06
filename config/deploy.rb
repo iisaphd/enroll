@@ -28,7 +28,7 @@ set :bundle_path, nil
 set :pty, true
 
 # Default value for :linked_files is []
-set :linked_files, (fetch(:linked_files, []) | ['config/mongoid.yml', 'config/initializers/devise.rb', 'config/secrets.yml', "config/environments/production.rb", "config/symmetric-encryption.yml"])
+set :linked_files, (fetch(:linked_files, []) | ['config/mongoid.yml', 'config/initializers/devise.rb', 'config/secrets.yml', "config/environments/production.rb", "config/symmetric-encryption.yml",'config/saml.yml', 'config/unicorn.rb', 'eyes/enroll.eye.rb', 'config/ssl/wfpk.pem'])
 
 # Default value for linked_dirs is []
 set :linked_dirs, fetch(:linked_dirs, []).push('log', 'pids', 'eye', "public/sbc")
@@ -51,7 +51,9 @@ namespace :assets do
 #      execute "rm -rf #{shared_path}/public/assets/*"
       within release_path do
         with rails_env: fetch(:rails_env) do
+          execute :rake, "assets:clobber"
           execute :rake, "assets:precompile"
+          execute :rake, %(seed:translations["db/seedfiles/english_translations_seed.rb"])
         end
       end
     end

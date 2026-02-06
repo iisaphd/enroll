@@ -1,0 +1,21 @@
+<ul>
+  <% search_options.each do |title, options| %>
+    <% next if options.empty? %>
+    <li><span class="run-glossary" data-cuke="bqt-plan-type-filter"><%= search_titles[title] %></span>
+      <% options.each do |option| %>
+        <label for='<%= "#{title}-#{option}" %>' class="plan-search-option" data-search-type="<%= title.to_s %>" data-value="<%= option %>">
+          <%= check_box_tag "#{title}-#{option}", option, false, class: 'checkbox plan-filter-checkbox', :'data-search-type' => title.to_s  %>
+          <% if title === :plan_type %>
+            <%= option.upcase %>
+          <% elsif option.is_a? String %>
+            <%= option.capitalize %>
+          <% elsif option.is_a? MetalLevel %>
+            <%= option.name.capitalize %>
+          <% else %>
+            $<%= number_with_delimiter(option, :delimiter => ',') %>
+          <% end %>
+        </label>
+      <% end %>
+    </li>
+  <% end %>
+</ul>

@@ -7,16 +7,16 @@ class FinancialStatement
   TAX_FILING_STATUS_TYPES = %W(tax_filer tax_dependent non_filer)
 
   field :tax_filing_status, type: String
-  field :is_tax_filing_together, type: Boolean
+  field :is_tax_filing_together, type: Mongoid::Boolean
 
   field :eligibility_determination_id, type: BSON::ObjectId
 
   # Has access to employer-sponsored coverage that meets ACA minimum standard value and
   #   employee responsible premium amount is <= 9.5% of Household income
-  field :is_enrolled_for_es_coverage, type: Boolean, default: false
-  field :is_without_assistance, type: Boolean, default: true
+  field :is_enrolled_for_es_coverage, type: Mongoid::Boolean, default: false
+  field :is_without_assistance, type: Mongoid::Boolean, default: true
   field :submitted_date, type: DateTime
-  field :is_active, type: Boolean, default: true
+  field :is_active, type: Mongoid::Boolean, default: true
 
   embedded_in :tax_household_member
 
@@ -91,8 +91,8 @@ class FinancialStatement
           daily_income = income_deduction.amount_in_cents / (working_days_in_year)
       end
 
-      income_deduction.start_date = Date.today.beginning_of_year if income_deduction.start_date.to_s.eql? "01-01-0001" or income_deduction.start_date.blank?
-      income_deduction.end_date   = Date.today.end_of_year if income_deduction.end_date.to_s.eql? "01-01-0001" or income_deduction.end_date.blank?
+      income_deduction.start_date = TimeKeeper.date_of_record.beginning_of_year if income_deduction.start_date.to_s.eql? "01-01-0001" || income_deduction.start_date.blank?
+      income_deduction.end_date   = TimeKeeper.date_of_record.end_of_year if income_deduction.end_date.to_s.eql? "01-01-0001" || income_deduction.end_date.blank?
       years = (income_deduction.start_date.year..income_deduction.end_date.year)
 
       years.to_a.each do |year|
@@ -125,9 +125,9 @@ class FinancialStatement
   end
 
   def is_receiving_benefits_this_year?(alternate_benefit)
-    alternate_benefit.start_date = Date.today.beginning_of_year if alternate_benefit.start_date.blank?
-    alternate_benefit.end_date =   Date.today.end_of_year if alternate_benefit.end_date.blank?
-    (alternate_benefit.start_date.year..alternate_benefit.end_date.year).include? Date.today.year
+    alternate_benefit.start_date = TimeKeeper.date_of_record.beginning_of_year if alternate_benefit.start_date.blank?
+    alternate_benefit.end_date =   TimeKeeper.date_of_record.end_of_year if alternate_benefit.end_date.blank?
+    (alternate_benefit.start_date.year..alternate_benefit.end_date.year).include? TimeKeeper.date_of_record.year
   end
 
   def total_incomes_by_year

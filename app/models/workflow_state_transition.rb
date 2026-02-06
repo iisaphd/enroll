@@ -4,6 +4,7 @@ class WorkflowStateTransition
 
   embedded_in :transitional, polymorphic: true
 
+  field :event, type: String
   field :from_state, type: String
   field :to_state, type: String
   field :transition_at, type: DateTime
@@ -20,14 +21,14 @@ class WorkflowStateTransition
 
   def to_html
     if from_state.blank?
-      "<div>#{transition_at.strftime("%m/%d/%Y")} - Application received.</div>".html_safe
+      "<div>#{transition_at.strftime("%m/%d/%Y %H:%M UTC")} - Application received.</div>".html_safe
     else
-      "<div>#{transition_at.strftime("%m/%d/%Y")} - State changed from <b>#{from_state.camelcase}</b> to <b>#{to_state.camelcase}</b>.</div>".html_safe
+      "<div>#{transition_at.strftime("%m/%d/%Y %H:%M UTC")} - State changed from <b>#{from_state.camelcase}</b> to <b>#{to_state.camelcase}</b>.</div>".html_safe
     end
   end
 
 private
   def set_transition_timestamp
-    self.transition_at ||= TimeKeeper.datetime_of_record
+    self.transition_at ||= Time.now
   end
 end

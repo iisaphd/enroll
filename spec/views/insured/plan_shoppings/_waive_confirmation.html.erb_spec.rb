@@ -1,9 +1,12 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe "insured/plan_shoppings/_waive_confirmation.html.erb" do
   context "when not waivable" do
     before :each do
       assign(:waivable, false)
+      allow(view).to receive(:policy_helper).and_return(double('FamilyPolicy', updateable?: true))
       render "insured/plan_shoppings/waive_confirmation"
     end
 
@@ -19,6 +22,7 @@ RSpec.describe "insured/plan_shoppings/_waive_confirmation.html.erb" do
   context "when waivable" do
     before :each do
       assign(:waivable, true)
+      allow(view).to receive(:policy_helper).and_return(double('FamilyPolicy', updateable?: true))
       render "insured/plan_shoppings/waive_confirmation", enrollment: instance_double("HbxEnrollment", id: "enrollment_id")
     end
 
