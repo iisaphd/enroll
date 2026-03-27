@@ -1,6 +1,11 @@
-FactoryGirl.define do
-  factory :inbox do
-    
-  end
+# frozen_string_literal: true
 
+FactoryBot.define do
+  factory :inbox do
+    trait :with_message do
+      after(:create) do |i|
+        create_list(:message, 2, inbox: i)
+      end
+    end
+  end
 end

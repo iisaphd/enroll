@@ -10,10 +10,10 @@ module Validations
           f_name = "check_#{name}_by_ability"
           define_method(f_name) {
             current_user = User.current_user
-            return if !self.send("#{name}_changed?") or new_record? or current_user.has_hbx_staff_role?
+            return if !self.send("#{name}_changed?") || new_record? || current_user.has_hbx_staff_role?
 
             if current_user.has_employer_staff_role?
-              if employee_role_linked?
+              if is_linked?
                 errors.add(name.to_sym, 'does not have the ability to be change after linking')
               end
             else

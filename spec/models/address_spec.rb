@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 describe Address, "with proper validations" do
@@ -7,7 +9,7 @@ describe Address, "with proper validations" do
   let(:state) { "CA" }
   let(:zip) { "20171" }
 
-  let(:address_params) {
+  let(:address_params) do
     {
       kind: address_kind,
       address_1: address_1,
@@ -15,7 +17,7 @@ describe Address, "with proper validations" do
       state: state,
       zip: zip
     }
-  }
+  end
 
   subject { Address.new(address_params) }
 
@@ -82,15 +84,29 @@ describe Address, "with proper validations" do
     end
   end
 
+  context "#address_changed?" do
+    let(:person) { FactoryBot.create(:person) }
+    let(:address) { person.addresses.create(address_params) }
+
+    it "returns true if address has changes" do
+      address.address_1 = "456 Elm St"
+      expect(address.address_changed?).to be true
+    end
+
+    it "returns false if address has no changes" do
+      expect(address.address_changed?).to be false
+    end
+  end
+
   context "embedded in another object", type: :model do
     it { should validate_presence_of :address_1 }
     it { should validate_presence_of :city }
     it { should validate_presence_of :state }
     it { should validate_presence_of :zip }
 
-    let(:person) {Person.new(first_name: "John", last_name: "Doe", gender: "male", dob: "10/10/1974", ssn: "123456789" )}
-    let(:address) {FactoryGirl.create(:address)}
-    let(:employer){FactoryGirl.create(:employer_profile)}
+    let(:person) {Person.new(first_name: "John", last_name: "Doe", gender: "male", dob: "10/10/1974", ssn: "123456789")}
+    let(:address) {FactoryBot.create(:address)}
+    let(:employer){FactoryBot.create(:employer_profile)}
 
 
     context "accepts all valid values" do
@@ -110,15 +126,15 @@ describe Address, "with proper validations" do
 end
 
 describe 'view helpers/presenters' do
-  let(:address) {
-     Address.new(
-       address_1: "An address line 1",
-       address_2: "An address line 2",
-       city: "A City",
-       state: "CA",
-       zip: "21222"
-     )
-  }
+  let(:address) do
+    Address.new(
+      address_1: "An address line 1",
+      address_2: "An address line 2",
+      city: "A City",
+      state: "CA",
+      zip: "21222"
+    )
+  end
 
   describe '#to_s' do
     it 'returns a string with a formated address' do
@@ -177,27 +193,27 @@ describe '#clean_fields' do
   end
 end
 
-describe '#matches?' do
-  let(:address) {
-     Address.new(
-       address_1: "An address line 1",
-       address_2: "An address line 2",
-       city: "A City",
-       state: "CA",
-       zip: "21222"
-     )
-  }
+describe '#matches_addresses?' do
+  let(:address) do
+    Address.new(
+      address_1: "An address line 1",
+      address_2: "An address line 2",
+      city: "A City",
+      state: "CA",
+      zip: "21222"
+    )
+  end
 
   context 'addresses are the same' do
     let(:second_address) { address.clone }
     it 'returns true' do
-      expect(address.matches?(second_address)).to be_truthy
+      expect(address.matches_addresses?(second_address)).to be_truthy
     end
 
     context 'mismatched case' do
       before { second_address.address_1.upcase! }
       it 'returns true' do
-        expect(address.matches?(second_address)).to be_truthy
+        expect(address.matches_addresses?(second_address)).to be_truthy
       end
     end
   end
@@ -209,7 +225,58 @@ describe '#matches?' do
       a
     end
     it 'returns false' do
-      expect(address.matches?(second_address)).to be_falsey
+      expect(address.matches_addresses?(second_address)).to be_falsey
+    end
+  end
+end
+
+describe "#kind" do
+  let(:office_location) {FactoryBot.build(:office_location, :primary)}
+  let(:address) {FactoryBot.build(:address)}
+
+  context "write kind" do
+    it "kind should be work with primary office_location when primary" do
+      allow(address).to receive(:office_location).and_return office_location
+      address.kind = 'primary'
+      expect(address.read_attribute(:kind)).to eq 'work'
+    end
+
+    it "kind should not be itself with normal office_location" do
+      allow(office_location).to receive(:is_primary).and_return false
+      allow(address).to receive(:office_location).and_return office_location
+      address.kind = 'primary'
+      expect(address.read_attribute(:kind)).to eq 'primary'
+    end
+
+    it "kind should be itself without office_location" do
+      address.kind = 'primary'
+      expect(address.read_attribute(:kind)).to eq 'primary'
+    end
+  end
+
+  context "read kind" do
+    it "should return primary when kind is work and has primary office_location" do
+      allow(address).to receive(:office_location).and_return office_location
+      address.write_attribute(:kind, 'work')
+      expect(address.kind).to eq 'primary'
+    end
+
+    it "should return primary when kind is home and has primary office_location" do
+      allow(address).to receive(:office_location).and_return office_location
+      address.write_attribute(:kind, 'home')
+      expect(address.kind).to eq 'home'
+    end
+
+    it "should return itself when kind is work but has normal office_location" do
+      allow(office_location).to receive(:is_primary).and_return false
+      allow(address).to receive(:office_location).and_return office_location
+      address.write_attribute(:kind, 'work')
+      expect(address.kind).to eq 'work'
+    end
+
+    it "should return itself" do
+      address.write_attribute(:kind, 'work')
+      expect(address.kind).to eq 'work'
     end
   end
 end

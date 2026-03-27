@@ -1,4 +1,3 @@
-@watir @screenshots
 Feature: Employee Sign Up when Employer exists and has a matching roster employer
   In order for the Employee to purchase insurance
   Given my Employer exists and Employee is on the Employee Roster
@@ -8,49 +7,76 @@ Feature: Employee Sign Up when Employer exists and has a matching roster employe
   The Employee should be able to match Employer
   The Employee should be able to purchase Insurance
 
-  Scenario: New employee with existing person
+  Background: Setup site, employer, and benefit application
+    Given a CCA site exists with a benefit market
+    Given benefit market catalog exists for enrollment_open initial employer with health benefits
+    And there is an employer Acme Inc.
+    And Acme Inc. employer has a staff role
+
+  Scenario: New employee without existing person
+    Given Continuous plan shopping is turned off
     Given Employee has not signed up as an HBX user
-        When Employee goes to the employee account creation page
-        Then Soren White creates an HBX account
-        #Then Soren White should be logged on as an unlinked employee
-        When Employee goes to register as an employee
-        Then Employee should see the employee search page
-        When Employee enters the identifying info of Soren White
-        Then Employee should not see the matched employee record form
-        Then Soren White logs out
+    And Soren White visits the employee portal
+    When Soren White creates an HBX account
+    And I select the all security question and give the answer
+    When I have submitted the security questions
+    When Employee goes to register as an employee
+    Then Employee should see the employee search page
+    When Employee enters the identifying info of Soren White
+    Then Employee should not see the matched employee record form
+    Then Soren White logs out
 
-    When Soren White logs on to the Employer Portal
-        Then Soren White creates a new employer profile
-        When Employer publishes a plan year
-        Then Employer should see a published success message
-        Then Employer logs out
+  Scenario: New employee with existing person
+    Given Continuous plan shopping is turned off
+    Given staff role person logged in
+    And employer Acme Inc. has enrollment_open benefit application
+    And Acme Inc. employer visit the Employee Roster
+    And there is a census employee record for Patrick Doe for employer Acme Inc.
+    Then Employer logs out
+    And Employee has not signed up as an HBX user
+    And Patrick Doe visits the employee portal
+    When Patrick Doe creates an HBX account
+    And I select the all security question and give the answer
+    When I have submitted the security questions
+    When Employee goes to register as an employee
+    Then Employee should see the employee search page
+    When Employee enters the identifying info of Patrick Doe
+    Then Employee should see the matched employee record form
+    When Employee accepts the matched employer
+    When Employee completes the matched employee form for Patrick Doe
+    Then Employee should see the dependents page
+    When Employee clicks continue on the dependents page
+    Then Employee should see the group selection page
+    When Employee clicks continue button on group selection page for dependents
+    Then Employee should see the list of plans
+    When Employee selects a plan on the plan shopping page
+    When Employee clicks on Confirm button on the coverage summary page
+    Then Employee should see the receipt page
+    Then Employee should see the "my account" page
+    And Employee logs out
 
-    When Soren White logs on to the Insured Portal
-        #Then Soren White should be logged on as an unlinked employee
-        When Employee goes to register as an employee
-        Then Employee should see the employee search page
-        When Employee enters the identifying info of Soren White
-        Then Employee should see the matched employee record form
-        When Employee accepts the matched employer
-        When Employee completes the matched employee form for Soren White
-        Then Employee should see the dependents page
-        When Employee clicks edit on baby Soren
-        Then Employee should see the edit dependent form
-        When Employee clicks delete on baby Soren
-        Then Employee should see 2 dependents
-        When Employee clicks Add Member
-        Then Employee should see the new dependent form
-        When Employee enters the dependent info of Sorens daughter
-        When Employee clicks confirm member
-        Then Employee should see 3 dependents
-        When Employee clicks continue on the dependents page
-        Then Employee should see the group selection page
-        When Employee clicks continue on the group selection page
-        Then Employee should see the list of plans
-        When Employee selects a plan on the plan shopping page
-        When Employee clicks on purchase button on the coverage summary page
-        Then Employee should see the receipt page
-        Then Employee should see the "my account" page
-        # Then Employee should see the "Your Enrollment History" section
-        # When Employee clicks a qle event
-        # Then Employee can purchase a plan
+  Scenario: Employee should see the enroll button checked by default
+    Given Continuous plan shopping is enabled
+    Given staff role person logged in
+    And employer Acme Inc. has enrollment_open benefit application
+    And Acme Inc. employer visit the Employee Roster
+    And there is a census employee record for Patrick Doe for employer Acme Inc.
+    Then Employer logs out
+    And Employee has not signed up as an HBX user
+    And Patrick Doe visits the employee portal
+    When Patrick Doe creates an HBX account
+    And I select the all security question and give the answer
+    When I have submitted the security questions
+    When Employee goes to register as an employee
+    Then Employee should see the employee search page
+    When Employee enters the identifying info of Patrick Doe
+    Then Employee should see the matched employee record form
+    When Employee accepts the matched employer
+    When Employee completes the matched employee form for Patrick Doe
+    Then Employee should see the dependents page
+    When Employee clicks continue on the dependents page
+    Then Employee should see the group selection page
+    Then Employee should see enroll & waive buttons
+    When Employee clicks continue button on group selection page for dependents
+    Then Employee should see the list of plans
+    Then Employee should see plans count listed

@@ -1,16 +1,49 @@
 <% content_for :navigation do %>
-  <%= render 'navigation' %>
+<%= render partial: 'ui-components/v1/navs/families_navigation' %>
 <% end %>
 
-<div class="row">
-  <div class="my-account-page col-md-12">
-    <h1>Manage Family</h1>
-  </div>
+<div class="my-account-page">
+  <h1><%= l10n("manage_family") %></h1>
+</div>
 
-  <div class="col-md-12">
+<div class="account-update-banner hidden">
+  <div class="alert alert-info">
+    <div class="container-fluid">
+      <div class="info-div">
+        <i class="fa fa-info-circle" aria-hidden="true"></i>
+      </div>
+      <div class="flash-msg">
+        <a class="close" data-dismiss="alert" href="#">×</a>
+        <span class="account-update-banner-text"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if @resident %>
+  <div class="content-bottom">
+    <%= render "profile_submenu", :active_subtab => "family-tab" %>
+    <div id="profile-content">
+      <%= render 'insured/families/coverall/family' %>
+    </div>
+  </div>
+<% else %>
+  <div class="content-bottom">
     <%= render "profile_submenu", :active_subtab => "family-tab" %>
     <div id="profile-content">
       <%= render 'family' %>
     </div>
   </div>
-</div>
+<% end %>
+
+<style type="text/css">
+  .info-div {
+    width: 4%;
+    float: left;
+  }
+
+  .flash-msg {
+    width: 96%;
+    float: left;
+  }
+</style>

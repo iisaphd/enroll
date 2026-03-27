@@ -1,11 +1,13 @@
+# frozen_string_literal: true
 class InboxesController < ApplicationController
-  before_action :find_inbox_provider, except: [:msg_to_portal]
+  before_action :find_inbox_provider
   before_action :find_hbx_profile, only: [:new, :create]
   before_action :find_message, only: [:show, :destroy]
   before_action :set_inbox_and_assign_message, only: [:create]
 
   def new
     @new_message = @inbox_provider.inbox.messages.build
+    @element_to_replace_id = params[:family_actions_id]
   end
 
   def create
@@ -22,19 +24,29 @@ class InboxesController < ApplicationController
   end
 
   def show
-    @message.update_attributes(message_read: true)
+    @message.update_attributes(message_read: true) unless current_user.has_hbx_staff_role?
     respond_to do |format|
       format.html
       format.js
     end
   end
 
+
   def destroy
     #@message.destroy
     @message.update_attributes(folder: Message::FOLDER_TYPES[:deleted])
+    flash[:notice] = "Successfully deleted inbox message."
+    if params[:url].present?
+      @inbox_url = params[:url]
+    end
   end
 
   private
+
+  def find_inbox_provider
+    @inbox_provider = current_user.person
+    @inbox_provider_name = "Agent"
+  end
 
   def create_sent_message
     sent_message = @new_message.dup
@@ -55,6 +67,6 @@ class InboxesController < ApplicationController
 
   def set_inbox_and_assign_message
     @inbox = @inbox_provider.inbox
-    @new_message = Message.new(params.require(:message).permit!)
+    @new_message = Message.new(params.require(:message).permit(:subject, :body, :folder, :to, :from))
   end
 end

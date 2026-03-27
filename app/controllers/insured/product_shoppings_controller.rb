@@ -1,0 +1,338 @@
+# frozen_string_literal: true
+
+module Insured
+  class ProductShoppingsController < ApplicationController
+
+    before_action :set_current_person_required, :only => [:receipt, :thankyou, :waive, :continuous_show, :checkout]
+    before_action :set_hbx_enrollment, :only => [:continuous_show, :thankyou, :checkout, :receipt, :waiver_checkout, :waiver_thankyou]
+
+    # rubocop:disable Metrics/CyclomaticComplexity
+    def continuous_show
+      authorize @hbx_enrollment
+
+      attr = continuous_params.to_h.deep_symbolize_keys
+      @context = Organizers::FetchProductsForShoppingEnrollment.call(health: attr[:health], dental: attr[:dental], cart: attr[:cart],
+                                                                     dental_offering: attr[:dental_offering],  health_offering: attr[:health_offering],
+                                                                     action: attr[:action], event: attr[:event])
+
+      if @context.failure?
+        flash[:error] = @context.message
+        redirect_to family_account_path
+        return
+      end
+      set_employee_bookmark_url(family_account_path)
+
+      # TODO: check for values and move to interractor
+      if @context.shop_attributes.present?
+        @context.change_plan = @context.shop_attributes[:change_plan] || ''
+        @context.enrollment_kind = @context.shop_attributes[:enrollment_kind] || ''
+      end
+
+      if @context.shop_for.nil? && @context.go_to_coverage_selection == false
+        redirect_to thankyou_insured_product_shoppings_path(cart: @context.cart, event: @context.event)
+        return
+      elsif @context.go_to_coverage_selection == true
+        mini_context_hash = ExtractContinuousShoppingParams.call(cart: @context.cart.to_h)
+        coverage_hash = @context&.health || @context&.dental
+        @mini_context = mini_context_hash.to_h.merge!(coverage_for: @context.coverage_for, change_plan: coverage_hash[:change_plan])
+        ExtractWaiverEnrollmentParams.call(@context)
+        render 'eligible_continuous_coverage'
+      else
+        render :show
+      end
+
+      ::Caches::CustomCache.release(::BenefitSponsors::Organizations::Organization, :plan_shopping)
+    end
+    # rubocop:enable Metrics/CyclomaticComplexity
+
+    def thankyou
+      authorize @hbx_enrollment
+
+      @context = {}
+      thankyou_params[:cart].each do |k, v|
+        context = Organizers::PrepareForCheckout.call(params: v, person: @person, event: params[:event])
+        @context[k] = context.json
+      end
+
+      @waiver_context = if thankyou_params[:waiver_attrs].present?
+                          thankyou_params[:waiver_attrs].to_h.each_with_object({}) do |(k,v),output|
+                            context = Organizers::PrepareForWaiverCheckout.call(params: v, person: @person, event: thankyou_params[:event])
+                            output[k] = context.json
+                          end
+                        else
+                          {}
+                        end
+
+      @context = Hash[@context.sort.reverse]
+      set_consumer_bookmark_url(family_account_path)
+
+      respond_to do |format|
+        format.html { render 'thankyou' }
+      end
+    end
+
+    def checkout
+      authorize @hbx_enrollment
+
+      @context = {}
+      checkout_params.each do |key, value|
+        context = Organizers::Checkout.call(params: value, previous_enrollment_id: session[:pre_hbx_enrollment_id])
+        @context[key] = context.json
+      end
+
+      @waiver_context = {}
+      if params['waiver_context'].present?
+        params['waiver_context'].each do |k, v|
+          context = Organizers::WaiveEnrollment.call(hbx_enrollment_id: v[:enrollment_id], waiver_reason: v[:waiver_reason])
+          @waiver_context[k] = { waiver_status: context.waiver_enrollment.inactive?, waiver_enrollment: context.waiver_enrollment }
+        end
+      end
+
+      @context.merge!("waiver_context" => @waiver_context)
+      @context = Hash[@context.sort.reverse]
+
+      if @context.values.select{|hash| hash[:employee_is_shopping_before_hire]}.any?(true)
+        session.delete(:pre_hbx_enrollment_id)
+        flash[:error] = "You are attempting to purchase coverage prior to your date of hire on record. Please contact your Employer for assistance"
+        redirect_to family_account_path
+        return
+      end
+
+      if @context.values.select{|hash| hash[:can_select_coverage]}.any?(false)
+        redirect_back(fallback_location: :back)
+        return
+      end
+
+      session.delete(:pre_hbx_enrollment_id)
+      redirect_to receipt_insured_product_shoppings_path(@context)
+    end
+
+    def receipt
+      authorize @hbx_enrollment
+
+      @context = {}
+      receipt_params.each do |key, value|
+        context = Organizers::Receipt.call(params: value, previous_enrollment_id: session[:pre_hbx_enrollment_id])
+        @context[key] = context
+      end
+
+      if params["waiver_context"].present?
+        @health_waiver = HbxEnrollment.find(params["waiver_context"]['health']['waiver_enrollment']) if params["waiver_context"]['health'].present?
+        @dental_waiver = HbxEnrollment.find(params["waiver_context"]['dental']['waiver_enrollment']) if params["waiver_context"]['dental'].present?
+      end
+
+      @context = Hash[@context.sort.reverse]
+
+      #TODO
+      # @change_plan = params[:change_plan].present? ? params[:change_plan] : ''
+      # @enrollment_kind = params[:enrollment_kind].present? ? params[:enrollment_kind] : ''
+
+      # send_receipt_emails if @person.emails.first
+    end
+
+    def waiver_thankyou
+      authorize @hbx_enrollment
+
+      # TODO: Use permit params
+      attrs = waiver_thankyou_params.to_h.deep_symbolize_keys
+      enr_details = attrs.slice(:health, :dental)
+
+      health_waiver_reason = attrs[:health][:waiver_reason]
+      dentalwaiver_reason = attrs[:dental][:waiver_reason]
+      is_outside_service_area_reason = (health_waiver_reason == HbxEnrollment::OUTSIDE_SERVICE_AREA_WAIVER_REASON) || (dentalwaiver_reason == HbxEnrollment::OUTSIDE_SERVICE_AREA_WAIVER_REASON)
+
+      @context = enr_details.each_with_object({}) do |(k,v),output|
+        context = Organizers::PrepareForWaiverCheckout.call(params: v, person: @person, event: attrs[:event])
+        output[k] = context.json
+      end
+
+      @context = Hash[@context.sort.reverse]
+      set_consumer_bookmark_url(family_account_path)
+
+      respond_to do |format|
+        if is_outside_service_area_reason && current_user.person.hbx_staff_role.blank?
+          format.html { redirect_back(fallback_location: :back) }
+        else
+          format.html { render 'waiver_thankyou' }
+        end
+      end
+    end
+
+    def waiver_checkout
+      authorize @hbx_enrollment
+
+      @context = {}
+      waiver_checkout_params.each do |key, value|
+        context = Organizers::WaiveEnrollment.call(hbx_enrollment_id: value[:enrollment_id], waiver_reason: value[:waiver_reason])
+        @context[key] = { waiver_status: context.waiver_enrollment.inactive?, waiver_enrollment: context.waiver_enrollment }
+      end
+      @context = Hash[@context.sort.reverse]
+      session.delete(:pre_hbx_enrollment_id)
+      redirect_to waiver_receipt_insured_product_shoppings_path(@context), notice: 'Waive Coverage Successful'
+    end
+
+    def waiver_receipt
+      @health_enrollment = params[:health].present? ? HbxEnrollment.find(params[:health][:waiver_enrollment]) : nil
+      @dental_enrollment = params[:dental].present? ? HbxEnrollment.find(params[:dental][:waiver_enrollment]) : nil
+      hbx_enrollment = @health_enrollment || @dental_enrollment
+      return nil if hbx_enrollment.nil?
+
+      authorize hbx_enrollment, :waiver_receipt?
+    end
+
+    def waive
+      @hbx_enrollment = HbxEnrollment.find(params[:id])
+      authorize @hbx_enrollment, :waive?
+
+      context = Organizers::WaiveEnrollment.call(hbx_enrollment_id: params[:id], waiver_reason: params[:waiver_reason])
+
+      if context.waiver_enrollment.inactive?
+        redirect_to print_waiver_insured_plan_shopping_path(context.waiver_enrollment), notice: 'Waive Coverage Successful'
+      else
+        redirect_to new_insured_members_selection_path(person_id: @person.id, change_plan: 'change_plan', hbx_enrollment_id: context.hbx_enrollment.id), alert: 'Waive Coverage Failed'
+      end
+    rescue StandardError => e
+      log(e.message, :severity => 'error')
+      redirect_to new_insured_members_selection_path(person_id: @person.id, change_plan: 'change_plan', hbx_enrollment_id: context.hbx_enrollment.id), alert: 'Waive Coverage Failed'
+    end
+
+    def print_waiver
+      @hbx_enrollment = HbxEnrollment.find(params.require(:id))
+      authorize @hbx_enrollment, :print_waiver?
+    end
+
+    private
+
+    HEALTH_DENTAL_CONTINUOUS = %i[
+      change_plan
+      enrollment_id
+      enrollment_kind
+      market_kind
+      selected_to_waive
+      waiver_reason
+    ].freeze
+
+    HEALTH_DENTAL_CHECKOUT = %i[
+      coverage_kind
+      employee_role_id
+      enrollable
+      change_plan
+      enrollment_id
+      enrollment_kind
+      market_kind
+      selected_to_waive
+      waiver_reason
+      event
+      family_id
+      product_id
+      use_family_deductable
+      waivable
+    ].freeze
+
+    HEALTH_DENTAL_WAIVER_CHECKOUT = (HEALTH_DENTAL_CHECKOUT - %i[change_plan selected_to_waive]).freeze
+    HEALTH_DENTAL_RECEIPT = (HEALTH_DENTAL_CHECKOUT + %i[can_select_coverage employee_is_shopping_before_hire qle]).freeze
+
+    CART_ITEMS = {
+      health: %i[id product_id],
+      dental: %i[id product_id]
+    }.freeze
+
+    WAIVER_ITEMS = %i[
+      change_plan
+      enrollment_id
+      enrollment_kind
+      market_kind
+      selected_to_waive
+      waiver_reason
+    ].freeze
+
+    WAIVER_ATTR_ITEMS = {
+      health: WAIVER_ITEMS,
+      dental: WAIVER_ITEMS
+    }.freeze
+
+    def continuous_params
+      params.permit(
+        :event,
+        :action,
+        :dental_offering,
+        :health_offering,
+        health: HEALTH_DENTAL_CONTINUOUS,
+        dental: HEALTH_DENTAL_CONTINUOUS,
+        cart: [CART_ITEMS]
+      )
+    end
+
+    def thankyou_params
+      params.permit(
+        :event,
+        waiver_attrs: [WAIVER_ATTR_ITEMS],
+        cart: [CART_ITEMS]
+      )
+    end
+
+    def checkout_params
+      params.permit(
+        health: HEALTH_DENTAL_CHECKOUT,
+        dental: HEALTH_DENTAL_CHECKOUT
+      )
+    end
+
+    def receipt_params
+      params.permit(
+        :event,
+        health: HEALTH_DENTAL_RECEIPT,
+        dental: HEALTH_DENTAL_RECEIPT
+      )
+    end
+
+    def waiver_thankyou_params
+      params.permit(
+        :event,
+        health: [:enrollment_id, :waiver_reason],
+        dental: [:enrollment_id, :waiver_reason]
+      )
+    end
+
+    def waiver_checkout_params
+      params.permit(
+        health: HEALTH_DENTAL_WAIVER_CHECKOUT,
+        dental: HEALTH_DENTAL_WAIVER_CHECKOUT
+      )
+    end
+
+    def set_current_person_required
+      set_current_person(required: true)
+    end
+
+    def set_hbx_enrollment
+      @hbx_enrollment = HbxEnrollment.find(params[:health][:enrollment_id]) if params[:health]
+      @hbx_enrollment = HbxEnrollment.find(params[:cart][:health][:id]) if params[:cart] && params[:cart][:health]
+      @hbx_enrollment = HbxEnrollment.find(params[:dental][:enrollment_id]) if params[:dental]
+      @hbx_enrollment = HbxEnrollment.find(params[:cart][:dental][:id]) if params[:cart] && params[:cart][:dental]
+    end
+
+    def sanatize_params(param)
+      if param.instance_of?(Hash)
+        param
+      elsif param.instance_of?(String)
+        JSON.parse(param)
+      end
+    end
+
+    def send_receipt_emails
+      UserMailer.generic_consumer_welcome(@person.first_name, @person.hbx_id, @person.emails.first.address).deliver_now
+      body = render_to_string 'user_mailer/secure_purchase_confirmation', layout: false
+      from_provider = HbxProfile.current_hbx
+      message_params = {
+        sender_id: from_provider.try(:id),
+        parent_message_id: @person.id,
+        from: from_provider.try(:legal_name),
+        to: @person.full_name,
+        body: body,
+        subject: 'Your Secure Enrollment Confirmation'
+      }
+      create_secure_message(message_params, @person, :inbox)
+    end
+  end
+end
