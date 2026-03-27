@@ -1,6 +1,6 @@
 <div id="qle-menu">
   <div class="page-header center">
-    <h4>TOP LIFE CHANGES</h4>
+    <h4><%= l10n("insured.top_life_changes").to_s.upcase %></h4>
   </div>
   <div class="row">
     <% if @qualifying_life_events %>
@@ -9,9 +9,9 @@
       <% @qualifying_life_events.each_slice(slice_count) do |qles| %>
         <div class="col-lg-4 col-md-4 col-sm-4 col-xs-12">
           <ul class="list-unstyled list-inline list-qle">
-            <% qles.each do |qle| %>
+            <% qles.each_with_index do |qle, index| %>
               <li>
-                <a class="qle-menu-item" href="javascript:void(0)" data-toggle="tooltip" title="<%= qle.description %>"><%= qle.title.humanize %></a>
+                <%= qle_link_generater(qle, index) %>
               </li>
             <% end %>
           </ul>

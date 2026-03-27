@@ -1,0 +1,37 @@
+# frozen_string_literal: true
+
+module BenefitSponsors
+  module ModelEvents
+    module HbxEnrollment
+      REGISTERED_EVENTS = [
+        :application_coverage_selected,
+        :employee_waiver_confirmation,
+        :employee_coverage_termination
+      ].freeze
+
+      def notify_on_save
+        return unless aasm_state_previously_changed?
+
+        @is_application_coverage_selected = true if is_transition_matching?(to: [:coverage_selected, :renewing_coverage_selected],  from: [:shopping, :auto_renewing], event: :select_coverage)
+
+        @is_employee_waiver_confirmation = true if is_transition_matching?(to: :inactive, from: [:shopping, :coverage_selected, :auto_renewing, :renewing_coverage_selected], event: :waive_coverage)
+
+        REGISTERED_EVENTS.each do |event|
+          if instance_variable_get(:"@is_#{event}")
+            event_options = {}
+            notify_observers(ModelEvent.new(event, self, event_options))
+          end
+        end
+      end
+
+      def is_transition_matching?(from: nil, to: nil, event: nil)
+        aasm_matcher = lambda {|expected, current|
+          expected.blank? || expected == current || (expected.is_a?(Array) && expected.include?(current))
+        }
+
+        current_event_name = aasm.current_event.to_s.gsub('!', '').to_sym
+        aasm_matcher.call(from, aasm.from_state) && aasm_matcher.call(to, aasm.to_state) && aasm_matcher.call(event, current_event_name)
+      end
+    end
+  end
+end

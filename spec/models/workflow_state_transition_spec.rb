@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe WorkflowStateTransition, type: :model do
@@ -25,7 +27,7 @@ RSpec.describe WorkflowStateTransition, type: :model do
       end
     end
 
-     context "with no to_state" do
+    context "with no to_state" do
       let(:params) {valid_params.except(:to_state)}
 
       it "should invalid" do
@@ -36,15 +38,15 @@ RSpec.describe WorkflowStateTransition, type: :model do
     context "with no transition_at" do
       let(:params)                    {valid_params.except(:transition_at)}
       let(:workflow_state_transition) { WorkflowStateTransition.new(**params) }
-      let(:current_time)              { TimeKeeper.datetime_of_record }
+      let(:mock_time) { Time.mktime(2014, 2, 13, 0, 0, 0) }
 
       before do
-        workflow_state_transition.valid?
+        allow(Time).to receive(:now).and_return(mock_time)
       end
 
       it "should set the transition_at value before validation" do
         expect(workflow_state_transition.valid?).to be_truthy
-        expect(workflow_state_transition.transition_at).to be_within(0.1).of(current_time)
+        expect(workflow_state_transition.transition_at.to_time).to eq mock_time
       end
     end
 

@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 describe IrsGroup do
-  let(:person) {FactoryGirl.create(:person)}
+  let(:person) {FactoryBot.create(:person)}
   let(:family) do
     family = Family.new
-    family.add_family_member(person, is_primary_applicant: true)
+    family.add_family_member(person, { is_primary_applicant: true })
     family.save
     family
   end

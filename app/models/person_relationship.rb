@@ -13,6 +13,7 @@ class PersonRelationship
                               foster\ child daughter-in-law sister-in-law mother-in-law sister ward
                               stepdaughter child sponsored\ dependent dependent\ of\ a\ minor\ dependent
                               guardian court\ appointed\ guardian collateral\ dependent life\ partner)
+
   Relationships = [
     "spouse",
     "life_partner",
@@ -42,6 +43,19 @@ class PersonRelationship
     "trustee", # no inverse
     "unrelated",
     "ward"
+  ]
+
+  Relationships_UI = [
+    "spouse",
+    "domestic_partner",
+    "child",
+    "parent",
+    "sibling",
+    "unrelated",
+    "aunt_or_uncle",
+    "nephew_or_niece",
+    "grandchild",
+    "grandparent"
   ]
 
   InverseMap = {
@@ -78,17 +92,23 @@ class PersonRelationship
 
   SymmetricalRelationships = %W[head\ of\ household spouse ex-spouse cousin ward trustee annuitant other\ relationship other\ relative self]
 
-  Kinds = SymmetricalRelationships | Relationships
+  Kinds = SymmetricalRelationships | Relationships | BenefitEligibilityElementGroup::INDIVIDUAL_MARKET_RELATIONSHIP_CATEGORY_KINDS
 
   field :relative_id, type: BSON::ObjectId
   field :kind, type: String
 
-	validates_presence_of :relative_id, message: "Choose a relative"
+  validates_presence_of :relative_id, message: "Choose a relative"
   validates :kind,
             presence: true,
             allow_blank: false,
             allow_nil:   false,
             inclusion: {in: Kinds, message: "%{value} is not a valid person relationship"}
+
+  after_save :notify_updated
+
+  def notify_updated
+    person.notify_updated
+  end
 
   def parent
     raise "undefined parent class: Person" unless person?
