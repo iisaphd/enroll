@@ -1,27 +1,47 @@
 class Document
   include Mongoid::Document
   include Mongoid::Timestamps
+  include Mongoid::Attributes::Dynamic
+  include ModelEvents::Document
+  include Config::AcaModelConcern
+  include EnrollObservable
 
+  RESOURCE_LIST = %w[BenefitSponsors::Organizations::AcaShopDcEmployerProfile
+                     BenefitSponsors::Organizations::FehbEmployerProfile
+                     BenefitSponsors::Organizations::AcaShopCcaEmployerProfile
+                     BenefitSponsors::Organizations::GeneralAgencyProfile
+                     EmployeeRole Person ConsumerRole].freeze
+
+  MODEL_CLASS_MAPPING = {
+    "BenefitSponsors::Organizations::AcaShopDcEmployerProfile" => BenefitSponsors::Organizations::AcaShopDcEmployerProfile,
+    "BenefitSponsors::Organizations::FehbEmployerProfile" => BenefitSponsors::Organizations::FehbEmployerProfile,
+    "BenefitSponsors::Organizations::AcaShopCcaEmployerProfile" => BenefitSponsors::Organizations::AcaShopCcaEmployerProfile,
+    "EmployeeRole" => EmployeeRole,
+    "Person" => Person,
+    "ConsumerRole" => ConsumerRole
+  }.freeze
 
   ACCESS_RIGHTS = %w(public pii_restricted)
+
+  after_save :notify_on_save
 
   # Enable polymorphic associations
   embedded_in :documentable, polymorphic: true
 
   # Dublin Core metadata elements
-  field :title, type: String
+  field :title, type: String, default: "untitled"
 
   # Entity responsible for making the resource - person, organization or service
-  field :creator, type: String, default: "dchl"
+  field :creator, type: String, default: "mhc"
 
-  # Controlled vocabulary w/classification codes
+  # Controlled vocabulary w/classification codes. Mapped to ConsumerRole::VLP_DOCUMENT_KINDS
   field :subject, type: String
 
   # May include but is not limited to: an abstract, a table of contents, a graphical representation, or a free-text account of the resource
   field :description, type: String
 
   # Entity responsible for making the resource available - person, organization or service
-  field :publisher, type: String, default: "dchl"
+  field :publisher, type: String, default: "mhc"
 
   # Entity responsible for making contributions to the resource - person, organization or service
   field :contributor, type: String
@@ -33,7 +53,7 @@ class Document
   field :type, type: String, default: "text"
 
   # Conforms to IANA mime types - http://www.iana.org/assignments/media-types/media-types.xhtml
-  field :format, type: String
+  field :format, type: String, default: "application/octet-stream"
 
   # An unambiguous reference to the resource - Conforms to URI
   field :identifier, type: String
@@ -55,7 +75,9 @@ class Document
 
   field :tags, type: Array, default: []
 
-  validates_presence_of :title, :creator, :publisher, :type, :format, :identifier, :source, :language, :rights
+  field :size, type: String
+
+  validates_presence_of :title, :creator, :publisher, :type, :format, :source, :language
 
   validates :rights,
     allow_blank: true,

@@ -1,0 +1,17 @@
+//= require jquery2
+//= require jquery_ujs
+//= require jquery-ui
+//= require bootstrap.bundle.min
+//= require bootstrap-treeview
+//= require jquery.selectric.min
+//= require bowser.min
+//= require ./sweetalerts
+//= require ./tether
+//= require ./sidebars/plan_filters
+//= require ./services
+//= require ./forms
+//= require ./datepicker
+//= require ./sliders
+//= require ./validators
+//= require ./mask_inputs
+//= require ./datepickerForInputs

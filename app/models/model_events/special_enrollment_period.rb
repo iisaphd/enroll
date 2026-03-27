@@ -1,0 +1,23 @@
+# frozen_string_literal: true
+
+module ModelEvents
+  module SpecialEnrollmentPeriod
+    include ModelEvents::DefineVariableHelper
+
+    REGISTERED_EVENTS = [
+      :employee_sep_request_accepted
+    ]
+
+    def notify_on_save
+
+      is_employee_sep_request_accepted = true if _id_previously_changed?
+
+      REGISTERED_EVENTS.each do |event|
+        next unless check_local_variable("is_#{event}", binding)
+
+        event_options = {}
+        notify_observers(ModelEvent.new(event, self, event_options))
+      end
+    end
+  end
+end

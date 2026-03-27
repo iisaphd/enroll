@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "rails_helper"
 
 describe Forms::BrokerAgencyProfile, "given nothing" do
@@ -12,9 +14,10 @@ describe Forms::BrokerAgencyProfile, "given nothing" do
     expect(subject).to have_errors_on(:entity_kind)
   end
 
-  it "should validate fein" do
-    expect(subject).to have_errors_on(:fein)
-  end
+  #Auto Generating FEIN for broker agencies
+  # it "should validate fein" do
+    # expect(subject).to have_errors_on(:fein)
+  # end
 
   it "should validate dob" do
     expect(subject).to have_errors_on(:dob)
@@ -34,66 +37,76 @@ describe Forms::BrokerAgencyProfile, "given nothing" do
 end
 
 
-describe Forms::BrokerAgencyProfile, ".save" do
+describe Forms::BrokerAgencyProfile, ".save", :dbclean => :after_each do
 
-  let(:persist_organization) { FactoryGirl.create(:organization, fein: "223230323") }
-
-  let(:attributes) { {
-    first_name: 'joe',
-    last_name: 'smith',
-    dob: "2015-06-01",
-    email: 'useraccount@gmail.com',
-    npn: "8422323232",
-    legal_name: 'useragency',
-    fein: "223232323", 
-    entity_kind: "c_corporation",
-    market_kind: "individual",
-    working_hours: "0", 
-    accept_new_clients: "0",
-    office_locations_attributes: office_locations
-    }.merge(other_attributes) }
+  let(:broker_agency_profile) { FactoryBot.create(:broker_agency, fein: "223230323") }
+  let(:employer_profile) { FactoryBot.create(:employer_profile, fein: "333230323") }
+  let(:market_kind) { Settings.aca.market_kinds.include?("individual") ? "individual" : "shop" }
+  let(:attributes) do
+    {
+      first_name: 'joe',
+      last_name: 'smith',
+      dob: "2015-06-01",
+      email: 'useraccount@gmail.com',
+      npn: "8422323232",
+      legal_name: 'useragency',
+      fein: "223232323",
+      sic_code: '0111',
+      entity_kind: "c_corporation",
+      market_kind: market_kind,
+      working_hours: "0",
+      accept_new_clients: "0",
+      ach_record: { routing_number: '123456789', routing_number_confirmation: '123456789', account_number: '99999999999999' },
+      office_locations_attributes: office_locations
+    }.merge(other_attributes)
+  end
 
   let(:other_attributes) { { } }
 
-  let(:office_locations) { { 
-    "0" => { 
-      address_attributes: address_attributes, 
-      phone_attributes: phone_attributes
+  let(:office_locations) do
+    {
+      "0" => {
+        address_attributes: address_attributes,
+        phone_attributes: phone_attributes
+      }
     }
-    }}
+  end
 
-  let(:address_attributes) {
-    { 
+  let(:address_attributes) do
+    {
       kind: "primary",
-      address_1: "99 N ST", 
-      city: "washignton", 
-      state: "dc",
+      address_1: "99 N ST",
+      city: "washignton",
+      state: Settings.aca.state_abbreviation,
+      county: "County",
       zip: "20006"
     }
-  }
+  end
 
-  let(:phone_attributes) {
-    { 
-      kind: "phone main", 
-      area_code: "202", 
+  let(:phone_attributes) do
+    {
+      kind: "work",
+      area_code: "202",
       number: "324-2232"
     }
-  }
+  end
 
-  subject {
+  subject do
     Forms::BrokerAgencyProfile.new(attributes)
-  }
+  end
 
   context 'when multiple users exists with same personal information' do
 
-    let(:other_attributes) { {
-      first_name: "steve",
-      last_name: "smith",
-      dob: "1974-10-10"
-      }}
+    let(:other_attributes) do
+      {
+        first_name: "steve",
+        last_name: "smith",
+        dob: "1974-10-10"
+      }
+    end
 
-    before(:each) do 
-      2.times { FactoryGirl.create(:person, first_name: "steve", last_name: "smith", dob: "10/10/1974") } 
+    before(:each) do
+      2.times { FactoryBot.create(:person, first_name: "steve", last_name: "smith", dob: "10/10/1974") }
       subject.save
     end
 
@@ -102,14 +115,16 @@ describe Forms::BrokerAgencyProfile, ".save" do
     end
   end
 
-  context 'when organization already exists with same FEIN' do
+  context 'when broker agency already exists with same FEIN' do
 
-    let(:other_attributes) { {
-      fein: "223230323"
-      }}
+    let(:other_attributes) do
+      {
+        fein: "223230323"
+      }
+    end
 
-    before(:each) do 
-      persist_organization # This is to persist organization record in the database
+    before(:each) do
+      broker_agency_profile.save
       subject.save
     end
 
@@ -118,17 +133,33 @@ describe Forms::BrokerAgencyProfile, ".save" do
     end
   end
 
+  context 'when an employer_profile already exists with the same FEIN' do
+    let(:other_attributes) do
+      { fein: "333230323", npn: "3322323232" }
+    end
+
+    before(:each) do
+      employer_profile.organization.save!
+      subject.save
+    end
+
+    it 'should add the broker agency profile to the organization of the employer profile' do
+      expect(Organization.where({fein: "333230323"}).first.broker_agency_profile).to be_truthy
+    end
+  end
 
   context 'when existing user matched with same personal information' do
 
-    let(:other_attributes) { {
-      first_name: "joseph",
-      last_name: "smith",
-      dob: "1974-10-10"
-      }}
+    let(:other_attributes) do
+      {
+        first_name: "joseph",
+        last_name: "smith",
+        dob: "1974-10-10"
+      }
+    end
 
-    before(:each) do 
-      FactoryGirl.create(:person, first_name: "joseph", last_name: "smith", dob: "10/10/1974")
+    before(:each) do
+      FactoryBot.create(:person, first_name: "joseph", last_name: "smith", dob: "10/10/1974")
       subject.save
     end
 
@@ -146,27 +177,30 @@ describe Forms::BrokerAgencyProfile, ".save" do
 
   context 'when person details not matched with existing people' do
 
-    let(:other_attributes) { {
-      first_name: 'kevin',
-      email: "useraccount2@gmail.com",
-      npn: "8022303232",
-      fein: "223232300"
-      }}
+    let(:other_attributes) do
+      {
+        first_name: 'kevin',
+        email: "useraccount2@gmail.com",
+        npn: "8022303232",
+        fein: "223232300"
+      }
+    end
 
-    before(:each) do 
+    before(:each) do
       subject.save
     end
 
-    it 'should build broker agency from new person record and set person as primary' do 
+    it 'should build broker agency from new person record and set person as primary' do
       person = Person.where(first_name: subject.first_name, last_name: subject.last_name, dob: subject.dob).first
       expect(person).to be_truthy
       expect(person.broker_role).to be_truthy
-      expect(person.broker_agency_staff_roles).to be_empty
+      expect(person.broker_agency_staff_roles.empty?).to be_truthy
 
       organization = Organization.where(fein: subject.fein).first
       expect(organization).to be_truthy
       expect(organization.broker_agency_profile).to be_truthy
       expect(organization.broker_agency_profile.primary_broker_role).to eq(person.broker_role)
+      expect(person.broker_role.market_kind).to eq(attributes[:market_kind])
       expect(person.broker_role.broker_agency_profile).to eq(organization.broker_agency_profile)
     end
   end
@@ -174,28 +208,41 @@ end
 
 
 describe Forms::BrokerAgencyProfile, ".match_or_create_person" do
-
-  let(:attributes) { {
-    first_name: "steve",
-    last_name: "smith",
-    email: "example@email.com",
-    dob: "1974-10-10",
-    npn: "8422323232",
-    legal_name: 'useragency',
-    fein: "223232323", 
-    entity_kind: "c_corporation",
-    market_kind: "individual"
-  }.merge(other_attributes)}
+  let(:market_kind) { Settings.aca.market_kinds.include?("individual") ? "individual" : "shop" }
+  let(:attributes) do
+    {
+      first_name: "steve",
+      last_name: "smith",
+      email: "example@email.com",
+      dob: "1974-10-10",
+      npn: "8422323232",
+      legal_name: 'useragency',
+      fein: "223232323",
+      entity_kind: "c_corporation",
+      market_kind: market_kind
+    }.merge(other_attributes)
+  end
 
   let(:other_attributes) { {} }
 
-  subject {
+  subject do
     Forms::BrokerAgencyProfile.new(attributes)
-  }
+  end
 
-  context 'when more than 1 person matched' do 
+
+  context 'when email address invalid' do
+
+    it 'should have error on email' do
+      broker_agency = Forms::BrokerAgencyProfile.new(attributes.merge({email: "test@email"}))
+      broker_agency.valid?
+      expect(broker_agency).to have_errors_on(:email)
+      expect(broker_agency.errors[:email]).to eq(["test@email is not valid"])
+    end
+  end
+
+  context 'when more than 1 person matched' do
     before :each do
-      2.times { FactoryGirl.create(:person, first_name: "steve", last_name: "smith", dob: "10/10/1974") }
+      2.times { FactoryBot.create(:person, first_name: "steve", last_name: "smith", dob: "10/10/1974") }
     end
 
     it "should raise an exception" do
@@ -203,11 +250,11 @@ describe Forms::BrokerAgencyProfile, ".match_or_create_person" do
     end
   end
 
-  context 'when person with same information already present in the system' do 
+  context 'when person with same information already present in the system' do
     let(:other_attributes) { {first_name: "larry"}}
 
-     before :each do
-      FactoryGirl.create(:person, first_name: "larry", last_name: "smith", dob: "10/10/1974")
+    before :each do
+      FactoryBot.create(:person, first_name: "larry", last_name: "smith", dob: "10/10/1974")
       subject.match_or_create_person
     end
 
@@ -217,15 +264,17 @@ describe Forms::BrokerAgencyProfile, ".match_or_create_person" do
     end
   end
 
-  context 'when person not matched in the system' do 
-    let(:other_attributes) { {
-      first_name: "robin",
-      last_name: "smith",
-      email: "example@email.com",
-      dob: "1978-08-10"
-      } }
+  context 'when person not matched in the system' do
+    let(:other_attributes) do
+      {
+        first_name: "robin",
+        last_name: "smith",
+        email: "example@email.com",
+        dob: "1978-08-10"
+      }
+    end
 
-    before :each do 
+    before :each do
       subject.match_or_create_person
     end
 
@@ -242,9 +291,139 @@ describe Forms::BrokerAgencyProfile, ".match_or_create_person" do
       expect(subject.person.emails[0].address).to eq(attributes[:email])
     end
   end
+
+
+  context "person already exists" do
+    let(:attributes) do
+      {
+        first_name: "test1",
+        last_name: "test1",
+        dob: "1985-11-11"
+      }
+    end
+
+    let(:person) { FactoryBot.create(:person)}
+    let(:organization) { FactoryBot.create(:organization)}
+
+    before do
+      person.update_attributes(other_attributes)
+      subject.instance_variable_set("@office_locations", organization.office_locations)
+      subject.match_or_create_person # I need to trigger this twice in "SPEC" to see failure.
+    end
+
+    it "should not throw any error" do #19754
+      subject.match_or_create_person
+      person.reload
+      expect(person.update_attributes(middle_name: "test")).to eq true
+    end
+  end
 end
 
+describe Forms::BrokerAgencyProfile, ".find" do
+  let(:organization) {FactoryBot.create(:organization)}
+  let(:broker_agency_profile) { FactoryBot.create(:broker_agency_profile, organization: organization) }
 
+  before :each do
+    @form = Forms::BrokerAgencyProfile.find(broker_agency_profile.id)
+  end
 
+  it "should have correct organization info" do
+    expect(@form.id).to eq organization.id
+    expect(@form.legal_name).to eq organization.legal_name
+    expect(@form.dba).to eq organization.dba
+    expect(@form.fein).to eq organization.fein
+    expect(@form.home_page).to eq organization.home_page
+    expect(@form.office_locations).to eq organization.office_locations
+  end
 
+  it "should have broker_agency_profile info" do
+    expect(@form.entity_kind).to eq broker_agency_profile.entity_kind
+    expect(@form.market_kind).to eq broker_agency_profile.market_kind
+    expect(@form.languages_spoken).to eq broker_agency_profile.languages_spoken
+    expect(@form.working_hours).to eq broker_agency_profile.working_hours
+    expect(@form.accept_new_clients).to eq broker_agency_profile.accept_new_clients
+  end
 
+  it "should have correct npn" do
+    expect(@form.npn).to eq broker_agency_profile.primary_broker_role.try(:npn)
+  end
+end
+
+describe Forms::BrokerAgencyProfile, '.update_attributes' do
+  let(:organization) {FactoryBot.create(:organization)}
+  let(:broker_agency_profile) { FactoryBot.create(:broker_agency_profile, organization: organization) }
+  let(:broker_role) { broker_agency_profile.primary_broker_role }
+  let(:person) { broker_role.person }
+  let(:market_kind) { Settings.aca.market_kinds.include?("individual") ? "individual" : "shop" }
+  let(:attributes) do
+    {
+      id: organization.id,
+      first_name: 'joe',
+      last_name: 'smith',
+      dob: "2015-06-01",
+      email: 'useraccount@gmail.com',
+      legal_name: organization.legal_name,
+      fein: organization.fein,
+      dba: organization.dba,
+      home_page: 'dchealth.com',
+      entity_kind: broker_agency_profile.entity_kind,
+      market_kind: market_kind,
+      languages_spoken: ["English"],
+      working_hours: "0",
+      accept_new_clients: "0",
+      office_locations_attributes: office_locations
+    }
+  end
+
+  let(:office_locations) do
+    {
+      "0" => {
+        address_attributes: address_attributes,
+        phone_attributes: phone_attributes
+      }
+    }
+  end
+
+  let(:address_attributes) do
+    {
+      kind: "primary",
+      address_1: "99 N ST",
+      city: "washignton",
+      state: "dc",
+      county: "County",
+      zip: "20006"
+    }
+  end
+
+  let(:phone_attributes) do
+    {
+      kind: "work",
+      area_code: "202",
+      number: "324-2232"
+    }
+  end
+
+  before :each do
+    @form = Forms::BrokerAgencyProfile.find(broker_agency_profile.id)
+    @form.update_attributes(attributes)
+  end
+
+  it "should update organization info" do
+    organization.reload
+    expect(@form.home_page).to eq "dchealth.com"
+    expect(organization.home_page).to eq "dchealth.com"
+  end
+
+  it "should update broker_agency_profile info" do
+    broker_agency_profile.reload
+    expect(@form.market_kind).to eq market_kind
+    expect(broker_agency_profile.market_kind).to eq market_kind
+    expect(broker_agency_profile.languages_spoken).to eq ["English"]
+  end
+
+  it "should update person info" do
+    person.reload
+    expect(@form.first_name).to eq "joe"
+    expect(person.first_name).to eq "joe"
+  end
+end

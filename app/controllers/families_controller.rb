@@ -1,24 +1,18 @@
 class FamiliesController < ApplicationController
-  before_action :set_family, only: [:index, :show, :new, :create, :edit, :update]
-  before_action :check_hbx_staff_role, except: [:welcome]
+  include Acapi::Notifiers
 
-  def index
-    # @q = params.permit(:q)[:q]
-    # page_string = params.permit(:page)[:page]
-    # page_no = page_string.blank? ? nil : page_string.to_i
-    # @families = Family.search(@q).exists(employer_profile: true).page page_no
-    @families = Family.all
-  end
+  before_action :set_family #, only: [:index, :show, :new, :create, :edit, :update]
+  # before_action :check_hbx_staff_role, except: [:welcome]
 
-  def show
-    # @family = Family.find(params[id])
-  end
+  layout "two_column"
 
   def new
+    authorize current_user, :new?
     @family = Family.new
   end
 
   def create
+    authorize current_user, :create?
     @family = Family.new(family_params)
 
     respond_to do |format|
@@ -33,10 +27,12 @@ class FamiliesController < ApplicationController
   end
 
   def edit
+    authorize @family, :edit?
     @family = Family.find(params[id])
   end
 
   def update
+    authorize @family, :update?
     respond_to do |format|
       if @family.update(family_params)
         format.html { redirect_to exchanges_family_path @family, notice: 'Family was successfully updated.' }
@@ -51,7 +47,21 @@ class FamiliesController < ApplicationController
 private
   # Use callbacks to share common setup or constraints between actions.
   def set_family
+    set_current_person
+    return if not @person.present?
     # @family = Family.find(params[:id])
+    if @person.primary_family.present?
+      @family = @person.primary_family
+    else
+      message = {}
+      message[:message] = '@family was set to nil'
+      message[:session_person_id] = session[:person_id]
+      message[:user_id] = current_user.id
+      message[:oim_id] = current_user.oim_id
+      message[:url] = request.original_url
+      log(message, :severity=>'error')
+      redirect_to "/500.html"
+    end
   end
 
   def family_params

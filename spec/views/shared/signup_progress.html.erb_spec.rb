@@ -1,7 +1,10 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 describe "shared/_signup_progress.html.erb" do
   before :each do
+    allow(view).to receive(:policy_helper).and_return(double("Policy", updateable?: true))
     render 'shared/signup_progress', locals: {step: '1'}
   end
 

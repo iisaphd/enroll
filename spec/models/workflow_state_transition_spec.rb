@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
 RSpec.describe WorkflowStateTransition, type: :model do
@@ -25,7 +27,7 @@ RSpec.describe WorkflowStateTransition, type: :model do
       end
     end
 
-     context "with no to_state" do
+    context "with no to_state" do
       let(:params) {valid_params.except(:to_state)}
 
       it "should invalid" do
@@ -34,17 +36,32 @@ RSpec.describe WorkflowStateTransition, type: :model do
     end
 
     context "with no transition_at" do
-      let(:params) {valid_params.except(:transition_at)}
+      let(:params)                    {valid_params.except(:transition_at)}
+      let(:workflow_state_transition) { WorkflowStateTransition.new(**params) }
+      let(:mock_time) { Time.mktime(2014, 2, 13, 0, 0, 0) }
 
-      it "should invalid" do
-        expect(WorkflowStateTransition.new(**params).valid?).to be_falsey
+      before do
+        allow(Time).to receive(:now).and_return(mock_time)
+      end
+
+      it "should set the transition_at value before validation" do
+        expect(workflow_state_transition.valid?).to be_truthy
+        expect(workflow_state_transition.transition_at.to_time).to eq mock_time
       end
     end
 
     context "with all valid data" do
+      let(:params)                    { valid_params }
+      let(:workflow_state_transition) { WorkflowStateTransition.new(**params) }
+
       it "should be valid" do
-        expect(WorkflowStateTransition.new(**valid_params).valid?).to be_truthy
+        expect(workflow_state_transition.valid?).to be_truthy
       end
+
+      it "should use the passed value for transition_at" do
+        expect(workflow_state_transition.transition_at).to eq transition_at
+      end
+
     end
   end
 end
